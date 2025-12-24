@@ -1,0 +1,87 @@
+{
+  "name": "genfins",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão de Finanças Pessoais - GenFins",
+  "main": "dist/main/main.js",
+  "author": "Kassiano",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KassianoV/GenFinds"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run watch\" \"npm run start\"",
+    "watch": "tsc -w",
+    "start": "wait-on dist/main/main.js && electron .",
+    "build": "tsc",
+    "build:prod": "set NODE_ENV=production&& npm run build && electron-builder --win",
+    "build:dir": "set NODE_ENV=production&& npm run build && electron-builder --win --dir",
+    "clean": "rimraf dist release",
+    "version": "npm run changelog && git add CHANGELOG.md",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+  },
+  "keywords": [
+    "financas",
+    "electron",
+    "typescript",
+    "gestao-financeira",
+    "controle-financeiro",
+    "orcamento-pessoal"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/sql.js": "^1.4.9",
+    "concurrently": "^8.2.2",
+    "conventional-changelog-cli": "^4.1.0",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "electron-reloader": "^1.2.3",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "sql.js": "^1.10.3"
+  },
+  "build": {
+    "appId": "com.kassiano.genfins",
+    "productName": "GenFins",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "src/renderer/**/*",
+      "node_modules/sql.js/dist/sql-wasm.wasm",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "${productName}-${version}-Setup.${ext}",
+      "signAndEditExecutable": false,
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GenFins",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico"
+    },
+    "compression": "maximum",
+    "asar": true
+  }
+}

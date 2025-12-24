@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genfins</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/transacoes.css">
+    <link rel="stylesheet" href="styles/relatorio.css">
+    <link rel="stylesheet" href="styles/configurar.css">
+    <link rel="stylesheet" href="styles/configurar.css">
+    <link rel="stylesheet" href="styles/toast.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="app-header">
+                <div class="app-logo">
+                    <img src="assets/logo.ico" alt="GenFins Logo">
+                </div>
+                <div class="app-info">
+                    <h1 class="app-name">GenFins</h1>
+                    <span class="app-version">v0.9.0</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </button>
+                <button class="nav-item active" data-page="transacoes">
+                    <span class="nav-icon">💳</span>
+                    <span class="nav-text">Transações</span>
+                </button>
+                <button class="nav-item" data-page="relatorio">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Relatório</span>
+                </button>
+            </nav>
+
+            <div class="nav-bottom">
+                <button class="nav-item" data-page="configurar">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Configurar</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1 class="page-title">Gerenciador Financeiro</h1>
+            </header>
+
+            <!-- Dashboard Page -->
+            <section class="page-content" id="dashboard-page" style="display: none;">
+                <div class="dashboard-content">
+                    <!-- Cards de Resumo -->
+                    <div class="dashboard-summary">
+                        <div class="summary-card-dash total">
+                            <div class="card-icon">💰</div>
+                            <div class="card-info">
+                                <h3>Saldo Total</h3>
+                                <p class="card-value" id="dashSaldoTotal">R$ 0,00</p>
+                                <span class="card-label">Todas as contas</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-card-dash receita">
+                            <div class="card-icon">📈</div>
+                            <div class="card-info">
+                                <h3>Receitas do Mês</h3>
+                                <p class="card-value" id="dashReceitaMes">R$ 0,00</p>
+                                <span class="card-label" id="dashReceitaLabel">Dezembro 2024</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-card-dash despesa">
+                            <div class="card-icon">📉</div>
+                            <div class="card-info">
+                                <h3>Despesas do Mês</h3>
+                                <p class="card-value" id="dashDespesaMes">R$ 0,00</p>
+                                <span class="card-label" id="dashDespesaLabel">Dezembro 2024</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-card-dash economia">
+                            <div class="card-icon">💸</div>
+                            <div class="card-info">
+                                <h3>Economia do Mês</h3>
+                                <p class="card-value" id="dashEconomiaMes">R$ 0,00</p>
+                                <span class="card-label">Receitas - Despesas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico e Transações Recentes -->
+                    <div class="dashboard-main">
+                        <div class="dashboard-chart">
+                            <h3>Evolução Mensal</h3>
+                            <div class="chart-placeholder">
+                                <canvas id="dashboardChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-recent">
+                            <div class="recent-header">
+                                <h3>Últimas Transações</h3>
+                                <button class="btn-link" onclick="Navigation.navigateTo('transacoes')">Ver todas →</button>
+                            </div>
+                            <div class="recent-list" id="dashRecentTransactions">
+                                <div class="empty-state">
+                                    <p>Nenhuma transação recente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                   <!-- Orçamentos do Mês -->
+                    <div class="dashboard-budgets">
+                        <h3>Orçamentos do Mês</h3>
+                        <div class="budgets-grid" id="dashBudgetsGrid">
+                            <div class="empty-state">
+                                <p>Nenhum orçamento cadastrado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transações Page -->
+            <section class="page-content" id="transacoes-page">
+                <div class="transacoes-header">
+                    <h2>Transações Realizadas</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-export" id="btnExportar">
+                            <span>📥</span> Exportar
+                        </button>
+                        <button class="btn btn-import" id="btnImportar">
+                            <span>📤</span> Importar
+                        </button>
+                        <input type="file" id="fileImport" accept=".csv" style="display: none;">
+                        <button class="btn btn-primary" id="btnNovaTransacao">+ Nova</button>
+                    </div>
+                </div>
+
+                <!-- Filtros Estilo Protótipo -->
+                <div class="transacoes-filters-proto">
+                    <div class="filters-top-row">
+                        <!-- Seletor de Período (Ano + Meses) -->
+                        <div class="period-selector">
+                            <select id="filtroAno" class="year-select">
+                                <!-- Será preenchido dinamicamente -->
+                            </select>
+                            <div class="months-tabs" id="monthsTabs">
+                                <button class="month-tab" data-month="1">Jan</button>
+                                <button class="month-tab" data-month="2">Fev</button>
+                                <button class="month-tab" data-month="3">Mar</button>
+                                <button class="month-tab" data-month="4">Abr</button>
+                                <button class="month-tab" data-month="5">Mai</button>
+                                <button class="month-tab" data-month="6">Jun</button>
+                                <button class="month-tab" data-month="7">Jul</button>
+                                <button class="month-tab" data-month="8">Ago</button>
+                                <button class="month-tab" data-month="9">Set</button>
+                                <button class="month-tab" data-month="10">Out</button>
+                                <button class="month-tab" data-month="11">Nov</button>
+                                <button class="month-tab active" data-month="12">Dez</button>
+                            </div>
+                        </div>
+
+                        <!-- Filtro Dropdown -->
+                        <div class="filter-dropdown">
+                            <button class="filter-trigger" id="filterTrigger">
+                                <span class="filter-icon">🔽</span>
+                                <span id="filterLabel">Todas</span>
+                            </button>
+                            <div class="filter-menu" id="filterMenu">
+                                <button class="filter-option active" data-tipo="">Todas</button>
+                                <button class="filter-option" data-tipo="receita">Receitas</button>
+                                <button class="filter-option" data-tipo="despesa">Despesas</button>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Data Pagamento -->
+                        <div class="toggle-filter">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggleDataPagamento">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Data Pagamento</span>
+                        </div>
+
+                        <!-- Campo de Busca -->
+                        <div class="search-filter">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="searchTransacoes" placeholder="Buscar transações...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="transacoes-container">
+                    <table class="transacoes-table" id="transacoesTable">
+                        <thead>
+                            <tr>
+                                <th>📅 DATA</th>
+                                <th>📝 DESCRIÇÃO</th>
+                                <th>🏷️ CATEGORIA</th>
+                                <th>🏦 CONTA</th>
+                                <th>💳 TIPO</th>
+                                <th>💰 VALOR</th>
+                                <th>⚙️ AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transacoesBody">
+                            <!-- Transações serão inseridas aqui via JavaScript -->
+                        </tbody>
+                    </table>
+
+                    <div class="empty-state" id="emptyStateTransacoes">
+                        <p>Nenhuma transação encontrada</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Relatório Page -->
+            <section class="page-content" id="relatorio-page" style="display: none;">
+                <div class="relatorio-filters">
+                    <div class="filter-group">
+                        <label>Categorias das receitas</label>
+                        <select id="filtroReceitaCategoria" class="filter-select">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Categorias das despesas</label>
+                        <select id="filtroDespesaCategoria" class="filter-select">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="summary-cards">
+                    <div class="summary-card receita">
+                        <h3>Receita</h3>
+                        <p class="summary-value" id="receitaTotal">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card despesa">
+                        <h3>Despesas</h3>
+                        <p class="summary-value" id="despesaTotal">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card saldo">
+                        <h3>Saldo</h3>
+                        <p class="summary-value" id="saldoTotal">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <canvas id="chartReceitas"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="chartDespesas"></canvas>
+                    </div>
+                </div>
+
+                <div class="info-bottom">
+                    <div class="info-card">
+                        <h4>Informações de Saldo</h4>
+                        <div class="info-list" id="infoCredito">
+                            <p>Contas:</p>
+                        </div>
+                    </div>
+                    <div class="chart-circles">
+                        <div class="circle-chart">
+                            <canvas id="pizzaReceitas"></canvas>
+                        </div>
+                        <div class="circle-chart">
+                            <canvas id="pizzaDespesas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configurar Page -->
+            <section class="page-content" id="configurar-page" style="display: none;">
+                <div class="config-tabs">
+                    <button class="tab-btn active" data-tab="contas">Contas</button>
+                    <button class="tab-btn" data-tab="categoria">Categoria</button>
+                    <button class="tab-btn" data-tab="orcamento">Orçamento</button>
+                </div>
+
+                <!-- Tab: Contas -->
+                <div class="tab-content active" id="tab-contas">
+                    <div class="config-section">
+                        <h3>Adicionar nova Conta</h3>
+                        <form id="formConta" class="config-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome da Conta</label>
+                                    <input type="text" id="contaNome" placeholder="Ex: Banco Inter" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Saldo da Conta</label>
+                                    <input type="number" id="contaSaldo" placeholder="0.00" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Tipo de Conta</label>
+                                    <select id="contaTipo" required>
+                                        <option value="corrente">Corrente</option>
+                                        <option value="poupanca">Poupança</option>
+                                        <option value="investimento">Investimento</option>
+                                        <option value="carteira">Carteira</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">Adicionar conta</button>
+                        </form>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Contas Cadastradas</h3>
+                        <div class="items-list" id="contasList">
+                            <div class="empty-state">
+                                <p>Nenhuma conta cadastrada</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Editar Conta -->
+                <div class="modal" id="modalEditarConta">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Editar Conta</h2>
+                            <button class="modal-close" id="closeModalEditarConta">&times;</button>
+                        </div>
+                        <form id="formEditarConta" class="modal-form">
+                            <input type="hidden" id="editContaId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome da Conta</label>
+                                    <input type="text" id="editContaNome" placeholder="Ex: Banco Inter" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Saldo da Conta</label>
+                                    <input type="number" id="editContaSaldo" placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Tipo de Conta</label>
+                                    <select id="editContaTipo" required>
+                                        <option value="corrente">Corrente</option>
+                                        <option value="poupanca">Poupança</option>
+                                        <option value="investimento">Investimento</option>
+                                        <option value="carteira">Carteira</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                <button type="button" class="btn btn-secondary" id="cancelModalEditarConta">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab: Categoria -->
+                <div class="tab-content" id="tab-categoria">
+                    <div class="config-section">
+                        <h3>Adicionar nova Categoria</h3>
+                        <form id="formCategoria" class="config-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome da Categoria</label>
+                                    <input type="text" id="categoriaNome" placeholder="Ex: Alimentação" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tipo</label>
+                                    <select id="categoriaTipo" required>
+                                        <option value="receita">Receita</option>
+                                        <option value="despesa">Despesa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Cor</label>
+                                    <input type="color" id="categoriaCor" value="#4CAF50">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Salvar</button>
+                                <button type="button" class="btn btn-danger">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Categorias Cadastradas</h3>
+                        <div class="items-list" id="categoriasList">
+                            <div class="empty-state">
+                                <p>Nenhuma categoria cadastrada</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                 <!-- Modal Editar Categoria -->
+                <div class="modal" id="modalEditarCategoria">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Editar Categoria</h2>
+                            <button class="modal-close" id="closeModalEditarCategoria">&times;</button>
+                        </div>
+                        <form id="formEditarCategoria" class="modal-form">
+                            <input type="hidden" id="editCategoriaId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome da Categoria</label>
+                                    <input type="text" id="editCategoriaNome" placeholder="Ex: Alimentação" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tipo</label>
+                                    <select id="editCategoriaTipo" required>
+                                        <option value="receita">Receita</option>
+                                        <option value="despesa">Despesa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Cor</label>
+                                    <input type="color" id="editCategoriaCor" value="#4CAF50">
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                <button type="button" class="btn btn-secondary" id="cancelModalEditarCategoria">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab: Orçamento -->
+                <div class="tab-content" id="tab-orcamento">
+                    <div class="config-section">
+                        <h3>Adicionar novo Orçamento</h3>
+                        <form id="formOrcamento" class="config-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Categoria</label>
+                                    <select id="orcamentoCategoria" required>
+                                        <option value="">Selecione uma categoria</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Valor do Orçamento</label>
+                                    <input type="number" id="orcamentoValor" placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Mês</label>
+                                    <select id="orcamentoMes" required>
+                                        <option value="1">Janeiro</option>
+                                        <option value="2">Fevereiro</option>
+                                        <option value="3">Março</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Maio</option>
+                                        <option value="6">Junho</option>
+                                        <option value="7">Julho</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Setembro</option>
+                                        <option value="10">Outubro</option>
+                                        <option value="11">Novembro</option>
+                                        <option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Ano</label>
+                                    <input type="number" id="orcamentoAno" value="2024" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">Adicionar conta</button>
+                        </form>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Orçamentos Cadastrados</h3>
+                        <div class="items-list" id="orcamentosList">
+                            <div class="empty-state">
+                                <p>Nenhum orçamento cadastrado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- Modal Editar Orçamento -->
+                <div class="modal" id="modalEditarOrcamento">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Editar Orçamento</h2>
+                            <button class="modal-close" id="closeModalEditarOrcamento">&times;</button>
+                        </div>
+                        <form id="formEditarOrcamento" class="modal-form">
+                            <input type="hidden" id="editOrcamentoId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Categoria</label>
+                                    <select id="editOrcamentoCategoria" required>
+                                        <option value="">Selecione uma categoria</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Valor do Orçamento</label>
+                                    <input type="number" id="editOrcamentoValor" placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Mês</label>
+                                    <select id="editOrcamentoMes" required>
+                                        <option value="1">Janeiro</option>
+                                        <option value="2">Fevereiro</option>
+                                        <option value="3">Março</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Maio</option>
+                                        <option value="6">Junho</option>
+                                        <option value="7">Julho</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Setembro</option>
+                                        <option value="10">Outubro</option>
+                                        <option value="11">Novembro</option>
+                                        <option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Ano</label>
+                                    <input type="number" id="editOrcamentoAno" value="2024" required>
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                <button type="button" class="btn btn-secondary" id="cancelModalEditarOrcamento">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Nova Transação -->
+    <div class="modal" id="modalNovaTransacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Transação</h2>
+                <button class="modal-close" id="closeModalTransacao">&times;</button>
+            </div>
+            <form id="formNovaTransacao" class="modal-form">
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="transacaoDescricao" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="number" id="transacaoValor" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="transacaoTipo" required>
+                            <option value="receita">Receita</option>
+                            <option value="despesa">Despesa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="transacaoData" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Conta</label>
+                        <select id="transacaoConta" required>
+                            <option value="">Selecione uma conta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="transacaoCategoria" required>
+                        <option value="">Selecione uma categoria</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="transacaoObservacoes" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <button type="button" class="btn btn-secondary" id="cancelModalTransacao">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Transação -->
+    <div class="modal" id="modalEditarTransacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Transação</h2>
+                <button class="modal-close" id="closeModalEditarTransacao">&times;</button>
+            </div>
+            <form id="formEditarTransacao" class="modal-form">
+                <input type="hidden" id="editTransacaoId">
+                
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="editTransacaoDescricao" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="number" id="editTransacaoValor" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="editTransacaoTipo" required>
+                            <option value="receita">Receita</option>
+                            <option value="despesa">Despesa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="editTransacaoData" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Conta</label>
+                        <select id="editTransacaoConta" required>
+                            <option value="">Selecione uma conta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="editTransacaoCategoria" required>
+                        <option value="">Selecione uma categoria</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="editTransacaoObservacoes" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    <button type="button" class="btn btn-secondary" id="cancelModalEditarTransacao">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Scripts -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/transacoes.js"></script>
+    <script src="scripts/relatorio.js"></script>
+    <script src="scripts/configurar.js"></script>
+</body>
+</html>

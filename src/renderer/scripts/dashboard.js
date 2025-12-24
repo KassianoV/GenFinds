@@ -1,0 +1,306 @@
+// src/renderer/scripts/dashboard.js
+
+const DashboardPage = {
+    chart: null, // Armazenar instância do gráfico
+
+    init() {
+        this.render();
+    },
+
+    async render() {
+        await this.updateSummaryCards();
+        this.updateRecentTransactions();
+        this.updateBudgets();
+        this.renderChart();
+    },
+
+    async updateSummaryCards() {
+        if (!AppState.currentUser) return;
+
+        // Calcular saldo total de todas as contas
+        const saldoTotal = AppState.contas.reduce((sum, conta) => sum + conta.saldo, 0);
+        
+        // Buscar resumo do mês atual
+        const hoje = new Date();
+        const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+        const dataInicio = primeiroDia.toISOString().split('T')[0];
+        const dataFim = ultimoDia.toISOString().split('T')[0];
+
+        try {
+            const response = await window.api.relatorio.getResumo(
+                AppState.currentUser.id,
+                dataInicio,
+                dataFim
+            );
+
+            if (response.success) {
+                const resumo = response.data;
+
+                // Atualizar cards
+                const saldoEl = document.getElementById('dashSaldoTotal');
+                const receitaEl = document.getElementById('dashReceitaMes');
+                const despesaEl = document.getElementById('dashDespesaMes');
+                const economiaEl = document.getElementById('dashEconomiaMes');
+
+                if (saldoEl) {
+                    saldoEl.textContent = Utils.formatCurrency(saldoTotal);
+                    saldoEl.style.color = saldoTotal >= 0 ? 'var(--info-color)' : 'var(--danger-color)';
+                }
+
+                if (receitaEl) {
+                    receitaEl.textContent = Utils.formatCurrency(resumo.receita);
+                }
+
+                if (despesaEl) {
+                    despesaEl.textContent = Utils.formatCurrency(resumo.despesa);
+                }
+
+                if (economiaEl) {
+                    economiaEl.textContent = Utils.formatCurrency(resumo.saldo);
+                    economiaEl.style.color = resumo.saldo >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                }
+
+                // Atualizar labels de mês
+                const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                const mesAtual = meses[hoje.getMonth()];
+                const anoAtual = hoje.getFullYear();
+
+                const receitaLabel = document.getElementById('dashReceitaLabel');
+                const despesaLabel = document.getElementById('dashDespesaLabel');
+                
+                if (receitaLabel) receitaLabel.textContent = `${mesAtual} ${anoAtual}`;
+                if (despesaLabel) despesaLabel.textContent = `${mesAtual} ${anoAtual}`;
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar resumo:', error);
+        }
+    },
+
+    updateRecentTransactions() {
+        const container = document.getElementById('dashRecentTransactions');
+        if (!container) return;
+
+        // Pegar últimas 5 transações
+        const recentes = AppState.transacoes.slice(0, 5);
+
+        if (recentes.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nenhuma transação recente</p></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        recentes.forEach(transacao => {
+            const item = document.createElement('div');
+            item.className = 'recent-item';
+            
+            item.innerHTML = `
+                <div class="recent-item-info">
+                    <div class="recent-item-desc">${transacao.descricao}</div>
+                    <div class="recent-item-cat">${transacao.categoria_nome} • ${Utils.formatDate(transacao.data)}</div>
+                </div>
+                <div class="recent-item-value ${transacao.tipo}">
+                    ${transacao.tipo === 'receita' ? '+' : '-'} ${Utils.formatCurrency(transacao.valor)}
+                </div>
+            `;
+
+            container.appendChild(item);
+        });
+    },
+
+    updateBudgets() {
+        const container = document.getElementById('dashBudgetsGrid');
+        if (!container) return;
+
+        // Filtrar orçamentos do mês atual
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth() + 1; // 1-12
+        const anoAtual = hoje.getFullYear();
+
+        const orcamentosMesAtual = AppState.orcamentos.filter(o => 
+            o.mes === mesAtual && o.ano === anoAtual
+        );
+
+        if (orcamentosMesAtual.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nenhum orçamento para este mês</p></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        orcamentosMesAtual.forEach(orcamento => {
+            // Encontrar categoria
+            const categoria = AppState.categorias.find(c => c.id === orcamento.categoria_id);
+            const categoriaNome = categoria ? categoria.nome : 'Categoria não encontrada';
+
+            // Calcular quanto foi gasto nesta categoria no mês atual
+            const primeiroDia = new Date(anoAtual, mesAtual - 1, 1);
+            const ultimoDia = new Date(anoAtual, mesAtual, 0);
+            
+            const dataInicio = primeiroDia.toISOString().split('T')[0];
+            const dataFim = ultimoDia.toISOString().split('T')[0];
+
+            const gastoCategoria = AppState.transacoes
+                .filter(t => 
+                    t.categoria_id === orcamento.categoria_id &&
+                    t.tipo === 'despesa' &&
+                    t.data >= dataInicio &&
+                    t.data <= dataFim
+                )
+                .reduce((sum, t) => sum + t.valor, 0);
+
+            const percentual = (gastoCategoria / orcamento.valor_planejado) * 100;
+            const percentualFormatado = Math.min(percentual, 100).toFixed(0);
+
+            // Definir cor da barra de progresso
+            let progressColor = 'var(--success-color)';
+            if (percentual >= 90) {
+                progressColor = 'var(--danger-color)';
+            } else if (percentual >= 70) {
+                progressColor = 'var(--warning-color)';
+            }
+
+            const card = document.createElement('div');
+            card.className = 'budget-card';
+            
+            card.innerHTML = `
+                <div class="budget-header">
+                    <div class="budget-category">${categoriaNome}</div>
+                    <div class="budget-percentage" style="color: ${progressColor};">${percentualFormatado}%</div>
+                </div>
+                <div class="budget-progress">
+                    <div class="budget-progress-bar">
+                        <div class="budget-progress-fill" style="width: ${percentualFormatado}%; background-color: ${progressColor};"></div>
+                    </div>
+                </div>
+                <div class="budget-values">
+                    <span class="budget-spent">${Utils.formatCurrency(gastoCategoria)}</span>
+                    <span class="budget-separator">/</span>
+                    <span class="budget-total">${Utils.formatCurrency(orcamento.valor_planejado)}</span>
+                </div>
+                <div class="budget-remaining ${gastoCategoria > orcamento.valor_planejado ? 'over-budget' : ''}">
+                    ${gastoCategoria > orcamento.valor_planejado 
+                        ? `Excedeu ${Utils.formatCurrency(gastoCategoria - orcamento.valor_planejado)}`
+                        : `Restam ${Utils.formatCurrency(orcamento.valor_planejado - gastoCategoria)}`
+                    }
+                </div>
+            `;
+
+            container.appendChild(card);
+        });
+    },
+
+     renderChart() {
+        const canvas = document.getElementById('dashboardChart');
+        if (!canvas) return;
+
+        // Destruir gráfico anterior se existir
+        if (this.chart) {
+            this.chart.destroy();
+        }
+
+        // Calcular dados dos últimos 6 meses
+        const meses = [];
+        const receitas = [];
+        const despesas = [];
+
+        const hoje = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+            const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const mes = data.getMonth() + 1;
+            const ano = data.getFullYear();
+            
+            // Nome do mês
+            const nomeMes = data.toLocaleDateString('pt-BR', { month: 'short' });
+            meses.push(nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1));
+            
+            // Calcular receitas e despesas do mês
+            const primeiroDia = new Date(ano, mes - 1, 1);
+            const ultimoDia = new Date(ano, mes, 0);
+            
+            const dataInicio = primeiroDia.toISOString().split('T')[0];
+            const dataFim = ultimoDia.toISOString().split('T')[0];
+            
+            const receitaMes = AppState.transacoes
+                .filter(t => t.tipo === 'receita' && t.data >= dataInicio && t.data <= dataFim)
+                .reduce((sum, t) => sum + t.valor, 0);
+                
+            const despesaMes = AppState.transacoes
+                .filter(t => t.tipo === 'despesa' && t.data >= dataInicio && t.data <= dataFim)
+                .reduce((sum, t) => sum + t.valor, 0);
+            
+            receitas.push(receitaMes);
+            despesas.push(despesaMes);
+        }
+
+        // Criar gráfico
+        this.chart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Receitas',
+                        data: receitas,
+                        borderColor: 'rgb(76, 175, 80)',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Despesas',
+                        data: despesas,
+                        borderColor: 'rgb(244, 67, 54)',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(context.parsed.y);
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+};
