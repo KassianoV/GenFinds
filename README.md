@@ -245,11 +245,11 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE.txt](
 
 ## 👨‍💻 Autor
 
-**Kassiano**
+**Kassiano Vieira**
 
-- 🐙 GitHub: [@seu-usuario](https://github.com/seu-usuario)
-- 📧 Email: seu-email@exemplo.com
-- 💼 LinkedIn: [Seu Nome](https://linkedin.com/in/seu-perfil)
+- 🐙 GitHub: [@seu-usuario](https://github.com/KassianoV)
+- 📧 Email: kassianovieira.pc@gmail.com
+- 💼 LinkedIn: [Seu Nome](https://www.linkedin.com/in/kassianovieira/)
 
 ---
 
@@ -269,7 +269,7 @@ Se o GenFins te ajudou, considere dar uma ⭐ no repositório!
 ---
 
 <div align="center">
-  <p>Desenvolvido com ❤️ e ☕ por <strong>Kassiano</strong></p>
+  <p>Desenvolvido por <strong>Kassiano</strong></p>
   <p>
     <a href="#-genfins---gerenciador-financeiro-pessoal">Voltar ao topo ⬆️</a>
   </p>
