@@ -55,14 +55,33 @@ const Utils = {
             info: title || 'Informação'
         };
 
-        toast.innerHTML = `
-            <div class="toast-icon">${icons[type]}</div>
-            <div class="toast-content">
-                <p class="toast-title">${titles[type]}</p>
-                <p class="toast-message">${message}</p>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-        `;
+        // ✅ CORREÇÃO XSS: Usar DOM APIs em vez de innerHTML para prevenir XSS
+        const toastIcon = document.createElement('div');
+        toastIcon.className = 'toast-icon';
+        toastIcon.textContent = icons[type];
+
+        const toastContent = document.createElement('div');
+        toastContent.className = 'toast-content';
+
+        const toastTitle = document.createElement('p');
+        toastTitle.className = 'toast-title';
+        toastTitle.textContent = titles[type];
+
+        const toastMessage = document.createElement('p');
+        toastMessage.className = 'toast-message';
+        toastMessage.textContent = message; // textContent é seguro contra XSS
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'toast-close';
+        closeButton.textContent = '×';
+        closeButton.addEventListener('click', () => toast.remove());
+
+        toastContent.appendChild(toastTitle);
+        toastContent.appendChild(toastMessage);
+
+        toast.appendChild(toastIcon);
+        toast.appendChild(toastContent);
+        toast.appendChild(closeButton);
 
         container.appendChild(toast);
 

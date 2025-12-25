@@ -53,15 +53,17 @@ const api = {
   },
 
   transacao: {
-    create: (transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>) => 
+    create: (transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('transacao:create', transacao),
-    list: (usuarioId: number, limit?: number) => 
+    list: (usuarioId: number, limit?: number) =>
       ipcRenderer.invoke('transacao:list', usuarioId, limit),
-    get: (id: number) => 
+    listPaginated: (usuarioId: number, page?: number, pageSize?: number) =>
+      ipcRenderer.invoke('transacao:list-paginated', usuarioId, page, pageSize),
+    get: (id: number) =>
       ipcRenderer.invoke('transacao:get', id),
-    update: (id: number, updates: Partial<Transacao>) => 
+    update: (id: number, updates: Partial<Transacao>) =>
       ipcRenderer.invoke('transacao:update', id, updates),
-    delete: (id: number) => 
+    delete: (id: number) =>
       ipcRenderer.invoke('transacao:delete', id),
   },
 

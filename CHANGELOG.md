@@ -5,6 +5,99 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] - 2025-12-25
+
+### 🔒 Segurança
+
+#### Correções Críticas Implementadas
+
+**CRÍTICO 1 & 2: Proteção contra SQL Injection (Verificado)**
+- ✅ Sanitização de parâmetro LIMIT com validação numérica
+- ✅ Whitelist de campos em operações UPDATE dinâmicas
+- ✅ Prepared statements em todas as queries SQL
+- Arquivos: [database.ts](src/database/database.ts)
+
+**CRÍTICO 3: Validação de Entrada com Zod**
+- ✅ Implementado schemas de validação para todas as entidades
+- ✅ Validação tipada em todos os 17 IPC handlers
+- ✅ Schemas: Usuario, Conta, Categoria, Orcamento, Transacao
+- ✅ Validação de tipos, limites e formatos (email, data, enums)
+- Arquivos: [validation.ts](src/main/validation.ts), [main.ts](src/main/main.ts)
+
+**CRÍTICO 4: Sanitização de Mensagens de Erro**
+- ✅ Função `sanitizeError()` para prevenir vazamento de informações
+- ✅ Mapeamento de erros SQL para mensagens amigáveis
+- ✅ Tratamento de erros sensíveis (constraints, foreign keys, etc.)
+- Arquivos: [validation.ts](src/main/validation.ts)
+
+**CRÍTICO 5: TRIGGERs SQLite para Gestão Automática de Saldo**
+- ✅ TRIGGER `atualizar_saldo_insert` - atualiza saldo ao inserir transação
+- ✅ TRIGGER `atualizar_saldo_delete` - restaura saldo ao deletar transação
+- ✅ TRIGGER `atualizar_saldo_update` - recalcula saldo ao editar transação
+- ✅ Removida lógica manual de cálculo de saldo (redução de código)
+- Arquivos: [database.ts](src/database/database.ts)
+
+**IMPORTANTE 6: Correção de XSS em Toast Notifications**
+- ✅ Substituído `innerHTML` por APIs DOM seguras
+- ✅ Uso de `textContent` para prevenir injeção de scripts
+- ✅ Proteção contra XSS em notificações de usuário
+- Arquivos: [app.js](src/renderer/scripts/app.js)
+
+### 📊 Observabilidade
+
+**IMPORTANTE 7: Logging Estruturado com Winston**
+- ✅ Logger configurado com transports de arquivo
+- ✅ Rotação automática de logs (5MB por arquivo, 5 arquivos)
+- ✅ Logs separados: `error.log` e `combined.log`
+- ✅ Funções auxiliares: `logError()`, `logInfo()`, `logIpcHandler()`
+- ✅ Logs incluem timestamp, stack traces e contexto
+- Localização: `%APPDATA%/genfins/logs/`
+- Arquivos: [logger.ts](src/main/logger.ts), [main.ts](src/main/main.ts)
+
+### ⚡ Performance
+
+**IMPORTANTE 8: Paginação para Grandes Volumes**
+- ✅ Método `getTransacoesPaginated()` implementado
+- ✅ Suporte a cursor-based pagination (offset/limit)
+- ✅ Limite máximo de 100 itens por página
+- ✅ Metadados de paginação (total, páginas, hasNext, hasPrev)
+- ✅ Novo IPC handler `transacao:list-paginated`
+- Arquivos: [database.ts](src/database/database.ts), [main.ts](src/main/main.ts), [preload.ts](src/preload/preload.ts), [database.types.ts](src/types/database.types.ts)
+
+**IMPORTANTE 9: Cache de Queries**
+- ✅ Sistema de cache em memória com TTL de 5 minutos
+- ✅ Cache aplicado em `getContas()` e `getCategorias()`
+- ✅ Invalidação automática em operações CUD (create/update/delete)
+- ✅ Métodos: `getCached()`, `setCache()`, `invalidateCache()`, `clearCache()`
+- ✅ Redução de queries repetitivas em dashboards
+- Arquivos: [database.ts](src/database/database.ts)
+
+### 📦 Dependências Adicionadas
+
+```json
+"dependencies": {
+  "winston": "^3.19.0",
+  "zod": "^4.2.1"
+}
+```
+
+### 📈 Impacto das Melhorias
+
+- **Segurança:** 5 vulnerabilidades críticas corrigidas
+- **Validação:** 100% dos inputs validados com schemas Zod
+- **Performance:** Cache reduz queries repetitivas, paginação otimiza grandes listas
+- **Observabilidade:** Logs estruturados facilitam debugging e auditoria
+- **Manutenibilidade:** TRIGGERs eliminam código duplicado e garantem consistência
+
+### 🎯 Próximos Passos (Recomendados)
+
+- 🟢 Eliminar código duplicado (método `getLastInserted`)
+- 🟢 Implementar sistema de backup automático
+- 🟢 Completar feature de editar transações no frontend
+- 🟢 Implementar sistema de migrations de schema
+
+---
+
 ## [1.1.0] - 2024-12-25
 
 ### 🎉 Adicionado
@@ -174,5 +267,6 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## Links
 
+- [1.2.0] - 2025-12-25
 - [1.1.0] - 2024-12-25
 - [1.0.0] - 2024-12-23

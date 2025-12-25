@@ -11,16 +11,27 @@ import {
   Orcamento,
   Transacao,
   ResumoFinanceiro,
-  TransacaoCompleta
+  TransacaoCompleta,
+  PaginationParams,
+  PaginatedResult
 } from '../types/database.types';
+
+// Interface para cache
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
 
 export class DatabaseManager {
   private db!: Database;
   private dbPath: string;
+  private cache: Map<string, CacheEntry<any>>;
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
   constructor() {
     const userDataPath = app.getPath('userData');
     this.dbPath = path.join(userDataPath, 'financas.db');
+    this.cache = new Map();
   }
 
   async init(): Promise<void> {
@@ -115,6 +126,53 @@ export class DatabaseManager {
 
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data)`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)`);
+
+    // ========== TRIGGERS PARA GESTÃO AUTOMÁTICA DE SALDO ==========
+
+    // Trigger: Atualizar saldo quando inserir transação
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_saldo_insert
+      AFTER INSERT ON transacoes
+      FOR EACH ROW
+      BEGIN
+        UPDATE contas
+        SET saldo = saldo + (CASE WHEN NEW.tipo = 'receita' THEN NEW.valor ELSE -NEW.valor END),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.conta_id;
+      END;
+    `);
+
+    // Trigger: Reverter saldo quando deletar transação
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_saldo_delete
+      AFTER DELETE ON transacoes
+      FOR EACH ROW
+      BEGIN
+        UPDATE contas
+        SET saldo = saldo - (CASE WHEN OLD.tipo = 'receita' THEN OLD.valor ELSE -OLD.valor END),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = OLD.conta_id;
+      END;
+    `);
+
+    // Trigger: Ajustar saldo quando atualizar transação
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_saldo_update
+      AFTER UPDATE ON transacoes
+      FOR EACH ROW
+      BEGIN
+        -- Reverter o saldo da transação antiga
+        UPDATE contas
+        SET saldo = saldo - (CASE WHEN OLD.tipo = 'receita' THEN OLD.valor ELSE -OLD.valor END)
+        WHERE id = OLD.conta_id;
+
+        -- Aplicar o saldo da transação nova
+        UPDATE contas
+        SET saldo = saldo + (CASE WHEN NEW.tipo = 'receita' THEN NEW.valor ELSE -NEW.valor END),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.conta_id;
+      END;
+    `);
   }
 
 private save(): void {
@@ -124,9 +182,44 @@ private save(): void {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  
+
   fs.writeFileSync(this.dbPath, data);
 }
+
+  // ========== MÉTODOS DE CACHE ==========
+
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now - entry.timestamp > this.CACHE_TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
+
+  private setCache<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+
+  private invalidateCache(pattern: string): void {
+    const keys = Array.from(this.cache.keys());
+    for (const key of keys) {
+      if (key.startsWith(pattern)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 
   // ========== MÉTODOS DE USUÁRIO ==========
   
@@ -169,15 +262,28 @@ private save(): void {
       [conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0, conta.usuario_id]
     );
     this.save();
-    
+
+    // Invalidar cache de contas
+    this.invalidateCache(`contas:${conta.usuario_id}`);
+
     const result = this.db.exec('SELECT * FROM contas ORDER BY id DESC LIMIT 1');
     return this.rowToConta(result[0]);
   }
 
   getContas(usuarioId: number): Conta[] {
+    // Tentar buscar do cache
+    const cacheKey = `contas:${usuarioId}`;
+    const cached = this.getCached<Conta[]>(cacheKey);
+    if (cached) return cached;
+
+    // Se não estiver em cache, buscar do banco
     const result = this.db.exec('SELECT * FROM contas WHERE usuario_id = ? ORDER BY nome', [usuarioId]);
-    if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) => this.rowToContaFromArray(row, result[0].columns));
+    const data = result.length === 0 ? [] : result[0].values.map((row: SqlValue[]) => this.rowToContaFromArray(row, result[0].columns));
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
   }
 
   getConta(id: number): Conta | undefined {
@@ -187,30 +293,38 @@ private save(): void {
   }
 
   updateConta(id: number, updates: Partial<Conta>): boolean {
-   
+
     const allowedFields = ['nome', 'saldo', 'tipo', 'ativa', 'usuario_id'];
-    
+
     const validUpdates = Object.entries(updates)
       .filter(([key]) => allowedFields.includes(key) && key !== 'id');
-    
+
     if (validUpdates.length === 0) {
       return false;
     }
-    
+
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
-    
+
     this.db.run(
       `UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [...values, id] as SqlValue[]
     );
     this.save();
+
+    // Invalidar cache de contas (invalidar todos para simplificar)
+    this.invalidateCache('contas:');
+
     return true;
   }
 
   deleteConta(id: number): boolean {
     this.db.run('DELETE FROM contas WHERE id = ?', [id]);
     this.save();
+
+    // Invalidar cache de contas
+    this.invalidateCache('contas:');
+
     return true;
   }
 
@@ -240,25 +354,38 @@ private save(): void {
       [categoria.nome, categoria.tipo, categoria.cor || null, categoria.icone || null, categoria.usuario_id]
     );
     this.save();
-    
+
+    // Invalidar cache de categorias
+    this.invalidateCache(`categorias:${categoria.usuario_id}`);
+
     const result = this.db.exec('SELECT * FROM categorias ORDER BY id DESC LIMIT 1');
     return this.rowToCategoria(result[0]);
   }
 
   getCategorias(usuarioId: number, tipo?: 'receita' | 'despesa'): Categoria[] {
+    // Tentar buscar do cache
+    const cacheKey = `categorias:${usuarioId}:${tipo || 'all'}`;
+    const cached = this.getCached<Categoria[]>(cacheKey);
+    if (cached) return cached;
+
+    // Se não estiver em cache, buscar do banco
     let query = 'SELECT * FROM categorias WHERE usuario_id = ?';
     const params: SqlValue[] = [usuarioId];
-    
+
     if (tipo) {
       query += ' AND tipo = ?';
       params.push(tipo);
     }
-    
+
     query += ' ORDER BY nome';
-    
+
     const result = this.db.exec(query, params);
-    if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) => this.rowToCategoriaFromArray(row, result[0].columns));
+    const data = result.length === 0 ? [] : result[0].values.map((row: SqlValue[]) => this.rowToCategoriaFromArray(row, result[0].columns));
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
   }
 
   getCategoria(id: number): Categoria | undefined {
@@ -271,28 +398,36 @@ private save(): void {
   updateCategoria(id: number, updates: Partial<Categoria>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = ['nome', 'tipo', 'cor', 'icone', 'usuario_id'];
-    
+
     const validUpdates = Object.entries(updates)
       .filter(([key]) => allowedFields.includes(key) && key !== 'id');
-    
+
     if (validUpdates.length === 0) {
       return false;
     }
-    
+
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
-    
+
     this.db.run(
       `UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [...values, id] as SqlValue[]
     );
     this.save();
+
+    // Invalidar cache de categorias
+    this.invalidateCache('categorias:');
+
     return true;
   }
 
   deleteCategoria(id: number): boolean {
     this.db.run('DELETE FROM categorias WHERE id = ?', [id]);
     this.save();
+
+    // Invalidar cache de categorias
+    this.invalidateCache('categorias:');
+
     return true;
   }
 
@@ -406,17 +541,11 @@ private save(): void {
       'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, usuario_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [transacao.descricao, transacao.valor, transacao.tipo, transacao.data, transacao.conta_id, transacao.categoria_id, transacao.usuario_id, transacao.observacoes || null]
     );
-    
-    const conta = this.getConta(transacao.conta_id);
-    if (conta) {
-      const novoSaldo = transacao.tipo === 'receita' 
-        ? conta.saldo + transacao.valor 
-        : conta.saldo - transacao.valor;
-      this.updateConta(conta.id, { saldo: novoSaldo });
-    }
-    
+
+    // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
+
     this.save();
-    
+
     const result = this.db.exec('SELECT * FROM transacoes ORDER BY id DESC LIMIT 1');
     return this.rowToTransacao(result[0]);
   }
@@ -424,7 +553,7 @@ private save(): void {
   // ✅ CORRIGIDO: LIMIT agora usa parâmetros preparados
   getTransacoes(usuarioId: number, limit?: number): TransacaoCompleta[] {
     let query = `
-      SELECT 
+      SELECT
         t.*,
         ct.nome as conta_nome,
         cat.nome as categoria_nome,
@@ -435,9 +564,9 @@ private save(): void {
       WHERE t.usuario_id = ?
       ORDER BY t.data DESC, t.created_at DESC
     `;
-    
+
     const params: SqlValue[] = [usuarioId];
-    
+
     // ✅ CORREÇÃO: Validar e adicionar LIMIT de forma segura
     if (limit !== undefined && limit > 0) {
       // Validação: garantir que limit é um número inteiro positivo
@@ -445,10 +574,68 @@ private save(): void {
       query += ` LIMIT ?`;
       params.push(safeLimit);
     }
-    
+
     const result = this.db.exec(query, params);
     if (result.length === 0) return [];
     return result[0].values.map((row: SqlValue[]) => this.rowToTransacaoCompletaFromArray(row, result[0].columns));
+  }
+
+  // ✅ NOVO: Método de paginação para grandes volumes
+  getTransacoesPaginated(
+    usuarioId: number,
+    pagination: PaginationParams
+  ): PaginatedResult<TransacaoCompleta> {
+    const { page = 1, pageSize = 50 } = pagination;
+
+    // Validar e limitar pageSize
+    const safePageSize = Math.min(Math.max(1, pageSize), 100); // Máximo 100 por página
+    const safePage = Math.max(1, page);
+    const offset = (safePage - 1) * safePageSize;
+
+    // Query para contar total de registros
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM transacoes t
+      WHERE t.usuario_id = ?
+    `;
+
+    const countResult = this.db.exec(countQuery, [usuarioId]);
+    const total = countResult[0]?.values[0]?.[0] as number || 0;
+    const totalPages = Math.ceil(total / safePageSize);
+
+    // Query para buscar dados paginados
+    const dataQuery = `
+      SELECT
+        t.*,
+        ct.nome as conta_nome,
+        cat.nome as categoria_nome,
+        cat.cor as categoria_cor
+      FROM transacoes t
+      JOIN contas ct ON t.conta_id = ct.id
+      JOIN categorias cat ON t.categoria_id = cat.id
+      WHERE t.usuario_id = ?
+      ORDER BY t.data DESC, t.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const dataResult = this.db.exec(dataQuery, [usuarioId, safePageSize, offset]);
+    const data = dataResult.length === 0
+      ? []
+      : dataResult[0].values.map((row: SqlValue[]) =>
+          this.rowToTransacaoCompletaFromArray(row, dataResult[0].columns)
+        );
+
+    return {
+      data,
+      pagination: {
+        page: safePage,
+        pageSize: safePageSize,
+        total,
+        totalPages,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1
+      }
+    };
   }
 
   getTransacao(id: number): Transacao | undefined {
@@ -484,18 +671,8 @@ private save(): void {
   }
 
   deleteTransacao(id: number): boolean {
-    const transacao = this.getTransacao(id);
-    
-    if (transacao) {
-      const conta = this.getConta(transacao.conta_id);
-      if (conta) {
-        const novoSaldo = transacao.tipo === 'receita' 
-          ? conta.saldo - transacao.valor 
-          : conta.saldo + transacao.valor;
-        this.updateConta(conta.id, { saldo: novoSaldo });
-      }
-    }
-    
+    // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_delete
+
     this.db.run('DELETE FROM transacoes WHERE id = ?', [id]);
     this.save();
     return true;

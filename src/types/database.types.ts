@@ -67,3 +67,21 @@ export interface TransacaoCompleta extends Transacao {
   categoria_nome: string;
   categoria_cor?: string;
 }
+
+// Interfaces de Paginação
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
