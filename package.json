@@ -1,6 +1,6 @@
 {
   "name": "genfins",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema de Gestão de Finanças Pessoais - GenFins",
   "main": "dist/main/main.js",
   "author": "Kassiano",
@@ -9,16 +9,29 @@
     "type": "git",
     "url": "https://github.com/KassianoV/GenFinds"
   },
-  "scripts": {
-    "dev": "concurrently -k \"npm run watch\" \"npm run start\"",
-    "watch": "tsc -w",
-    "start": "wait-on dist/main/main.js && electron .",
+ "scripts": {
     "build": "tsc",
-    "build:prod": "set NODE_ENV=production&& npm run build && electron-builder --win",
-    "build:dir": "set NODE_ENV=production&& npm run build && electron-builder --win --dir",
-    "clean": "rimraf dist release",
-    "version": "npm run changelog && git add CHANGELOG.md",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+    "start": "npm run build && electron dist/main/main.js",
+    "dev": "NODE_ENV=development npm run start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest test/unit",
+    "test:integration": "jest test/integration",
+    "test:security": "jest database.security.test.ts",
+    "test:performance": "jest test/performance",
+    "test:validation": "jest test/validation",
+    "test:all": "jest --coverage --verbose",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:single": "jest --testNamePattern",
+    "test:file": "jest --testPathPattern",
+    "lint": "eslint src test --ext .ts",
+    "lint:fix": "eslint src test --ext .ts --fix",
+    "clean": "rimraf dist coverage",
+    "clean:test": "rimraf temp-test",
+    "prepare": "npm run build",
+    "pretest": "npm run build"
   },
   "keywords": [
     "financas",
@@ -29,6 +42,9 @@
     "orcamento-pessoal"
   ],
   "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
     "@types/node": "^20.10.6",
     "@types/sql.js": "^1.4.9",
     "concurrently": "^8.2.2",

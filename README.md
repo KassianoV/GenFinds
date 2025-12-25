@@ -203,7 +203,7 @@ Leia nosso [Guia de Contribuição](CONTRIBUTING.md) para mais detalhes.
 
 ## 🐛 Reportar Bugs
 
-Encontrou um bug? [Abra uma issue](https://github.com/seu-usuario/genfins/issues/new) com:
+Encontrou um bug? [Abra uma issue](https://github.com/KassianoV/GenFinds/issues) com:
 - Descrição clara do problema
 - Passos para reproduzir
 - Screenshots (se aplicável)
@@ -215,10 +215,6 @@ Encontrou um bug? [Abra uma issue](https://github.com/seu-usuario/genfins/issues
 
 ### 🔜 Próximas Versões
 
-- [ ] **v1.1.0** - Dark mode
-- [ ] **v1.2.0** - Transações recorrentes
-- [ ] **v1.3.0** - Backup na nuvem
-- [ ] **v2.0.0** - Multi-usuário e autenticação
 
 Veja o [Changelog](CHANGELOG.md) para mais detalhes.
 
@@ -232,7 +228,6 @@ Veja o [Changelog](CHANGELOG.md) para mais detalhes.
 ✅ Exportar/Importar CSV
 ✅ Build de produção
 ✅ Documentação completa
-🔄 Dark mode (em desenvolvimento)
 ```
 
 ---
@@ -247,9 +242,9 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE.txt](
 
 **Kassiano Vieira**
 
-- 🐙 GitHub: [@seu-usuario](https://github.com/KassianoV)
+- 🐙 GitHub: [@kassianovieira](https://github.com/KassianoV)
 - 📧 Email: kassianovieira.pc@gmail.com
-- 💼 LinkedIn: [Seu Nome](https://www.linkedin.com/in/kassianovieira/)
+- 💼 LinkedIn: [kASSIANO VIEIRA](https://www.linkedin.com/in/kassianovieira/)
 
 ---
 

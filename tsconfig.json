@@ -11,10 +11,12 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "types": ["node"],
+    "types": ["node","jest"],
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    
   },
+  
   "include": [
     "src/**/*"
   ],

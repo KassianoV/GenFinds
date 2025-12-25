@@ -117,11 +117,16 @@ export class DatabaseManager {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)`);
   }
 
-  private save(): void {
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(this.dbPath, buffer);
+private save(): void {
+  const data = this.db.export();
+  // Garantir que o diretório existe
+  const dir = path.dirname(this.dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
+  
+  fs.writeFileSync(this.dbPath, data);
+}
 
   // ========== MÉTODOS DE USUÁRIO ==========
   
@@ -182,10 +187,23 @@ export class DatabaseManager {
   }
 
   updateConta(id: number, updates: Partial<Conta>): boolean {
-    const fields = Object.keys(updates).filter(k => k !== 'id').map(k => `${k} = ?`).join(', ');
-    const values = Object.entries(updates).filter(([k]) => k !== 'id').map(([, v]) => v);
+   
+    const allowedFields = ['nome', 'saldo', 'tipo', 'ativa', 'usuario_id'];
     
-    this.db.run(`UPDATE contas SET ${fields} WHERE id = ?`, [...values, id] as SqlValue[]);
+    const validUpdates = Object.entries(updates)
+      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    
+    if (validUpdates.length === 0) {
+      return false;
+    }
+    
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+    
+    this.db.run(
+      `UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id] as SqlValue[]
+    );
     this.save();
     return true;
   }
@@ -249,11 +267,25 @@ export class DatabaseManager {
     return this.rowToCategoria(result[0]);
   }
 
+  // ✅ CORRIGIDO: Whitelist de campos permitidos
   updateCategoria(id: number, updates: Partial<Categoria>): boolean {
-    const fields = Object.keys(updates).filter(k => k !== 'id').map(k => `${k} = ?`).join(', ');
-    const values = Object.entries(updates).filter(([k]) => k !== 'id').map(([, v]) => v);
+    // Whitelist de campos que podem ser atualizados
+    const allowedFields = ['nome', 'tipo', 'cor', 'icone', 'usuario_id'];
     
-    this.db.run(`UPDATE categorias SET ${fields} WHERE id = ?`, [...values, id] as SqlValue[]);
+    const validUpdates = Object.entries(updates)
+      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    
+    if (validUpdates.length === 0) {
+      return false;
+    }
+    
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+    
+    this.db.run(
+      `UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id] as SqlValue[]
+    );
     this.save();
     return true;
   }
@@ -320,11 +352,25 @@ export class DatabaseManager {
     return this.rowToOrcamento(result[0]);
   }
 
+  // ✅ CORRIGIDO: Whitelist de campos permitidos
   updateOrcamento(id: number, updates: Partial<Orcamento>): boolean {
-    const fields = Object.keys(updates).filter(k => k !== 'id').map(k => `${k} = ?`).join(', ');
-    const values = Object.entries(updates).filter(([k]) => k !== 'id').map(([, v]) => v);
+    // Whitelist de campos que podem ser atualizados
+    const allowedFields = ['categoria_id', 'valor_planejado', 'mes', 'ano', 'usuario_id'];
     
-    this.db.run(`UPDATE orcamentos SET ${fields} WHERE id = ?`, [...values, id] as SqlValue[]);
+    const validUpdates = Object.entries(updates)
+      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    
+    if (validUpdates.length === 0) {
+      return false;
+    }
+    
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+    
+    this.db.run(
+      `UPDATE orcamentos SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id] as SqlValue[]
+    );
     this.save();
     return true;
   }
@@ -375,6 +421,7 @@ export class DatabaseManager {
     return this.rowToTransacao(result[0]);
   }
 
+  // ✅ CORRIGIDO: LIMIT agora usa parâmetros preparados
   getTransacoes(usuarioId: number, limit?: number): TransacaoCompleta[] {
     let query = `
       SELECT 
@@ -389,11 +436,17 @@ export class DatabaseManager {
       ORDER BY t.data DESC, t.created_at DESC
     `;
     
-    if (limit) {
-      query += ` LIMIT ${limit}`;
+    const params: SqlValue[] = [usuarioId];
+    
+    // ✅ CORREÇÃO: Validar e adicionar LIMIT de forma segura
+    if (limit !== undefined && limit > 0) {
+      // Validação: garantir que limit é um número inteiro positivo
+      const safeLimit = Math.floor(Math.max(1, limit));
+      query += ` LIMIT ?`;
+      params.push(safeLimit);
     }
     
-    const result = this.db.exec(query, [usuarioId]);
+    const result = this.db.exec(query, params);
     if (result.length === 0) return [];
     return result[0].values.map((row: SqlValue[]) => this.rowToTransacaoCompletaFromArray(row, result[0].columns));
   }
@@ -404,11 +457,28 @@ export class DatabaseManager {
     return this.rowToTransacao(result[0]);
   }
 
+ 
   updateTransacao(id: number, updates: Partial<Transacao>): boolean {
-    const fields = Object.keys(updates).filter(k => k !== 'id').map(k => `${k} = ?`).join(', ');
-    const values = Object.entries(updates).filter(([k]) => k !== 'id').map(([, v]) => v);
+    // Whitelist de campos que podem ser atualizados
+    const allowedFields = [
+      'descricao', 'valor', 'tipo', 'data', 
+      'conta_id', 'categoria_id', 'usuario_id', 'observacoes'
+    ];
     
-    this.db.run(`UPDATE transacoes SET ${fields} WHERE id = ?`, [...values, id] as SqlValue[]);
+    const validUpdates = Object.entries(updates)
+      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    
+    if (validUpdates.length === 0) {
+      return false;
+    }
+    
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+    
+    this.db.run(
+      `UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id] as SqlValue[]
+    );
     this.save();
     return true;
   }
