@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styles/configurar.css">
     <link rel="stylesheet" href="styles/configurar.css">
     <link rel="stylesheet" href="styles/toast.css">
+    <link rel="stylesheet" href="styles/import.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -149,13 +150,165 @@
                     </div>
                 </div>
 
+                <!-- Modal Importar Extrato Bancário -->
+                <div class="modal" id="modalImportarExtrato">
+                    <div class="modal-content modal-import">
+                        <div class="modal-header">
+                            <h2>📄 Importar Extrato Bancário</h2>
+                            <button class="modal-close" id="closeModalImportar">&times;</button>
+                        </div>
+                        <div class="modal-form">
+                            <!-- Etapa 1: Seleção de Arquivo e Conta -->
+                            <div class="import-step" id="step1">
+                                <div class="form-group">
+                                    <label>🏦 Conta Bancária *</label>
+                                    <select id="importConta" required>
+                                        <option value="">Selecione uma conta</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>📁 Formato do Arquivo</label>
+                                    <div class="format-selector">
+                                        <button type="button" class="format-btn active" data-format="csv">
+                                            <span class="format-icon">📊</span>
+                                            <span class="format-name">CSV</span>
+                                            <span class="format-desc">Valores separados por vírgula</span>
+                                        </button>
+                                        <button type="button" class="format-btn" data-format="ofx">
+                                            <span class="format-icon">💼</span>
+                                            <span class="format-name">OFX</span>
+                                            <span class="format-desc">Open Financial Exchange</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>📎 Selecionar Arquivo</label>
+                                    <div class="file-upload-area" id="fileUploadArea">
+                                        <input type="file" id="importFile" accept=".csv,.ofx" hidden>
+                                        <div class="upload-placeholder">
+                                            <span class="upload-icon">☁️</span>
+                                            <p class="upload-text">Clique para selecionar ou arraste o arquivo aqui</p>
+                                            <p class="upload-hint">Formatos aceitos: CSV, OFX (máx. 5MB)</p>
+                                        </div>
+                                        <div class="file-info" id="fileInfo" style="display: none;">
+                                            <span class="file-icon">📄</span>
+                                            <div class="file-details">
+                                                <p class="file-name" id="fileName"></p>
+                                                <p class="file-size" id="fileSize"></p>
+                                            </div>
+                                            <button type="button" class="btn-remove-file" id="removeFile">🗑️</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-actions">
+                                    <button type="button" class="btn btn-primary" id="btnProcessarImport" disabled>
+                                        Processar Arquivo
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="cancelImport">Cancelar</button>
+                                </div>
+                            </div>
+
+                            <!-- Etapa 2: Preview e Confirmação -->
+                            <div class="import-step" id="step2" style="display: none;">
+                                <div class="import-summary">
+                                    <h3>📋 Preview dos Dados</h3>
+                                    <div class="summary-stats">
+                                        <div class="stat-card">
+                                            <span class="stat-icon">📊</span>
+                                            <div class="stat-info">
+                                                <p class="stat-label">Total de Registros</p>
+                                                <p class="stat-value" id="totalRegistros">0</p>
+                                            </div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <span class="stat-icon">✅</span>
+                                            <div class="stat-info">
+                                                <p class="stat-label">Categorizados</p>
+                                                <p class="stat-value" id="totalCategorizados">0</p>
+                                            </div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <span class="stat-icon">❓</span>
+                                            <div class="stat-info">
+                                                <p class="stat-label">Sem Categoria</p>
+                                                <p class="stat-value" id="totalSemCategoria">0</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="preview-table-container">
+                                    <table class="preview-table" id="previewTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Descrição</th>
+                                                <th>Tipo</th>
+                                                <th>Valor</th>
+                                                <th>Categoria</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="previewTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="modal-actions">
+                                    <button type="button" class="btn btn-success" id="btnConfirmarImport">
+                                        ✓ Importar Transações
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="btnVoltarImport">Voltar</button>
+                                </div>
+                            </div>
+
+                            <!-- Etapa 3: Processando -->
+                            <div class="import-step" id="step3" style="display: none;">
+                                <div class="import-processing">
+                                    <div class="spinner"></div>
+                                    <h3>Importando transações...</h3>
+                                    <p class="processing-text" id="processingText">Aguarde enquanto processamos seus dados</p>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="progressFill"></div>
+                                    </div>
+                                    <p class="progress-text" id="progressText">0%</p>
+                                </div>
+                            </div>
+
+                            <!-- Etapa 4: Resultado -->
+                            <div class="import-step" id="step4" style="display: none;">
+                                <div class="import-result">
+                                    <div class="result-icon success" id="resultIcon">✓</div>
+                                    <h3 id="resultTitle">Dados importados com sucesso!</h3>
+                                    <div class="result-stats">
+                                        <div class="result-stat">
+                                            <span class="result-number" id="importadosCount">0</span>
+                                            <span class="result-label">registros importados</span>
+                                        </div>
+                                        <div class="result-stat">
+                                            <span class="result-number" id="categorizadosCount">0</span>
+                                            <span class="result-label">categorizados automaticamente</span>
+                                        </div>
+                                    </div>
+                                    <p class="result-emoji">🎉</p>
+                                </div>
+                                <div class="modal-actions">
+                                    <button type="button" class="btn btn-primary" id="btnFecharResultado">Concluir</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Filtros Estilo Protótipo -->
                 <div class="transacoes-filters-proto">
                     <div class="filters-top-row">
                         <!-- Seletor de Período (Ano + Meses) -->
                         <div class="period-selector">
                             <select id="filtroAno" class="year-select">
-                                <!-- Será preenchido dinamicamente -->
+                            <!-- Será preenchido dinamicamente -->
                             </select>
                             <div class="months-tabs" id="monthsTabs">
                                 <button class="month-tab" data-month="1">Jan</button>
@@ -684,5 +837,6 @@
     <script src="scripts/transacoes.js"></script>
     <script src="scripts/relatorio.js"></script>
     <script src="scripts/configurar.js"></script>
+    <script src="scripts/import.js"></script>
 </body>
 </html>

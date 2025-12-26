@@ -5,6 +5,63 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2025-12-26
+
+### 🎉 Adicionado
+
+#### Sistema de Importação de Extrato Bancário
+- ✅ Modal completo de importação em 4 etapas (Seleção → Preview → Processamento → Resultado)
+- ✅ Suporte a múltiplos formatos (CSV e OFX)
+- ✅ Upload via drag-and-drop ou seleção de arquivo
+- ✅ Preview dos dados antes de importar
+- ✅ Categorização automática de transações
+- ✅ Estatísticas de importação (total, categorizados, sem categoria)
+- ✅ Barra de progresso durante processamento
+- ✅ Tela de resultado com resumo detalhado
+- Arquivos: [import.js](src/renderer/scripts/import.js), [import.css](src/renderer/styles/import.css), [index.html](src/renderer/index.html)
+
+#### Melhorias de Build
+- ✅ Adicionado script `build:dir` para build local sem instalador
+- ✅ Adicionado script `build:prod` para build Windows x64
+- ✅ Adicionado script `build:all` para build multiplataforma (Win/Mac/Linux)
+- Arquivo: [package.json](package.json)
+
+### 📊 Documentação
+
+#### Análise Completa do Projeto
+- ✅ Documento de análise técnica completo (7.1/10)
+- ✅ Identificação de 5 problemas críticos
+- ✅ Roadmap de melhorias estruturado
+- ✅ Exemplos de código para correções
+- Arquivo: [Dev/ANÁLISE_PROJETO.md](Dev/ANÁLISE_PROJETO.md)
+
+### 🔧 Modificado
+
+#### Refatoração de Importação
+- ✅ Removida função `importarCSV()` de transacoes.js (código duplicado)
+- ✅ Funcionalidade movida para módulo dedicado `import.js`
+- ✅ Melhor separação de responsabilidades
+- Arquivo: [transacoes.js](src/renderer/scripts/transacoes.js)
+
+### 📈 Impacto das Melhorias
+
+- **UX:** Interface de importação intuitiva com feedback visual em tempo real
+- **Manutenibilidade:** Código de importação isolado em módulo próprio
+- **Produtividade:** Categorização automática economiza tempo do usuário
+- **Build:** Scripts facilitam processo de distribuição
+
+### 🎯 Próximos Passos (Pendentes da Análise)
+
+- 🔴 **CRÍTICO:** Corrigir versão do Zod (^4.2.1 → ^3.22.4)
+- 🔴 **CRÍTICO:** Remover Chart.js CDN e instalar localmente
+- 🔴 **CRÍTICO:** Implementar save assíncrono com debounce
+- 🔴 **CRÍTICO:** Implementar transações SQL (BEGIN/COMMIT)
+- 🟡 **IMPORTANTE:** Adicionar ESLint + Prettier
+- 🟡 **IMPORTANTE:** Implementar sistema de autenticação
+- 🟡 **IMPORTANTE:** Adicionar CSP (Content Security Policy)
+
+---
+
 ## [1.2.0] - 2025-12-25
 
 ### 🔒 Segurança
