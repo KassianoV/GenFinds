@@ -27,6 +27,8 @@ export class DatabaseManager {
   private dbPath: string;
   private cache: Map<string, CacheEntry<any>>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+  private saveTimeout: NodeJS.Timeout | null = null;
+  private readonly SAVE_DEBOUNCE_MS = 1000; // 1 segundo
 
   constructor() {
     const userDataPath = app.getPath('userData');
@@ -175,16 +177,47 @@ export class DatabaseManager {
     `);
   }
 
-private save(): void {
-  const data = this.db.export();
-  // Garantir que o diretório existe
-  const dir = path.dirname(this.dbPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  /**
+   * Save com debounce - agenda um save assíncrono após SAVE_DEBOUNCE_MS
+   * Se já houver um save agendado, cancela o anterior e agenda um novo
+   */
+  private save(): void {
+    // Cancela save anterior se existir
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+
+    // Agenda novo save
+    this.saveTimeout = setTimeout(() => {
+      this.saveNow();
+      this.saveTimeout = null;
+    }, this.SAVE_DEBOUNCE_MS);
   }
 
-  fs.writeFileSync(this.dbPath, data);
-}
+  /**
+   * Save imediato e síncrono - usado quando precisamos garantir persistência
+   */
+  private saveNow(): void {
+    const data = this.db.export();
+    // Garantir que o diretório existe
+    const dir = path.dirname(this.dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(this.dbPath, data);
+  }
+
+  /**
+   * Força o save de qualquer operação pendente (usado antes de fechar app)
+   */
+  flush(): void {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+    this.saveNow();
+  }
 
   // ========== MÉTODOS DE CACHE ==========
 
@@ -219,6 +252,46 @@ private save(): void {
 
   clearCache(): void {
     this.cache.clear();
+  }
+
+  // ========== MÉTODOS DE TRANSAÇÃO SQL ==========
+
+  /**
+   * Inicia uma transação SQL
+   */
+  private beginTransaction(): void {
+    this.db.run('BEGIN TRANSACTION');
+  }
+
+  /**
+   * Confirma (commit) uma transação SQL
+   */
+  private commit(): void {
+    this.db.run('COMMIT');
+  }
+
+  /**
+   * Reverte (rollback) uma transação SQL
+   */
+  private rollback(): void {
+    this.db.run('ROLLBACK');
+  }
+
+  /**
+   * Executa uma operação dentro de uma transação SQL
+   * Se a operação falhar, faz rollback automaticamente
+   */
+  private executeInTransaction<T>(operation: () => T): T {
+    this.beginTransaction();
+    try {
+      const result = operation();
+      this.commit();
+      this.save();
+      return result;
+    } catch (error) {
+      this.rollback();
+      throw error;
+    }
   }
 
   // ========== MÉTODOS DE USUÁRIO ==========
@@ -537,17 +610,17 @@ private save(): void {
   // ========== MÉTODOS DE TRANSAÇÃO ==========
 
   createTransacao(transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>): Transacao {
-    this.db.run(
-      'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, usuario_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [transacao.descricao, transacao.valor, transacao.tipo, transacao.data, transacao.conta_id, transacao.categoria_id, transacao.usuario_id, transacao.observacoes || null]
-    );
+    return this.executeInTransaction(() => {
+      this.db.run(
+        'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, usuario_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [transacao.descricao, transacao.valor, transacao.tipo, transacao.data, transacao.conta_id, transacao.categoria_id, transacao.usuario_id, transacao.observacoes || null]
+      );
 
-    // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
+      // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
 
-    this.save();
-
-    const result = this.db.exec('SELECT * FROM transacoes ORDER BY id DESC LIMIT 1');
-    return this.rowToTransacao(result[0]);
+      const result = this.db.exec('SELECT * FROM transacoes ORDER BY id DESC LIMIT 1');
+      return this.rowToTransacao(result[0]);
+    });
   }
 
   // ✅ CORRIGIDO: LIMIT agora usa parâmetros preparados
@@ -644,38 +717,40 @@ private save(): void {
     return this.rowToTransacao(result[0]);
   }
 
- 
+
   updateTransacao(id: number, updates: Partial<Transacao>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = [
-      'descricao', 'valor', 'tipo', 'data', 
+      'descricao', 'valor', 'tipo', 'data',
       'conta_id', 'categoria_id', 'usuario_id', 'observacoes'
     ];
-    
+
     const validUpdates = Object.entries(updates)
       .filter(([key]) => allowedFields.includes(key) && key !== 'id');
-    
+
     if (validUpdates.length === 0) {
       return false;
     }
-    
-    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
-    const values = validUpdates.map(([, value]) => value);
-    
-    this.db.run(
-      `UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id] as SqlValue[]
-    );
-    this.save();
-    return true;
+
+    return this.executeInTransaction(() => {
+      const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+      const values = validUpdates.map(([, value]) => value);
+
+      // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_update
+      this.db.run(
+        `UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [...values, id] as SqlValue[]
+      );
+      return true;
+    });
   }
 
   deleteTransacao(id: number): boolean {
-    // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_delete
-
-    this.db.run('DELETE FROM transacoes WHERE id = ?', [id]);
-    this.save();
-    return true;
+    return this.executeInTransaction(() => {
+      // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_delete
+      this.db.run('DELETE FROM transacoes WHERE id = ?', [id]);
+      return true;
+    });
   }
 
   private rowToTransacao(result: QueryExecResult): Transacao {

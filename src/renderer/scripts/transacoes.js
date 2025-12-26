@@ -453,26 +453,8 @@ const TransacoesPage = {
         }
 
         try {
-            const transacaoOriginal = AppState.transacoes.find(t => t.id === this.currentEditId);
-            
-            if (transacaoOriginal) {
-                const contaOriginal = AppState.contas.find(c => c.id === transacaoOriginal.conta_id);
-                if (contaOriginal) {
-                    const novoSaldoOriginal = transacaoOriginal.tipo === 'receita'
-                        ? contaOriginal.saldo - transacaoOriginal.valor
-                        : contaOriginal.saldo + transacaoOriginal.valor;
-                    await window.api.conta.update(contaOriginal.id, { saldo: novoSaldoOriginal });
-                }
-
-                const contaNova = AppState.contas.find(c => c.id === formData.conta_id);
-                if (contaNova) {
-                    const novoSaldo = formData.tipo === 'receita'
-                        ? contaNova.saldo + formData.valor
-                        : contaNova.saldo - formData.valor;
-                    await window.api.conta.update(contaNova.id, { saldo: novoSaldo });
-                }
-            }
-
+            // Os triggers SQL atualizam o saldo automaticamente
+            // Não é necessário calcular manualmente
             const response = await window.api.transacao.update(this.currentEditId, formData);
 
             if (response.success) {
