@@ -2,7 +2,6 @@
 
 const ImportManager = {
     currentFile: null,
-    currentFormat: 'csv',
     parsedData: [],
     contaSelecionada: null,
 
@@ -61,19 +60,6 @@ const ImportManager = {
         if (btnCancel) {
             btnCancel.addEventListener('click', () => this.closeModal());
         }
-
-        // Seletores de formato
-        const formatBtns = document.querySelectorAll('.format-btn');
-        formatBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                formatBtns.forEach(b => b.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                this.currentFormat = e.currentTarget.dataset.format;
-                
-                const fileInput = document.getElementById('importFile');
-                fileInput.accept = this.currentFormat === 'csv' ? '.csv' : '.ofx';
-            });
-        });
 
         // Upload de arquivo
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -198,8 +184,8 @@ const ImportManager = {
 
         // Validar extensão
         const extension = file.name.split('.').pop().toLowerCase();
-        if (!['csv', 'ofx'].includes(extension)) {
-            Utils.showError('Formato não suportado. Use CSV ou OFX');
+        if (extension !== 'ofx') {
+            Utils.showError('Formato não suportado. Use apenas arquivos OFX');
             return;
         }
 
@@ -257,17 +243,12 @@ const ImportManager = {
 
         try {
             console.log('🔄 Iniciando processamento do arquivo:', this.currentFile.name);
-            
+
             const content = await this.readFile(this.currentFile);
             console.log('✅ Arquivo lido com sucesso');
-            
-            if (this.currentFormat === 'csv') {
-                console.log('📊 Processando CSV...');
-                this.parsedData = this.parseCSV(content);
-            } else {
-                console.log('💼 Processando OFX...');
-                this.parsedData = this.parseOFX(content);
-            }
+
+            console.log('💼 Processando OFX...');
+            this.parsedData = this.parseOFX(content);
 
             console.log(`📋 ${this.parsedData.length} registros extraídos`);
 
@@ -308,51 +289,6 @@ const ImportManager = {
         });
     },
 
-    parseCSV(content) {
-        const lines = content.split('\n').filter(line => line.trim());
-        const data = [];
-
-        // Detectar delimitador (vírgula ou ponto e vírgula)
-        const delimiter = content.includes(';') ? ';' : ',';
-
-        // Pular header (primeira linha)
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-
-            const cols = line.split(delimiter).map(col => col.trim().replace(/^"|"$/g, ''));
-
-            // Formato esperado: Data,Descrição,Valor[,Tipo]
-            // Se não tiver tipo, detectar pelo valor (negativo = despesa)
-            
-            let data_transacao, descricao, valor, tipo;
-
-            if (cols.length >= 3) {
-                data_transacao = this.parseDate(cols[0]);
-                descricao = cols[1];
-                valor = this.parseValue(cols[2]);
-                
-                if (cols.length >= 4) {
-                    tipo = cols[3].toLowerCase().includes('receita') ? 'receita' : 'despesa';
-                } else {
-                    tipo = valor >= 0 ? 'receita' : 'despesa';
-                    valor = Math.abs(valor);
-                }
-
-                if (data_transacao && descricao && valor > 0) {
-                    data.push({
-                        data: data_transacao,
-                        descricao: descricao,
-                        valor: valor,
-                        tipo: tipo
-                    });
-                }
-            }
-        }
-
-        return data;
-    },
-
     parseOFX(content) {
         const data = [];
         
@@ -385,43 +321,6 @@ const ImportManager = {
         }
 
         return data;
-    },
-
-    parseDate(dateStr) {
-        // Tentar vários formatos
-        const formats = [
-            // DD/MM/YYYY
-            /^(\d{2})\/(\d{2})\/(\d{4})$/,
-            // YYYY-MM-DD
-            /^(\d{4})-(\d{2})-(\d{2})$/,
-            // DD-MM-YYYY
-            /^(\d{2})-(\d{2})-(\d{4})$/
-        ];
-
-        for (const format of formats) {
-            const match = dateStr.match(format);
-            if (match) {
-                if (match[1].length === 4) {
-                    // YYYY-MM-DD
-                    return `${match[1]}-${match[2]}-${match[3]}`;
-                } else {
-                    // DD/MM/YYYY ou DD-MM-YYYY
-                    return `${match[3]}-${match[2]}-${match[1]}`;
-                }
-            }
-        }
-
-        return null;
-    },
-
-    parseValue(valueStr) {
-        // Remover símbolos de moeda e espaços
-        let cleaned = valueStr.replace(/[R$\s]/g, '');
-        
-        // Substituir vírgula por ponto
-        cleaned = cleaned.replace(',', '.');
-        
-        return parseFloat(cleaned) || 0;
     },
 
     autoCategorize(description, tipo) {

@@ -8,6 +8,12 @@ const TransacoesPage = {
         tipo: '',
         busca: ''
     },
+    paginacao: {
+        paginaAtual: 1,
+        itensPorPagina: 20,
+        totalItens: 0,
+        totalPaginas: 0
+    },
 
     populateYearSelect() {
         const select = document.getElementById('filtroAno');
@@ -135,6 +141,7 @@ const TransacoesPage = {
         if (filtroAno) {
             filtroAno.addEventListener('change', (e) => {
                 this.filtros.ano = parseInt(e.target.value);
+                this.paginacao.paginaAtual = 1;
                 this.render();
             });
         }
@@ -146,6 +153,7 @@ const TransacoesPage = {
                 monthTabs.forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
                 this.filtros.mes = parseInt(e.target.dataset.month);
+                this.paginacao.paginaAtual = 1;
                 this.render();
             });
         });
@@ -178,14 +186,15 @@ const TransacoesPage = {
                     e.target.classList.add('active');
                     
                     this.filtros.tipo = e.target.dataset.tipo;
-                    
+
                     if (filterLabel) {
                         filterLabel.textContent = e.target.textContent;
                     }
-                    
+
                     filterTrigger.classList.remove('active');
                     filterMenu.classList.remove('active');
-                    
+
+                    this.paginacao.paginaAtual = 1;
                     this.render();
                 });
             });
@@ -196,6 +205,38 @@ const TransacoesPage = {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.filtros.busca = e.target.value.toLowerCase();
+                this.paginacao.paginaAtual = 1;
+                this.render();
+            });
+        }
+
+        // Botões de Paginação
+        const btnFirstPage = document.getElementById('btnFirstPage');
+        if (btnFirstPage) {
+            btnFirstPage.addEventListener('click', () => this.irParaPagina(1));
+        }
+
+        const btnPrevPage = document.getElementById('btnPrevPage');
+        if (btnPrevPage) {
+            btnPrevPage.addEventListener('click', () => this.irParaPagina(this.paginacao.paginaAtual - 1));
+        }
+
+        const btnNextPage = document.getElementById('btnNextPage');
+        if (btnNextPage) {
+            btnNextPage.addEventListener('click', () => this.irParaPagina(this.paginacao.paginaAtual + 1));
+        }
+
+        const btnLastPage = document.getElementById('btnLastPage');
+        if (btnLastPage) {
+            btnLastPage.addEventListener('click', () => this.irParaPagina(this.paginacao.totalPaginas));
+        }
+
+        // Seletor de Itens por Página
+        const pageSize = document.getElementById('pageSize');
+        if (pageSize) {
+            pageSize.addEventListener('change', (e) => {
+                this.paginacao.itensPorPagina = parseInt(e.target.value);
+                this.paginacao.paginaAtual = 1;
                 this.render();
             });
         }
@@ -243,10 +284,10 @@ const TransacoesPage = {
 
         const primeiroDia = new Date(this.filtros.ano, this.filtros.mes - 1, 1);
         const ultimoDia = new Date(this.filtros.ano, this.filtros.mes, 0);
-        
+
         const dataInicio = primeiroDia.toISOString().split('T')[0];
         const dataFim = ultimoDia.toISOString().split('T')[0];
-        
+
         transacoes = transacoes.filter(t => t.data >= dataInicio && t.data <= dataFim);
 
         if (this.filtros.tipo) {
@@ -254,7 +295,7 @@ const TransacoesPage = {
         }
 
         if (this.filtros.busca) {
-            transacoes = transacoes.filter(t => 
+            transacoes = transacoes.filter(t =>
                 t.descricao.toLowerCase().includes(this.filtros.busca) ||
                 t.categoria_nome.toLowerCase().includes(this.filtros.busca) ||
                 t.conta_nome.toLowerCase().includes(this.filtros.busca)
@@ -262,6 +303,108 @@ const TransacoesPage = {
         }
 
         return transacoes;
+    },
+
+    calcularPaginacao(totalItens) {
+        this.paginacao.totalItens = totalItens;
+        this.paginacao.totalPaginas = Math.ceil(totalItens / this.paginacao.itensPorPagina);
+
+        if (this.paginacao.paginaAtual > this.paginacao.totalPaginas) {
+            this.paginacao.paginaAtual = Math.max(1, this.paginacao.totalPaginas);
+        }
+    },
+
+    getTransacoesPaginadas(transacoes) {
+        const inicio = (this.paginacao.paginaAtual - 1) * this.paginacao.itensPorPagina;
+        const fim = inicio + this.paginacao.itensPorPagina;
+        return transacoes.slice(inicio, fim);
+    },
+
+    irParaPagina(pagina) {
+        if (pagina < 1 || pagina > this.paginacao.totalPaginas) return;
+        this.paginacao.paginaAtual = pagina;
+        this.render();
+    },
+
+    renderizarControlesPaginacao() {
+        const controls = document.getElementById('paginationControls');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const paginationPages = document.getElementById('paginationPages');
+
+        if (!controls || !paginationInfo || !paginationPages) return;
+
+        if (this.paginacao.totalItens === 0) {
+            controls.style.display = 'none';
+            return;
+        }
+
+        controls.style.display = 'flex';
+
+        const inicio = (this.paginacao.paginaAtual - 1) * this.paginacao.itensPorPagina + 1;
+        const fim = Math.min(this.paginacao.paginaAtual * this.paginacao.itensPorPagina, this.paginacao.totalItens);
+
+        paginationInfo.textContent = `Mostrando ${inicio}-${fim} de ${this.paginacao.totalItens} transações`;
+
+        paginationPages.innerHTML = '';
+
+        const btnFirst = document.getElementById('btnFirstPage');
+        const btnPrev = document.getElementById('btnPrevPage');
+        const btnNext = document.getElementById('btnNextPage');
+        const btnLast = document.getElementById('btnLastPage');
+
+        btnFirst.disabled = this.paginacao.paginaAtual === 1;
+        btnPrev.disabled = this.paginacao.paginaAtual === 1;
+        btnNext.disabled = this.paginacao.paginaAtual === this.paginacao.totalPaginas;
+        btnLast.disabled = this.paginacao.paginaAtual === this.paginacao.totalPaginas;
+
+        const maxPaginas = 5;
+        let inicioPaginas = Math.max(1, this.paginacao.paginaAtual - Math.floor(maxPaginas / 2));
+        let fimPaginas = Math.min(this.paginacao.totalPaginas, inicioPaginas + maxPaginas - 1);
+
+        if (fimPaginas - inicioPaginas < maxPaginas - 1) {
+            inicioPaginas = Math.max(1, fimPaginas - maxPaginas + 1);
+        }
+
+        if (inicioPaginas > 1) {
+            const btn = document.createElement('button');
+            btn.className = 'pagination-page-btn';
+            btn.textContent = '1';
+            btn.addEventListener('click', () => this.irParaPagina(1));
+            paginationPages.appendChild(btn);
+
+            if (inicioPaginas > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-ellipsis';
+                ellipsis.textContent = '...';
+                paginationPages.appendChild(ellipsis);
+            }
+        }
+
+        for (let i = inicioPaginas; i <= fimPaginas; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'pagination-page-btn';
+            if (i === this.paginacao.paginaAtual) {
+                btn.classList.add('active');
+            }
+            btn.textContent = i;
+            btn.addEventListener('click', () => this.irParaPagina(i));
+            paginationPages.appendChild(btn);
+        }
+
+        if (fimPaginas < this.paginacao.totalPaginas) {
+            if (fimPaginas < this.paginacao.totalPaginas - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-ellipsis';
+                ellipsis.textContent = '...';
+                paginationPages.appendChild(ellipsis);
+            }
+
+            const btn = document.createElement('button');
+            btn.className = 'pagination-page-btn';
+            btn.textContent = this.paginacao.totalPaginas;
+            btn.addEventListener('click', () => this.irParaPagina(this.paginacao.totalPaginas));
+            paginationPages.appendChild(btn);
+        }
     },
 
     openModal() {
@@ -509,19 +652,24 @@ const TransacoesPage = {
 
         const transacoesFiltradas = this.getTransacoesFiltradas();
 
+        this.calcularPaginacao(transacoesFiltradas.length);
+
         if (transacoesFiltradas.length === 0) {
             table.style.display = 'none';
             emptyState.style.display = 'block';
             emptyState.innerHTML = '<p>Nenhuma transação encontrada com os filtros aplicados</p>';
+            this.renderizarControlesPaginacao();
             return;
         }
 
         table.style.display = 'table';
         emptyState.style.display = 'none';
 
+        const transacoesPaginadas = this.getTransacoesPaginadas(transacoesFiltradas);
+
         tbody.innerHTML = '';
 
-        transacoesFiltradas.forEach(transacao => {
+        transacoesPaginadas.forEach(transacao => {
             const tr = document.createElement('tr');
 
             tr.innerHTML = `
@@ -567,5 +715,7 @@ const TransacoesPage = {
                 this.handleDelete(id);
             });
         });
+
+        this.renderizarControlesPaginacao();
     }
 };

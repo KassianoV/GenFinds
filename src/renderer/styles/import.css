@@ -5,39 +5,30 @@
   max-width: 700px;
 }
 
-/* Formato Selector */
-.format-selector {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
+/* Formato Info */
+.format-info {
   margin-top: 10px;
 }
 
-.format-btn {
+.format-box {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 15px;
   padding: 20px;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--primary-color);
   border-radius: 8px;
-  background: var(--bg-white);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.format-btn:hover {
-  border-color: var(--primary-color);
-  background: var(--bg-light);
-}
-
-.format-btn.active {
-  border-color: var(--primary-color);
-  background: rgba(44, 95, 45, 0.1);
+  background: rgba(44, 95, 45, 0.05);
 }
 
 .format-icon {
-  font-size: 32px;
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.format-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .format-name {
@@ -47,9 +38,9 @@
 }
 
 .format-desc {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  text-align: center;
+  line-height: 1.4;
 }
 
 /* Área de Upload */
