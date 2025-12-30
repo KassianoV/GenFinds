@@ -6,12 +6,14 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { DatabaseManager } from '../database/database';
 import {
   Conta,
   Categoria,
   Orcamento,
-  Transacao
+  Transacao,
+  PaginationParams
 } from '../types/database.types';
 import {
   UsuarioCreateSchema,
@@ -41,6 +43,21 @@ let mainWindow: BrowserWindow | null = null;
 let db: DatabaseManager;
 
 function createWindow(): void {
+  // ========== CORREÇÃO DO ÍCONE ==========
+  // Determinar caminho do ícone baseado no ambiente
+  const iconPath = process.env.NODE_ENV === 'production'
+    ? path.join(process.resourcesPath, 'assets', 'icon.ico')
+    : path.join(__dirname, '../../assets/icon.ico');
+
+  // Log para debug (apenas em desenvolvimento)
+  if (process.env.NODE_ENV !== 'production') {
+    logInfo('Icon configuration', { 
+      iconPath, 
+      exists: fs.existsSync(iconPath),
+      environment: process.env.NODE_ENV 
+    });
+  }
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -53,7 +70,8 @@ function createWindow(): void {
     },
     frame: true,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, '../../assets/icon.ico')
+    icon: iconPath,
+    title: 'GenFins - Gerenciador Financeiro'
   });
 
   mainWindow.loadFile(path.join(__dirname, '../../src/renderer/index.html'));
@@ -172,7 +190,8 @@ ipcMain.handle('conta:create', async (_, conta: Omit<Conta, 'id' | 'created_at' 
       return { success: false, error: validation.error };
     }
 
-    const data = db.createConta(validation.data);
+    // O Zod garante que saldo e ativa terão valores padrão (0 e true)
+    const data = db.createConta(validation.data as Omit<Conta, 'id' | 'created_at' | 'updated_at'>);
     return { success: true, data };
   } catch (error: any) {
     logError('conta:create failed', error);
@@ -477,7 +496,7 @@ ipcMain.handle('transacao:list', async (_, usuarioId: number, limit?: number) =>
   }
 });
 
-// ✅ NOVO: Handler com paginação para grandes volumes
+// ✅ CORRIGIDO: Handler com paginação - valores padrão definidos antes da validação
 ipcMain.handle('transacao:list-paginated', async (_, usuarioId: number, page?: number, pageSize?: number) => {
   try {
     // Validação de entrada
@@ -486,15 +505,19 @@ ipcMain.handle('transacao:list-paginated', async (_, usuarioId: number, page?: n
       return { success: false, error: idValidation.error };
     }
 
-    const paginationValidation = validateData(PaginationSchema, {
-      page: page || 1,
-      pageSize: pageSize || 50
-    });
+    // ✅ CORREÇÃO: Garantir valores não-undefined antes da validação
+    const paginationParams = {
+      page: page ?? 1,      // Usar nullish coalescing para garantir número
+      pageSize: pageSize ?? 50
+    };
+
+    const paginationValidation = validateData(PaginationSchema, paginationParams);
     if (!paginationValidation.success) {
       return { success: false, error: paginationValidation.error };
     }
 
-    const data = db.getTransacoesPaginated(idValidation.data, paginationValidation.data);
+    // O Zod garante que page e pageSize terão valores padrão (1 e 50)
+    const data = db.getTransacoesPaginated(idValidation.data, paginationValidation.data as PaginationParams);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:list-paginated failed', error);

@@ -12,9 +12,9 @@ export const UsuarioCreateSchema = z.object({
 // Conta
 export const ContaCreateSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
-  saldo: z.number().default(0),
+  saldo: z.number().optional().default(0),
   tipo: z.enum(['corrente', 'poupanca', 'investimento', 'carteira']),
-  ativa: z.boolean().default(true),
+  ativa: z.boolean().optional().default(true),
   usuario_id: z.number().int().positive('ID de usuário inválido')
 });
 
@@ -108,8 +108,8 @@ export const DataSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve est
 
 // Paginação
 export const PaginationSchema = z.object({
-  page: z.number().int().positive().default(1),
-  pageSize: z.number().int().positive().max(100).default(50)
+  page: z.number().int().positive().optional().default(1),
+  pageSize: z.number().int().positive().max(100).optional().default(50)
 });
 
 // ========== FUNÇÃO DE SANITIZAÇÃO DE ERROS ==========
