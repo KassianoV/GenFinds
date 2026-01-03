@@ -1,0 +1,89 @@
+
+> genfins@1.6.0 lint
+> eslint src test --ext .ts test/integration/database.integration.test.ts
+
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\src\database\database.ts
+  28:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\src\main\logger.ts
+   67:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:86  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   79:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\src\main\main.ts
+  120:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  217:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  233:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  254:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  270:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  290:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  312:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  328:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  349:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  365:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  385:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  412:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  428:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  449:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  465:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  485:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  507:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  541:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  558:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  579:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  595:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  629:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\src\types\sql.d.ts
+  3:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  3:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  6:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  7:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\test\integration\database.integration.test.ts
+  227:7  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars' or 'no-unused-vars')
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\test\security\database.security.test.ts
+   30:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  159:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  333:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\test\unit\database.unit.test.ts
+  215:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\Documentos importantes\Projeto\Projeto - GenFinds\test\validation\database.validation.test.ts
+   33:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+   34:16  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+   35:20  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  143:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  150:13  error    'conta' is assigned a value but never used                               no-unused-vars
+  150:13  warning  'conta' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  227:39  error    'index' is defined but never used                                        no-unused-vars
+  227:39  warning  'index' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  248:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  249:16  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  250:20  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  327:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  328:20  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  429:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  460:36  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  484:36  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  526:36  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  603:18  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+
+✖ 65 problems (2 errors, 63 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

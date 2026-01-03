@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   script-src 'self';
+                   style-src 'self' 'unsafe-inline';
+                   img-src 'self' data:;
+                   font-src 'self';">
     <title>Genfins</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
@@ -24,7 +30,7 @@
                 </div>
                 <div class="app-info">
                     <h1 class="app-name">GenFins</h1>
-                    <span class="app-version">v1.5.0</span>
+                    <span class="app-version">v1.6.1</span>
                 </div>
             </div>
 
@@ -93,7 +99,6 @@
                             <div class="card-info">
                                 <h3>Saldo Mensal</h3>
                                 <p class="card-value" id="dashEconomiaMes">R$ 0,00</p>
-                                <span class="card-label">Receitas - Despesas</span>
                             </div>
                         </div>
                     </div>
@@ -181,7 +186,6 @@
                         <div class="card-info">
                             <h3>Saldo Mensal</h3>
                             <p class="card-value" id="transacoesEconomiaMes">R$ 0,00</p>
-                            <span class="card-label">Receitas - Despesas</span>
                         </div>
                     </div>
                 </div>

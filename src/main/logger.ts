@@ -52,13 +52,15 @@ export const logger = createLogger();
 
 // Adicionar console transport apenas em desenvolvimento
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.timestamp({ format: 'HH:mm:ss' }),
-      customFormat
-    ),
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.timestamp({ format: 'HH:mm:ss' }),
+        customFormat
+      ),
+    })
+  );
 }
 
 // Funções auxiliares para logging estruturado

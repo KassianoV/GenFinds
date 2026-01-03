@@ -40,7 +40,7 @@ afterEach(() => {
     if (fs.existsSync(dbFile)) {
       fs.unlinkSync(dbFile);
     }
-  } catch (error) {
+  } catch {
     // Ignorar erros de limpeza
   }
 });
@@ -48,14 +48,14 @@ afterEach(() => {
 // Mock do electron app
 jest.mock('electron', () => ({
   app: {
-    getPath: (name: string) => {
+    getPath: () => {
       return testDir;
-    }
+    },
   },
   BrowserWindow: jest.fn(),
   ipcMain: {
-    handle: jest.fn()
-  }
+    handle: jest.fn(),
+  },
 }));
 
 // Configurar timeout padrão

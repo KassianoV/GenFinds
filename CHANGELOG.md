@@ -1,83 +1,29 @@
-# Changelog
+# [1.6.0](https://github.com/KassianoV/GenFinds/compare/v1.5.0...v1.6.0) (2026-01-03)
 
-Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+### Features
 
-## [1.6.0] - 2026-01-02
+* versão 1.6.0 - melhorias em gráficos e cards de resumo ([b0dc09c](https://github.com/KassianoV/GenFinds/commit/b0dc09cae060356dbb0b638773dc94fdfb7d5f6b))
 
-### Adicionado
-- Cards de resumo na página de transações com patrimônio líquido, receita e despesa do mês
-- Função `updateSummaryCards()` para atualização dinâmica dos cards
-- Labels dinâmicas com mês/ano nos cards de resumo
-- Novos gráficos de pizza no relatório: totais e contas
-- Validações extensivas para renderização de gráficos com tratamento de erros
-- Logs de debug detalhados no dashboard para troubleshooting
-- Exibição de patrimônio líquido baseado na soma de todas as contas
 
-### Modificado
-- Ícones da aplicação atualizados com nova logo do projeto
-- Melhorias na renderização de gráficos do dashboard com validações robustas
-- Estrutura dos gráficos de relatório reorganizada
-- Estilos aprimorados em dashboard, relatório e transações
-- Script `build-icon.js` atualizado para nova geração de ícones
 
-### Removido
-- Filtro de categoria de receitas no relatório (simplificação da interface)
-- Gráfico de pizza de receitas individual (consolidado em gráfico de totais)
+# [1.5.0](https://github.com/KassianoV/GenFinds/compare/v1.1.0...v1.5.0) (2025-12-30)
 
-### Corrigido
-- Tratamento de erros quando Chart.js não está carregado
-- Verificação de existência do canvas antes de renderizar gráficos
-- Destruição adequada de gráficos anteriores para evitar memory leaks
 
-## [1.5.0] - 2024
+### Features
 
-### Adicionado
-- Sistema de paginação de transações
-- Importação de extrato bancário no formato OFX padronizada
-- Melhorias na performance de carregamento de dados
+* versão 1.2.0 - correções críticas de segurança e melhorias de performance ([753e81c](https://github.com/KassianoV/GenFinds/commit/753e81caca6920768042d79bb5613150706b6260))
+* versão 1.3.0 - sistema de importação de extrato bancário ([f2cc7a0](https://github.com/KassianoV/GenFinds/commit/f2cc7a031336af42100bc08744d970426c15ba16))
+* versão 1.4.0 - correções críticas de segurança e performance ([9d61739](https://github.com/KassianoV/GenFinds/commit/9d617393aff5e0deb8585048f19a5a57421c1c8d))
+* versão 1.5.0 - paginação de transações e importação OFX padronizada ([1a90666](https://github.com/KassianoV/GenFinds/commit/1a906665f089abe356dde48403f99b4762ef90db))
 
-### Corrigido
-- Correções críticas de segurança
-- Otimizações de performance
 
-## [1.4.0] - 2024
 
-### Adicionado
-- Sistema de logging com Winston
-- Validação de dados com Zod
+# [1.1.0](https://github.com/KassianoV/GenFinds/compare/v1.0.0...v1.1.0) (2025-12-25)
 
-### Corrigido
-- Correções críticas de segurança
-- Melhorias de performance
 
-## [1.3.0] - 2024
 
-### Adicionado
-- Sistema de importação de extrato bancário
-- Suporte para diferentes formatos de arquivo
+# 1.0.0 (2025-12-24)
 
-## [1.2.0] - 2024
 
-### Adicionado
-- Sistema de categorias personalizadas
-- Filtros avançados de transações
 
-### Corrigido
-- Correções críticas de segurança
-- Melhorias de performance
-
-## [1.0.0] - 2024
-
-### Adicionado
-- Versão inicial do GenFins
-- Sistema de gestão de finanças pessoais
-- Dashboard com gráficos interativos
-- Gerenciamento de transações (receitas e despesas)
-- Sistema de contas bancárias
-- Relatórios financeiros
-- Integração com Chart.js para visualizações
-- Base de dados SQLite local
-- Interface moderna e responsiva

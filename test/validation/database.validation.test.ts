@@ -1,7 +1,7 @@
 // test/validation/database.validation.test.ts
 /**
  * Testes de Validação e Edge Cases
- * 
+ *
  * Testa comportamento com:
  * - Dados inválidos
  * - Valores limites
@@ -28,7 +28,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // EDGE CASES - VALORES NUMÉRICOS
   // ========================================
-  
+
   describe('Edge cases - Valores numéricos', () => {
     let usuario: any;
     let conta: any;
@@ -41,12 +41,12 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 0,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
       categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'receita',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
     });
 
@@ -58,16 +58,16 @@ describe('DatabaseManager - Testes de Validação', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(transacao.valor).toBe(0);
     });
 
     test('deve aceitar valores decimais precisos', () => {
-      const valores = [0.01, 0.99, 1.50, 99.99, 1234.56];
+      const valores = [0.01, 0.99, 1.5, 99.99, 1234.56];
 
-      valores.forEach(valor => {
+      valores.forEach((valor) => {
         const transacao = db.createTransacao({
           descricao: `Valor ${valor}`,
           valor,
@@ -75,7 +75,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(transacao.valor).toBe(valor);
@@ -92,7 +92,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(transacao.valor).toBe(valorGrande);
@@ -108,7 +108,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: -500,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(contaNegativa.saldo).toBe(-500);
@@ -117,7 +117,7 @@ describe('DatabaseManager - Testes de Validação', () => {
       const categoriaDespesa = db.createCategoria({
         nome: 'Despesa',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       db.createTransacao({
@@ -127,7 +127,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         data: '2024-12-25',
         conta_id: contaNegativa.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const contaAtualizada = db.getConta(contaNegativa.id);
@@ -138,7 +138,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // EDGE CASES - STRINGS
   // ========================================
-  
+
   describe('Edge cases - Strings', () => {
     let usuario: any;
 
@@ -147,20 +147,21 @@ describe('DatabaseManager - Testes de Validação', () => {
     });
 
     test('deve aceitar strings vazias onde permitido', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const conta = db.createConta({
         nome: 'Conta',
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'receita',
         icone: '', // String vazia permitida
-        cor: '',   // String vazia permitida
-        usuario_id: usuario.id
+        cor: '', // String vazia permitida
+        usuario_id: usuario.id,
       });
 
       expect(categoria.icone).toBe('');
@@ -175,13 +176,13 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const transacao = db.createTransacao({
@@ -192,7 +193,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         conta_id: conta.id,
         categoria_id: categoria.id,
         usuario_id: usuario.id,
-        observacoes: descricaoLonga
+        observacoes: descricaoLonga,
       });
 
       expect(transacao.descricao).toBe(descricaoLonga);
@@ -207,7 +208,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         'Quebra\nde\nlinha',
         'Tab\t\ttest',
         'Aspas "duplas" e \'simples\'',
-        'HTML <script>alert("xss")</script>'
+        'HTML <script>alert("xss")</script>',
       ];
 
       const conta = db.createConta({
@@ -215,16 +216,16 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
-      textosEspeciais.forEach((texto, index) => {
+      textosEspeciais.forEach((texto) => {
         const transacao = db.createTransacao({
           descricao: texto,
           valor: 100,
@@ -232,7 +233,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(transacao.descricao).toBe(texto);
@@ -243,7 +244,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // EDGE CASES - DATAS
   // ========================================
-  
+
   describe('Edge cases - Datas', () => {
     let usuario: any;
     let conta: any;
@@ -256,12 +257,12 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
       categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
     });
 
@@ -273,7 +274,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         data: '2000-01-01',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(transacao.data).toBe('2000-01-01');
@@ -287,20 +288,14 @@ describe('DatabaseManager - Testes de Validação', () => {
         data: '2030-12-31',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(transacao.data).toBe('2030-12-31');
     });
 
     test('deve ordenar transações por data corretamente', () => {
-      const datas = [
-        '2024-12-01',
-        '2024-12-15',
-        '2024-12-05',
-        '2024-12-20',
-        '2024-12-10'
-      ];
+      const datas = ['2024-12-01', '2024-12-15', '2024-12-05', '2024-12-20', '2024-12-10'];
 
       datas.forEach((data, index) => {
         db.createTransacao({
@@ -310,7 +305,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data,
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       });
 
@@ -328,7 +323,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // EDGE CASES - MESES E ANOS
   // ========================================
-  
+
   describe('Edge cases - Meses e anos em orçamentos', () => {
     let usuario: any;
     let categoria: any;
@@ -338,7 +333,7 @@ describe('DatabaseManager - Testes de Validação', () => {
       categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
     });
 
@@ -348,7 +343,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         valor_planejado: 1000,
         mes: 1,
         ano: 2024,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(orcamento.mes).toBe(1);
@@ -360,7 +355,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(orcamento.mes).toBe(12);
@@ -369,13 +364,13 @@ describe('DatabaseManager - Testes de Validação', () => {
     test('deve aceitar anos distantes', () => {
       const anos = [2000, 2050, 2100];
 
-      anos.forEach(ano => {
+      anos.forEach((ano) => {
         const orcamento = db.createOrcamento({
           categoria_id: categoria.id,
           valor_planejado: 1000,
           mes: 6,
           ano,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(orcamento.ano).toBe(ano);
@@ -386,7 +381,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
   // ========================================
-  
+
   describe('Validação de campos obrigatórios', () => {
     test('deve falhar ao criar usuário sem nome', () => {
       expect(() => {
@@ -409,7 +404,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           saldo: 1000,
           tipo: 'corrente',
           ativa: true,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -421,7 +416,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         db.createCategoria({
           nome: '',
           tipo: 'receita',
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -430,7 +425,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // VALIDAÇÃO DE TIPOS ENUMERADOS
   // ========================================
-  
+
   describe('Validação de tipos enumerados', () => {
     let usuario: any;
 
@@ -439,16 +434,20 @@ describe('DatabaseManager - Testes de Validação', () => {
     });
 
     test('deve aceitar apenas tipos válidos de conta', () => {
-      const tiposValidos: Array<'corrente' | 'poupanca' | 'investimento' | 'carteira'> = 
-        ['corrente', 'poupanca', 'investimento', 'carteira'];
+      const tiposValidos: Array<'corrente' | 'poupanca' | 'investimento' | 'carteira'> = [
+        'corrente',
+        'poupanca',
+        'investimento',
+        'carteira',
+      ];
 
-      tiposValidos.forEach(tipo => {
+      tiposValidos.forEach((tipo) => {
         const conta = db.createConta({
           nome: `Conta ${tipo}`,
           saldo: 1000,
           tipo,
           ativa: true,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(conta.tipo).toBe(tipo);
@@ -461,7 +460,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           saldo: 1000,
           tipo: 'tipo_invalido' as any,
           ativa: true,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -469,11 +468,11 @@ describe('DatabaseManager - Testes de Validação', () => {
     test('deve aceitar apenas tipos válidos de categoria', () => {
       const tiposValidos: Array<'receita' | 'despesa'> = ['receita', 'despesa'];
 
-      tiposValidos.forEach(tipo => {
+      tiposValidos.forEach((tipo) => {
         const categoria = db.createCategoria({
           nome: `Cat ${tipo}`,
           tipo,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(categoria.tipo).toBe(tipo);
@@ -484,7 +483,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         db.createCategoria({
           nome: 'Cat Inválida',
           tipo: 'tipo_invalido' as any,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -495,18 +494,18 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'receita',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const tiposValidos: Array<'receita' | 'despesa'> = ['receita', 'despesa'];
 
-      tiposValidos.forEach(tipo => {
+      tiposValidos.forEach((tipo) => {
         const transacao = db.createTransacao({
           descricao: `Trans ${tipo}`,
           valor: 100,
@@ -514,7 +513,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         expect(transacao.tipo).toBe(tipo);
@@ -529,7 +528,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -538,7 +537,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // VALIDAÇÃO DE REFERÊNCIAS
   // ========================================
-  
+
   describe('Validação de referências (Foreign Keys)', () => {
     test('deve falhar ao criar conta com usuario_id inexistente', () => {
       expect(() => {
@@ -547,7 +546,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           saldo: 1000,
           tipo: 'corrente',
           ativa: true,
-          usuario_id: 99999 // ID inexistente
+          usuario_id: 99999, // ID inexistente
         });
       }).toThrow();
     });
@@ -557,7 +556,7 @@ describe('DatabaseManager - Testes de Validação', () => {
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(() => {
@@ -568,7 +567,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: 99999, // ID inexistente
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -580,7 +579,7 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(() => {
@@ -591,7 +590,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: 99999, // ID inexistente
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }).toThrow();
     });
@@ -600,7 +599,7 @@ describe('DatabaseManager - Testes de Validação', () => {
   // ========================================
   // EDGE CASES - LIMIT
   // ========================================
-  
+
   describe('Edge cases - LIMIT parameter', () => {
     let usuario: any;
 
@@ -612,13 +611,13 @@ describe('DatabaseManager - Testes de Validação', () => {
         saldo: 10000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar 10 transações
@@ -630,7 +629,7 @@ describe('DatabaseManager - Testes de Validação', () => {
           data: '2024-12-25',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }
     });

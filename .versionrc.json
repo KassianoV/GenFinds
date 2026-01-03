@@ -1,0 +1,24 @@
+{
+  "types": [
+    { "type": "feat", "section": "✨ Novos Recursos" },
+    { "type": "fix", "section": "🐛 Correções de Bugs" },
+    { "type": "perf", "section": "⚡ Melhorias de Performance" },
+    { "type": "refactor", "section": "♻️ Refatorações" },
+    { "type": "docs", "section": "📚 Documentação" },
+    { "type": "test", "section": "✅ Testes" },
+    { "type": "build", "section": "🔧 Build" },
+    { "type": "ci", "section": "👷 CI/CD" },
+    { "type": "chore", "hidden": true },
+    { "type": "style", "hidden": true }
+  ],
+  "header": "# Changelog\n\nTodas as mudanças notáveis neste projeto serão documentadas neste arquivo.\n\nO formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),\ne este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).",
+  "commitUrlFormat": "{{host}}/{{owner}}/{{repository}}/commit/{{hash}}",
+  "compareUrlFormat": "{{host}}/{{owner}}/{{repository}}/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "{{host}}/{{owner}}/{{repository}}/issues/{{id}}",
+  "userUrlFormat": "{{host}}/{{user}}",
+  "releaseCommitMessageFormat": "chore(release): versão {{currentTag}}",
+  "issuePrefixes": ["#"],
+  "skip": {
+    "changelog": false
+  }
+}

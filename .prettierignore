@@ -1,0 +1,7 @@
+dist/
+node_modules/
+coverage/
+release/
+*.db
+*.wasm
+package-lock.json

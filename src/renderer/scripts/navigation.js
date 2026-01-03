@@ -1,82 +1,82 @@
 const Navigation = {
-    currentPage: 'transacoes',
+  currentPage: 'transacoes',
 
-    init() {
-        this.attachEventListeners();
-        this.showPage(this.currentPage);
-    },
+  init() {
+    this.attachEventListeners();
+    this.showPage(this.currentPage);
+  },
 
-    attachEventListeners() {
-        const navItems = document.querySelectorAll('.nav-item[data-page]');
-        
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                const page = e.currentTarget.dataset.page;
-                this.navigateTo(page);
-            });
-        });
-    },
+  attachEventListeners() {
+    const navItems = document.querySelectorAll('.nav-item[data-page]');
 
-    navigateTo(pageName) {
-        if (this.currentPage === pageName) return;
+    navItems.forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const page = e.currentTarget.dataset.page;
+        this.navigateTo(page);
+      });
+    });
+  },
 
-        this.currentPage = pageName;
-        this.updateActiveNav(pageName);
-        this.showPage(pageName);
-    },
+  navigateTo(pageName) {
+    if (this.currentPage === pageName) return;
 
-    updateActiveNav(pageName) {
-        const navItems = document.querySelectorAll('.nav-item[data-page]');
-        
-        navItems.forEach(item => {
-            if (item.dataset.page === pageName) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-    },
+    this.currentPage = pageName;
+    this.updateActiveNav(pageName);
+    this.showPage(pageName);
+  },
 
-    showPage(pageName) {
-        // Ocultar todas as páginas
-        const pages = document.querySelectorAll('.page-content');
-        pages.forEach(page => {
-            page.style.display = 'none';
-        });
+  updateActiveNav(pageName) {
+    const navItems = document.querySelectorAll('.nav-item[data-page]');
 
-        // Exibir a página atual
-        const currentPageEl = document.getElementById(`${pageName}-page`);
-        if (currentPageEl) {
-            currentPageEl.style.display = 'block';
-            
-            // Atualizar conteúdo da página se necessário
-            this.refreshPageContent(pageName);
-        }
-    },
+    navItems.forEach((item) => {
+      if (item.dataset.page === pageName) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  },
 
-    refreshPageContent(pageName) {
-        // Atualizar conteúdo específico de cada página
-        switch (pageName) {
-            case 'dashboard':
-                if (typeof DashboardPage !== 'undefined') {
-                    DashboardPage.render();  // ← ADICIONE ESTE CASO
-                }
-            break;
-            case 'transacoes':
-                if (typeof TransacoesPage !== 'undefined') {
-                    TransacoesPage.render();
-                }
-            break;
-            case 'relatorio':
-                if (typeof RelatorioPage !== 'undefined') {
-                    RelatorioPage.render();
-                }
-                break;
-            case 'configurar':
-                if (typeof ConfigurarPage !== 'undefined') {
-                    ConfigurarPage.render();
-                }
-                break;
-        }
+  showPage(pageName) {
+    // Ocultar todas as páginas
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach((page) => {
+      page.style.display = 'none';
+    });
+
+    // Exibir a página atual
+    const currentPageEl = document.getElementById(`${pageName}-page`);
+    if (currentPageEl) {
+      currentPageEl.style.display = 'block';
+
+      // Atualizar conteúdo da página se necessário
+      this.refreshPageContent(pageName);
     }
+  },
+
+  refreshPageContent(pageName) {
+    // Atualizar conteúdo específico de cada página
+    switch (pageName) {
+      case 'dashboard':
+        if (typeof DashboardPage !== 'undefined') {
+          DashboardPage.render(); // ← ADICIONE ESTE CASO
+        }
+        break;
+      case 'transacoes':
+        if (typeof TransacoesPage !== 'undefined') {
+          TransacoesPage.render();
+        }
+        break;
+      case 'relatorio':
+        if (typeof RelatorioPage !== 'undefined') {
+          RelatorioPage.render();
+        }
+        break;
+      case 'configurar':
+        if (typeof ConfigurarPage !== 'undefined') {
+          ConfigurarPage.render();
+        }
+        break;
+    }
+  },
 };

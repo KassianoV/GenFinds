@@ -1,7 +1,7 @@
 // test/integration/database.integration.test.ts
 /**
  * Testes de Integração - Fluxos Completos
- * 
+ *
  * Testa cenários reais de uso combinando múltiplas operações
  */
 
@@ -24,7 +24,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 1: Novo Usuário - Setup Completo
   // ========================================
-  
+
   describe('Cenário: Novo usuário configurando aplicação', () => {
     test('deve criar usuário, contas, categorias e fazer primeira transação', () => {
       // 1. Criar usuário
@@ -37,15 +37,16 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 5000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const poupanca = db.createConta({
         nome: 'Poupança',
         saldo: 10000,
         tipo: 'poupanca',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(db.getContas(usuario.id)).toHaveLength(2);
@@ -56,14 +57,14 @@ describe('DatabaseManager - Testes de Integração', () => {
         { nome: 'Freelance', tipo: 'receita' as const },
         { nome: 'Alimentação', tipo: 'despesa' as const },
         { nome: 'Transporte', tipo: 'despesa' as const },
-        { nome: 'Lazer', tipo: 'despesa' as const }
+        { nome: 'Lazer', tipo: 'despesa' as const },
       ];
 
-      categorias.forEach(cat => {
+      categorias.forEach((cat) => {
         db.createCategoria({
           nome: cat.nome,
           tipo: cat.tipo,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       });
 
@@ -72,8 +73,9 @@ describe('DatabaseManager - Testes de Integração', () => {
       expect(db.getCategorias(usuario.id, 'despesa')).toHaveLength(3);
 
       // 4. Criar primeira transação
-      const categoriaSalario = db.getCategorias(usuario.id, 'receita')
-        .find(c => c.nome === 'Salário');
+      const categoriaSalario = db
+        .getCategorias(usuario.id, 'receita')
+        .find((c) => c.nome === 'Salário');
 
       const transacao = db.createTransacao({
         descricao: 'Salário Dezembro',
@@ -82,7 +84,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-01',
         conta_id: contaCorrente.id,
         categoria_id: categoriaSalario!.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       expect(transacao).toBeDefined();
@@ -96,53 +98,53 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 2: Controle de Orçamento Mensal
   // ========================================
-  
+
   describe('Cenário: Controle de orçamento mensal', () => {
     test('deve configurar orçamentos e acompanhar gastos', () => {
       // Setup inicial
       const usuario = db.createUsuario('Maria Santos', 'maria@email.com');
-      
+
       const conta = db.createConta({
         nome: 'Conta Principal',
         saldo: 10000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar categorias de despesa
       const catAlimentacao = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const catTransporte = db.createCategoria({
         nome: 'Transporte',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const catLazer = db.createCategoria({
         nome: 'Lazer',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Configurar orçamentos para dezembro/2024
       const orcamentos = [
         { categoria: catAlimentacao, valor: 1500 },
         { categoria: catTransporte, valor: 500 },
-        { categoria: catLazer, valor: 300 }
+        { categoria: catLazer, valor: 300 },
       ];
 
-      orcamentos.forEach(orc => {
+      orcamentos.forEach((orc) => {
         db.createOrcamento({
           categoria_id: orc.categoria.id,
           valor_planejado: orc.valor,
           mes: 12,
           ano: 2024,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       });
 
@@ -152,27 +154,23 @@ describe('DatabaseManager - Testes de Integração', () => {
         { categoria: catAlimentacao, valor: 400, descricao: 'Supermercado 2' },
         { categoria: catTransporte, valor: 200, descricao: 'Combustível' },
         { categoria: catTransporte, valor: 150, descricao: 'Uber' },
-        { categoria: catLazer, valor: 250, descricao: 'Cinema e jantar' }
+        { categoria: catLazer, valor: 250, descricao: 'Cinema e jantar' },
       ];
 
-      gastos.forEach((gasto, index) => {
+      gastos.forEach((gasto, _index) => {
         db.createTransacao({
           descricao: gasto.descricao,
           valor: gasto.valor,
           tipo: 'despesa',
-          data: `2024-12-${String(index + 1).padStart(2, '0')}`,
+          data: `2024-12-${String(_index + 1).padStart(2, '0')}`,
           conta_id: conta.id,
           categoria_id: gasto.categoria.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       });
 
       // Verificar resumo
-      const resumo = db.getResumoFinanceiro(
-        usuario.id,
-        '2024-12-01',
-        '2024-12-31'
-      );
+      const resumo = db.getResumoFinanceiro(usuario.id, '2024-12-01', '2024-12-31');
 
       expect(resumo.despesa).toBe(1800); // Total de gastos
       expect(resumo.receita).toBe(0);
@@ -188,22 +186,23 @@ describe('DatabaseManager - Testes de Integração', () => {
 
       // Calcular quanto foi gasto por categoria
       const transacoes = db.getTransacoes(usuario.id);
-      
+
       const gastoAlimentacao = transacoes
-        .filter(t => t.categoria_id === catAlimentacao.id)
+        .filter((t) => t.categoria_id === catAlimentacao.id)
         .reduce((sum, t) => sum + t.valor, 0);
-      
+
       const gastoTransporte = transacoes
-        .filter(t => t.categoria_id === catTransporte.id)
+        .filter((t) => t.categoria_id === catTransporte.id)
         .reduce((sum, t) => sum + t.valor, 0);
 
       expect(gastoAlimentacao).toBe(1200); // 800 + 400
-      expect(gastoTransporte).toBe(350);   // 200 + 150
+      expect(gastoTransporte).toBe(350); // 200 + 150
 
       // Verificar se está dentro do orçamento
-      const orcamentoAlimentacao = orcamentosConfigurados
-        .find(o => o.categoria_id === catAlimentacao.id);
-      
+      const orcamentoAlimentacao = orcamentosConfigurados.find(
+        (o) => o.categoria_id === catAlimentacao.id
+      );
+
       expect(gastoAlimentacao).toBeLessThan(orcamentoAlimentacao!.valor_planejado);
     });
   });
@@ -211,7 +210,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 3: Transferência Entre Contas
   // ========================================
-  
+
   describe('Cenário: Transferência entre contas', () => {
     test('deve transferir valor de uma conta para outra', () => {
       // Setup
@@ -222,28 +221,29 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 5000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const poupanca = db.createConta({
         nome: 'Poupança',
         saldo: 10000,
         tipo: 'poupanca',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar categorias para transferência
       const catTransferenciaOut = db.createCategoria({
         nome: 'Transferência (Saída)',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const catTransferenciaIn = db.createCategoria({
         nome: 'Transferência (Entrada)',
         tipo: 'receita',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const valorTransferencia = 2000;
@@ -256,7 +256,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-25',
         conta_id: contaCorrente.id,
         categoria_id: catTransferenciaOut.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Registrar entrada na poupança
@@ -267,14 +267,14 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-25',
         conta_id: poupanca.id,
         categoria_id: catTransferenciaIn.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Verificar saldos
       const ccAtualizada = db.getConta(contaCorrente.id);
       const poupancaAtualizada = db.getConta(poupanca.id);
 
-      expect(ccAtualizada?.saldo).toBe(3000);  // 5000 - 2000
+      expect(ccAtualizada?.saldo).toBe(3000); // 5000 - 2000
       expect(poupancaAtualizada?.saldo).toBe(12000); // 10000 + 2000
 
       // Saldo total deve permanecer o mesmo
@@ -286,7 +286,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 4: Edição de Transação
   // ========================================
-  
+
   describe('Cenário: Editar transação e atualizar saldos', () => {
     test('deve atualizar transação e recalcular saldos corretamente', () => {
       // Setup
@@ -297,7 +297,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const conta2 = db.createConta({
@@ -305,13 +305,13 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 2000,
         tipo: 'poupanca',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Compras',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar transação inicial
@@ -322,16 +322,16 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-20',
         conta_id: conta1.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Verificar saldo após criação
-      let conta1Atual = db.getConta(conta1.id);
+      const conta1Atual = db.getConta(conta1.id);
       expect(conta1Atual?.saldo).toBe(500); // 1000 - 500
 
       // Editar: mudar valor
       db.updateTransacao(transacao.id, {
-        valor: 300 // Diminuir valor
+        valor: 300, // Diminuir valor
       });
 
       // Saldo deve ser recalculado (implementação futura no backend)
@@ -341,7 +341,7 @@ describe('DatabaseManager - Testes de Integração', () => {
 
       // Editar: mudar para outra conta
       db.updateTransacao(transacao.id, {
-        conta_id: conta2.id
+        conta_id: conta2.id,
       });
 
       const transacaoNaConta2 = db.getTransacao(transacao.id);
@@ -352,7 +352,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 5: Exclusão em Cascata
   // ========================================
-  
+
   describe('Cenário: Exclusão de dados relacionados', () => {
     test('deve manter integridade ao deletar categoria com orçamentos', () => {
       const usuario = db.createUsuario('Carlos Souza', 'carlos@email.com');
@@ -360,7 +360,7 @@ describe('DatabaseManager - Testes de Integração', () => {
       const categoria = db.createCategoria({
         nome: 'Categoria Teste',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar orçamento para esta categoria
@@ -369,7 +369,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Verificar que orçamento existe
@@ -396,13 +396,13 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const categoria = db.createCategoria({
         nome: 'Categoria',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar transação
@@ -413,11 +413,11 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Saldo deve ter diminuído
-      let contaAtual = db.getConta(conta.id);
+      const contaAtual = db.getConta(conta.id);
       expect(contaAtual?.saldo).toBe(700);
 
       // Deletar conta (deve deletar transações em cascata)
@@ -436,7 +436,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 6: Múltiplos Usuários
   // ========================================
-  
+
   describe('Cenário: Isolamento de dados entre usuários', () => {
     test('não deve permitir acesso cruzado entre usuários', () => {
       // Criar dois usuários
@@ -449,13 +449,13 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario1.id
+        usuario_id: usuario1.id,
       });
 
       const cat1 = db.createCategoria({
         nome: 'Categoria User 1',
         tipo: 'receita',
-        usuario_id: usuario1.id
+        usuario_id: usuario1.id,
       });
 
       db.createTransacao({
@@ -465,7 +465,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-25',
         conta_id: conta1.id,
         categoria_id: cat1.id,
-        usuario_id: usuario1.id
+        usuario_id: usuario1.id,
       });
 
       // Criar dados para usuário 2
@@ -474,13 +474,13 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 2000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario2.id
+        usuario_id: usuario2.id,
       });
 
       const cat2 = db.createCategoria({
         nome: 'Categoria User 2',
         tipo: 'despesa',
-        usuario_id: usuario2.id
+        usuario_id: usuario2.id,
       });
 
       db.createTransacao({
@@ -490,7 +490,7 @@ describe('DatabaseManager - Testes de Integração', () => {
         data: '2024-12-25',
         conta_id: conta2.id,
         categoria_id: cat2.id,
-        usuario_id: usuario2.id
+        usuario_id: usuario2.id,
       });
 
       // Verificar isolamento
@@ -521,7 +521,7 @@ describe('DatabaseManager - Testes de Integração', () => {
   // ========================================
   // CENÁRIO 7: Relatório Anual
   // ========================================
-  
+
   describe('Cenário: Gerar relatório anual', () => {
     test('deve calcular resumo financeiro de todo o ano', () => {
       const usuario = db.createUsuario('Relatório User', 'relatorio@email.com');
@@ -531,19 +531,19 @@ describe('DatabaseManager - Testes de Integração', () => {
         saldo: 0,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const catReceita = db.createCategoria({
         nome: 'Salário',
         tipo: 'receita',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       const catDespesa = db.createCategoria({
         nome: 'Despesas Gerais',
         tipo: 'despesa',
-        usuario_id: usuario.id
+        usuario_id: usuario.id,
       });
 
       // Criar transações para cada mês do ano
@@ -556,7 +556,7 @@ describe('DatabaseManager - Testes de Integração', () => {
           data: `2024-${String(mes).padStart(2, '0')}-01`,
           conta_id: conta.id,
           categoria_id: catReceita.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
 
         // Despesas mensais
@@ -567,20 +567,16 @@ describe('DatabaseManager - Testes de Integração', () => {
           data: `2024-${String(mes).padStart(2, '0')}-15`,
           conta_id: conta.id,
           categoria_id: catDespesa.id,
-          usuario_id: usuario.id
+          usuario_id: usuario.id,
         });
       }
 
       // Resumo anual
-      const resumoAnual = db.getResumoFinanceiro(
-        usuario.id,
-        '2024-01-01',
-        '2024-12-31'
-      );
+      const resumoAnual = db.getResumoFinanceiro(usuario.id, '2024-01-01', '2024-12-31');
 
       expect(resumoAnual.receita).toBe(60000); // 5000 x 12
       expect(resumoAnual.despesa).toBe(36000); // 3000 x 12
-      expect(resumoAnual.saldo).toBe(24000);   // 60000 - 36000
+      expect(resumoAnual.saldo).toBe(24000); // 60000 - 36000
 
       // Verificar saldo final da conta
       const contaFinal = db.getConta(conta.id);

@@ -13,7 +13,7 @@ import {
   ResumoFinanceiro,
   TransacaoCompleta,
   PaginationParams,
-  PaginatedResult
+  PaginatedResult,
 } from '../types/database.types';
 
 // Interface para cache
@@ -38,7 +38,7 @@ export class DatabaseManager {
 
   async init(): Promise<void> {
     const SQL = await initSqlJs();
-    
+
     if (fs.existsSync(this.dbPath)) {
       const buffer = fs.readFileSync(this.dbPath);
       this.db = new SQL.Database(buffer);
@@ -51,6 +51,9 @@ export class DatabaseManager {
   }
 
   private initDatabase(): void {
+    // Habilitar foreign keys no SQLite
+    this.db.run('PRAGMA foreign_keys = ON');
+
     this.db.run(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -237,7 +240,7 @@ export class DatabaseManager {
   private setCache<T>(key: string, data: T): void {
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -295,8 +298,16 @@ export class DatabaseManager {
   }
 
   // ========== MÉTODOS DE USUÁRIO ==========
-  
+
   createUsuario(nome: string, email: string): Usuario {
+    // Validações de campos obrigatórios
+    if (!nome || nome.trim() === '') {
+      throw new Error('Nome é obrigatório');
+    }
+    if (!email || email.trim() === '') {
+      throw new Error('Email é obrigatório');
+    }
+
     this.db.run('INSERT INTO usuarios (nome, email) VALUES (?, ?)', [nome, email]);
     this.save();
     return this.getUsuarioByEmail(email)!;
@@ -323,13 +334,18 @@ export class DatabaseManager {
       email: String(row[cols.indexOf('email')]),
       avatar: row[cols.indexOf('avatar')] ? String(row[cols.indexOf('avatar')]) : undefined,
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
   // ========== MÉTODOS DE CONTA ==========
 
   createConta(conta: Omit<Conta, 'id' | 'created_at' | 'updated_at'>): Conta {
+    // Validações de campos obrigatórios
+    if (!conta.nome || conta.nome.trim() === '') {
+      throw new Error('Nome da conta é obrigatório');
+    }
+
     this.db.run(
       'INSERT INTO contas (nome, saldo, tipo, ativa, usuario_id) VALUES (?, ?, ?, ?, ?)',
       [conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0, conta.usuario_id]
@@ -350,8 +366,15 @@ export class DatabaseManager {
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    const result = this.db.exec('SELECT * FROM contas WHERE usuario_id = ? ORDER BY nome', [usuarioId]);
-    const data = result.length === 0 ? [] : result[0].values.map((row: SqlValue[]) => this.rowToContaFromArray(row, result[0].columns));
+    const result = this.db.exec('SELECT * FROM contas WHERE usuario_id = ? ORDER BY nome', [
+      usuarioId,
+    ]);
+    const data =
+      result.length === 0
+        ? []
+        : result[0].values.map((row: SqlValue[]) =>
+            this.rowToContaFromArray(row, result[0].columns)
+          );
 
     // Armazenar em cache
     this.setCache(cacheKey, data);
@@ -366,11 +389,11 @@ export class DatabaseManager {
   }
 
   updateConta(id: number, updates: Partial<Conta>): boolean {
-
     const allowedFields = ['nome', 'saldo', 'tipo', 'ativa', 'usuario_id'];
 
-    const validUpdates = Object.entries(updates)
-      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
 
     if (validUpdates.length === 0) {
       return false;
@@ -379,10 +402,10 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(
-      `UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id] as SqlValue[]
-    );
+    this.db.run(`UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      ...values,
+      id,
+    ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de contas (invalidar todos para simplificar)
@@ -411,20 +434,35 @@ export class DatabaseManager {
       id: Number(row[cols.indexOf('id')]),
       nome: String(row[cols.indexOf('nome')]),
       saldo: Number(row[cols.indexOf('saldo')]),
-      tipo: String(row[cols.indexOf('tipo')]) as 'corrente' | 'poupanca' | 'investimento' | 'carteira',
+      tipo: String(row[cols.indexOf('tipo')]) as
+        | 'corrente'
+        | 'poupanca'
+        | 'investimento'
+        | 'carteira',
       ativa: Number(row[cols.indexOf('ativa')]) === 1,
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
   // ========== MÉTODOS DE CATEGORIA ==========
 
   createCategoria(categoria: Omit<Categoria, 'id' | 'created_at' | 'updated_at'>): Categoria {
+    // Validações de campos obrigatórios
+    if (!categoria.nome || categoria.nome.trim() === '') {
+      throw new Error('Nome da categoria é obrigatório');
+    }
+
     this.db.run(
       'INSERT INTO categorias (nome, tipo, cor, icone, usuario_id) VALUES (?, ?, ?, ?, ?)',
-      [categoria.nome, categoria.tipo, categoria.cor || null, categoria.icone || null, categoria.usuario_id]
+      [
+        categoria.nome,
+        categoria.tipo,
+        categoria.cor ?? null,
+        categoria.icone ?? null,
+        categoria.usuario_id,
+      ]
     );
     this.save();
 
@@ -453,7 +491,12 @@ export class DatabaseManager {
     query += ' ORDER BY nome';
 
     const result = this.db.exec(query, params);
-    const data = result.length === 0 ? [] : result[0].values.map((row: SqlValue[]) => this.rowToCategoriaFromArray(row, result[0].columns));
+    const data =
+      result.length === 0
+        ? []
+        : result[0].values.map((row: SqlValue[]) =>
+            this.rowToCategoriaFromArray(row, result[0].columns)
+          );
 
     // Armazenar em cache
     this.setCache(cacheKey, data);
@@ -472,8 +515,9 @@ export class DatabaseManager {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = ['nome', 'tipo', 'cor', 'icone', 'usuario_id'];
 
-    const validUpdates = Object.entries(updates)
-      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
 
     if (validUpdates.length === 0) {
       return false;
@@ -482,10 +526,10 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(
-      `UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id] as SqlValue[]
-    );
+    this.db.run(`UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      ...values,
+      id,
+    ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de categorias
@@ -510,15 +554,18 @@ export class DatabaseManager {
   }
 
   private rowToCategoriaFromArray(row: SqlValue[], cols: string[]): Categoria {
+    const corValue = row[cols.indexOf('cor')];
+    const iconeValue = row[cols.indexOf('icone')];
+
     return {
       id: Number(row[cols.indexOf('id')]),
       nome: String(row[cols.indexOf('nome')]),
       tipo: String(row[cols.indexOf('tipo')]) as 'receita' | 'despesa',
-      cor: row[cols.indexOf('cor')] ? String(row[cols.indexOf('cor')]) : undefined,
-      icone: row[cols.indexOf('icone')] ? String(row[cols.indexOf('icone')]) : undefined,
+      cor: corValue !== null ? String(corValue) : undefined,
+      icone: iconeValue !== null ? String(iconeValue) : undefined,
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
@@ -527,10 +574,16 @@ export class DatabaseManager {
   createOrcamento(orcamento: Omit<Orcamento, 'id' | 'created_at' | 'updated_at'>): Orcamento {
     this.db.run(
       'INSERT INTO orcamentos (categoria_id, valor_planejado, mes, ano, usuario_id) VALUES (?, ?, ?, ?, ?)',
-      [orcamento.categoria_id, orcamento.valor_planejado, orcamento.mes, orcamento.ano, orcamento.usuario_id]
+      [
+        orcamento.categoria_id,
+        orcamento.valor_planejado,
+        orcamento.mes,
+        orcamento.ano,
+        orcamento.usuario_id,
+      ]
     );
     this.save();
-    
+
     const result = this.db.exec('SELECT * FROM orcamentos ORDER BY id DESC LIMIT 1');
     return this.rowToOrcamento(result[0]);
   }
@@ -538,20 +591,22 @@ export class DatabaseManager {
   getOrcamentos(usuarioId: number, mes?: number, ano?: number): Orcamento[] {
     let query = 'SELECT * FROM orcamentos WHERE usuario_id = ?';
     const params: SqlValue[] = [usuarioId];
-    
+
     if (mes !== undefined) {
       query += ' AND mes = ?';
       params.push(mes);
     }
-    
+
     if (ano !== undefined) {
       query += ' AND ano = ?';
       params.push(ano);
     }
-    
+
     const result = this.db.exec(query, params);
     if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) => this.rowToOrcamentoFromArray(row, result[0].columns));
+    return result[0].values.map((row: SqlValue[]) =>
+      this.rowToOrcamentoFromArray(row, result[0].columns)
+    );
   }
 
   getOrcamento(id: number): Orcamento | undefined {
@@ -564,21 +619,22 @@ export class DatabaseManager {
   updateOrcamento(id: number, updates: Partial<Orcamento>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = ['categoria_id', 'valor_planejado', 'mes', 'ano', 'usuario_id'];
-    
-    const validUpdates = Object.entries(updates)
-      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
-    
+
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
+
     if (validUpdates.length === 0) {
       return false;
     }
-    
+
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
-    
-    this.db.run(
-      `UPDATE orcamentos SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id] as SqlValue[]
-    );
+
+    this.db.run(`UPDATE orcamentos SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      ...values,
+      id,
+    ] as SqlValue[]);
     this.save();
     return true;
   }
@@ -603,7 +659,7 @@ export class DatabaseManager {
       ano: Number(row[cols.indexOf('ano')]),
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
@@ -613,7 +669,16 @@ export class DatabaseManager {
     return this.executeInTransaction(() => {
       this.db.run(
         'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, usuario_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [transacao.descricao, transacao.valor, transacao.tipo, transacao.data, transacao.conta_id, transacao.categoria_id, transacao.usuario_id, transacao.observacoes || null]
+        [
+          transacao.descricao,
+          transacao.valor,
+          transacao.tipo,
+          transacao.data,
+          transacao.conta_id,
+          transacao.categoria_id,
+          transacao.usuario_id,
+          transacao.observacoes || null,
+        ]
       );
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
@@ -652,7 +717,9 @@ export class DatabaseManager {
 
     const result = this.db.exec(query, params);
     if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) => this.rowToTransacaoCompletaFromArray(row, result[0].columns));
+    return result[0].values.map((row: SqlValue[]) =>
+      this.rowToTransacaoCompletaFromArray(row, result[0].columns)
+    );
   }
 
   // ✅ NOVO: Método de paginação para grandes volumes
@@ -675,7 +742,7 @@ export class DatabaseManager {
     `;
 
     const countResult = this.db.exec(countQuery, [usuarioId]);
-    const total = countResult[0]?.values[0]?.[0] as number || 0;
+    const total = (countResult[0]?.values[0]?.[0] as number) || 0;
     const totalPages = Math.ceil(total / safePageSize);
 
     // Query para buscar dados paginados
@@ -694,11 +761,12 @@ export class DatabaseManager {
     `;
 
     const dataResult = this.db.exec(dataQuery, [usuarioId, safePageSize, offset]);
-    const data = dataResult.length === 0
-      ? []
-      : dataResult[0].values.map((row: SqlValue[]) =>
-          this.rowToTransacaoCompletaFromArray(row, dataResult[0].columns)
-        );
+    const data =
+      dataResult.length === 0
+        ? []
+        : dataResult[0].values.map((row: SqlValue[]) =>
+            this.rowToTransacaoCompletaFromArray(row, dataResult[0].columns)
+          );
 
     return {
       data,
@@ -708,8 +776,8 @@ export class DatabaseManager {
         total,
         totalPages,
         hasNext: safePage < totalPages,
-        hasPrev: safePage > 1
-      }
+        hasPrev: safePage > 1,
+      },
     };
   }
 
@@ -719,16 +787,22 @@ export class DatabaseManager {
     return this.rowToTransacao(result[0]);
   }
 
-
   updateTransacao(id: number, updates: Partial<Transacao>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = [
-      'descricao', 'valor', 'tipo', 'data',
-      'conta_id', 'categoria_id', 'usuario_id', 'observacoes'
+      'descricao',
+      'valor',
+      'tipo',
+      'data',
+      'conta_id',
+      'categoria_id',
+      'usuario_id',
+      'observacoes',
     ];
 
-    const validUpdates = Object.entries(updates)
-      .filter(([key]) => allowedFields.includes(key) && key !== 'id');
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
 
     if (validUpdates.length === 0) {
       return false;
@@ -739,10 +813,10 @@ export class DatabaseManager {
       const values = validUpdates.map(([, value]) => value);
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_update
-      this.db.run(
-        `UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [...values, id] as SqlValue[]
-      );
+      this.db.run(`UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+        ...values,
+        id,
+      ] as SqlValue[]);
 
       // Invalidar cache de contas para refletir a mudança de saldo
       this.invalidateCache('contas:');
@@ -778,9 +852,11 @@ export class DatabaseManager {
       conta_id: Number(row[cols.indexOf('conta_id')]),
       categoria_id: Number(row[cols.indexOf('categoria_id')]),
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
-      observacoes: row[cols.indexOf('observacoes')] ? String(row[cols.indexOf('observacoes')]) : undefined,
+      observacoes: row[cols.indexOf('observacoes')]
+        ? String(row[cols.indexOf('observacoes')])
+        : undefined,
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
@@ -789,7 +865,9 @@ export class DatabaseManager {
       ...this.rowToTransacaoFromArray(row, cols),
       conta_nome: String(row[cols.indexOf('conta_nome')]),
       categoria_nome: String(row[cols.indexOf('categoria_nome')]),
-      categoria_cor: row[cols.indexOf('categoria_cor')] ? String(row[cols.indexOf('categoria_cor')]) : undefined
+      categoria_cor: row[cols.indexOf('categoria_cor')]
+        ? String(row[cols.indexOf('categoria_cor')])
+        : undefined,
     };
   }
 
@@ -803,33 +881,33 @@ export class DatabaseManager {
       FROM transacoes 
       WHERE usuario_id = ?
     `;
-    
+
     const params: SqlValue[] = [usuarioId];
-    
+
     if (dataInicio) {
       query += ' AND data >= ?';
       params.push(dataInicio);
     }
-    
+
     if (dataFim) {
       query += ' AND data <= ?';
       params.push(dataFim);
     }
-    
+
     const result = this.db.exec(query, params);
-    
+
     if (result.length === 0 || result[0].values.length === 0) {
       return { receita: 0, despesa: 0, saldo: 0 };
     }
-    
+
     const row = result[0].values[0];
     const receita = Number(row[0]);
     const despesa = Number(row[1]);
-    
+
     return {
       receita,
       despesa,
-      saldo: receita - despesa
+      saldo: receita - despesa,
     };
   }
 
