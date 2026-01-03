@@ -194,113 +194,201 @@ const DashboardPage = {
     },
 
      renderChart() {
-        const canvas = document.getElementById('dashboardChart');
-        if (!canvas) return;
+        console.log('[Dashboard] Iniciando renderChart()');
 
-        // Destruir gráfico anterior se existir
+        // VALIDAÇÃO 1: Verificar se Chart.js está disponível
+        if (typeof Chart === 'undefined') {
+            console.error('[Dashboard] Chart.js não está carregado!');
+            const canvas = document.getElementById('dashboardChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#666';
+                ctx.textAlign = 'center';
+                ctx.fillText('Erro: Biblioteca de gráficos não carregada', canvas.width / 2, canvas.height / 2);
+            }
+            return;
+        }
+
+        console.log('[Dashboard] Chart.js está disponível');
+
+        // VALIDAÇÃO 2: Verificar se o canvas existe
+        const canvas = document.getElementById('dashboardChart');
+        if (!canvas) {
+            console.error('[Dashboard] Canvas #dashboardChart não encontrado no DOM');
+            return;
+        }
+
+        console.log('[Dashboard] Canvas encontrado:', {
+            width: canvas.width,
+            height: canvas.height,
+            offsetWidth: canvas.offsetWidth,
+            offsetHeight: canvas.offsetHeight
+        });
+
+        // VALIDAÇÃO 3: Destruir gráfico anterior se existir
         if (this.chart) {
+            console.log('[Dashboard] Destruindo gráfico anterior');
             this.chart.destroy();
+            this.chart = null;
         }
 
         // Calcular dados dos últimos 6 meses
+        console.log('[Dashboard] Calculando dados dos últimos 6 meses');
         const meses = [];
         const receitas = [];
         const despesas = [];
 
         const hoje = new Date();
-        
+
         for (let i = 5; i >= 0; i--) {
             const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
             const mes = data.getMonth() + 1;
             const ano = data.getFullYear();
-            
+
             // Nome do mês
             const nomeMes = data.toLocaleDateString('pt-BR', { month: 'short' });
             meses.push(nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1));
-            
+
             // Calcular receitas e despesas do mês
             const primeiroDia = new Date(ano, mes - 1, 1);
             const ultimoDia = new Date(ano, mes, 0);
-            
+
             const dataInicio = primeiroDia.toISOString().split('T')[0];
             const dataFim = ultimoDia.toISOString().split('T')[0];
-            
+
             const receitaMes = AppState.transacoes
                 .filter(t => t.tipo === 'receita' && t.data >= dataInicio && t.data <= dataFim)
                 .reduce((sum, t) => sum + t.valor, 0);
-                
+
             const despesaMes = AppState.transacoes
                 .filter(t => t.tipo === 'despesa' && t.data >= dataInicio && t.data <= dataFim)
                 .reduce((sum, t) => sum + t.valor, 0);
-            
+
             receitas.push(receitaMes);
             despesas.push(despesaMes);
         }
 
-        // Criar gráfico
-        this.chart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: meses,
-                datasets: [
-                    {
-                        label: 'Receitas',
-                        data: receitas,
-                        borderColor: 'rgb(76, 175, 80)',
-                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    },
-                    {
-                        label: 'Despesas',
-                        data: despesas,
-                        borderColor: 'rgb(244, 67, 54)',
-                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL'
-                                }).format(context.parsed.y);
-                                return label;
-                            }
+        // VALIDAÇÃO 4: Validar dados calculados
+        console.log('[Dashboard] Dados calculados:', {
+            meses,
+            receitas,
+            despesas,
+            totalTransacoes: AppState.transacoes.length
+        });
+
+        if (meses.length === 0) {
+            console.warn('[Dashboard] Nenhum mês para exibir');
+            return;
+        }
+
+        // VALIDAÇÃO 5: Tentar criar o gráfico com try-catch
+        try {
+            console.log('[Dashboard] Criando instância do Chart');
+
+            this.chart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: receitas,
+                            borderColor: 'rgb(76, 175, 80)',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Despesas',
+                            data: despesas,
+                            borderColor: 'rgb(244, 67, 54)',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         }
-                    }
+                    ]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(value);
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(context.parsed.y);
+                                    return label;
+                                }
                             }
                         }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    }).format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
                     }
                 }
-            }
-        });
+            });
+
+            console.log('[Dashboard] Gráfico criado com sucesso:', this.chart);
+
+        } catch (error) {
+            console.error('[Dashboard] Erro ao criar gráfico:', error);
+            console.error('[Dashboard] Stack trace:', error.stack);
+
+            // Exibir mensagem de erro no canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#d32f2f';
+            ctx.textAlign = 'center';
+            ctx.fillText('Erro ao carregar gráfico', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(error.message, canvas.width / 2, canvas.height / 2 + 10);
+        }
     }
 };

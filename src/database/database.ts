@@ -617,6 +617,8 @@ export class DatabaseManager {
       );
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
+      // Invalidar cache de contas para refletir a mudança de saldo
+      this.invalidateCache('contas:');
 
       const result = this.db.exec('SELECT * FROM transacoes ORDER BY id DESC LIMIT 1');
       return this.rowToTransacao(result[0]);
@@ -741,6 +743,10 @@ export class DatabaseManager {
         `UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
         [...values, id] as SqlValue[]
       );
+
+      // Invalidar cache de contas para refletir a mudança de saldo
+      this.invalidateCache('contas:');
+
       return true;
     });
   }
@@ -749,6 +755,10 @@ export class DatabaseManager {
     return this.executeInTransaction(() => {
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_delete
       this.db.run('DELETE FROM transacoes WHERE id = ?', [id]);
+
+      // Invalidar cache de contas para refletir a mudança de saldo
+      this.invalidateCache('contas:');
+
       return true;
     });
   }

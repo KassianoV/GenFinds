@@ -3,8 +3,9 @@
 const RelatorioPage = {
     chartReceitas: null,
     chartDespesas: null,
-    chartPizzaReceitas: null,
     chartPizzaDespesas: null,
+    chartPizzaTotais: null,
+    chartPizzaContas: null,
 
     init() {
         this.attachEventListeners();
@@ -12,12 +13,7 @@ const RelatorioPage = {
     },
 
     attachEventListeners() {
-        const filtroReceita = document.getElementById('filtroReceitaCategoria');
         const filtroDespesa = document.getElementById('filtroDespesaCategoria');
-
-        if (filtroReceita) {
-            filtroReceita.addEventListener('change', () => this.updateSummary());
-        }
 
         if (filtroDespesa) {
             filtroDespesa.addEventListener('change', () => this.updateSummary());
@@ -32,20 +28,7 @@ const RelatorioPage = {
     },
 
     updateFilters() {
-        const filtroReceita = document.getElementById('filtroReceitaCategoria');
         const filtroDespesa = document.getElementById('filtroDespesaCategoria');
-
-        if (filtroReceita) {
-            filtroReceita.innerHTML = '<option value="">Todas</option>';
-            AppState.categorias
-                .filter(c => c.tipo === 'receita')
-                .forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.nome;
-                    filtroReceita.appendChild(option);
-                });
-        }
 
         if (filtroDespesa) {
             filtroDespesa.innerHTML = '<option value="">Todas</option>';
@@ -138,78 +121,38 @@ const RelatorioPage = {
     },
 
     renderCharts() {
-        this.renderPieCharts();
+        this.renderPizzaTotais();
+        this.renderPizzaContas();
+        this.renderPizzaDespesas();
     },
 
-    renderPieCharts() {
+    renderPizzaDespesas() {
+        console.log('[Relatorio] Iniciando renderPizzaDespesas()');
+
+        // Validar Chart.js
+        if (typeof Chart === 'undefined') {
+            console.error('[Relatorio] Chart.js não carregado');
+            return;
+        }
+
+        const canvas = document.getElementById('pizzaDespesas');
+        if (!canvas) {
+            console.error('[Relatorio] Canvas #pizzaDespesas não encontrado');
+            return;
+        }
+
+        // Destruir gráfico anterior
+        if (this.chartPizzaDespesas) {
+            this.chartPizzaDespesas.destroy();
+            this.chartPizzaDespesas = null;
+        }
+
         const hoje = new Date();
         const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
         const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-        
+
         const dataInicio = primeiroDia.toISOString().split('T')[0];
         const dataFim = ultimoDia.toISOString().split('T')[0];
-
-        // Gráfico de Pizza - Receitas por Categoria
-        const receitasPorCategoria = {};
-        AppState.transacoes
-            .filter(t => t.tipo === 'receita' && t.data >= dataInicio && t.data <= dataFim)
-            .forEach(t => {
-                if (!receitasPorCategoria[t.categoria_nome]) {
-                    receitasPorCategoria[t.categoria_nome] = 0;
-                }
-                receitasPorCategoria[t.categoria_nome] += t.valor;
-            });
-
-        const canvasPizzaReceitas = document.getElementById('pizzaReceitas');
-        if (canvasPizzaReceitas) {
-            if (this.chartPizzaReceitas) {
-                this.chartPizzaReceitas.destroy();
-            }
-
-            const labelsReceitas = Object.keys(receitasPorCategoria);
-            const dataReceitas = Object.values(receitasPorCategoria);
-
-            if (labelsReceitas.length > 0) {
-                this.chartPizzaReceitas = new Chart(canvasPizzaReceitas, {
-                    type: 'pie',
-                    data: {
-                        labels: labelsReceitas,
-                        datasets: [{
-                            data: dataReceitas,
-                            backgroundColor: [
-                                '#4CAF50',
-                                '#8BC34A',
-                                '#CDDC39',
-                                '#FFEB3B',
-                                '#FFC107',
-                                '#FF9800',
-                                '#FF5722'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return `${label}: ${Utils.formatCurrency(value)} (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
 
         // Gráfico de Pizza - Despesas por Categoria
         const despesasPorCategoria = {};
@@ -222,55 +165,350 @@ const RelatorioPage = {
                 despesasPorCategoria[t.categoria_nome] += t.valor;
             });
 
-        const canvasPizzaDespesas = document.getElementById('pizzaDespesas');
-        if (canvasPizzaDespesas) {
-            if (this.chartPizzaDespesas) {
-                this.chartPizzaDespesas.destroy();
-            }
+        const labelsDespesas = Object.keys(despesasPorCategoria);
+        const dataDespesas = Object.values(despesasPorCategoria);
 
-            const labelsDespesas = Object.keys(despesasPorCategoria);
-            const dataDespesas = Object.values(despesasPorCategoria);
+        console.log('[Relatorio] Despesas por categoria:', { labelsDespesas, dataDespesas });
 
-            if (labelsDespesas.length > 0) {
-                this.chartPizzaDespesas = new Chart(canvasPizzaDespesas, {
-                    type: 'pie',
-                    data: {
-                        labels: labelsDespesas,
-                        datasets: [{
-                            data: dataDespesas,
-                            backgroundColor: [
-                                '#f44336',
-                                '#E91E63',
-                                '#9C27B0',
-                                '#673AB7',
-                                '#3F51B5',
-                                '#2196F3',
-                                '#03A9F4'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return `${label}: ${Utils.formatCurrency(value)} (${percentage}%)`;
-                                    }
+        // Validar dados
+        if (labelsDespesas.length === 0) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            ctx.fillText('Nenhuma despesa', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Criar gráfico
+        try {
+            this.chartPizzaDespesas = new Chart(canvas, {
+                type: 'pie',
+                data: {
+                    labels: labelsDespesas,
+                    datasets: [{
+                        data: dataDespesas,
+                        backgroundColor: [
+                            '#f44336',
+                            '#E91E63',
+                            '#9C27B0',
+                            '#673AB7',
+                            '#3F51B5',
+                            '#2196F3',
+                            '#03A9F4',
+                            '#00BCD4',
+                            '#009688',
+                            '#4CAF50'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const formatted = new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(value);
+                                    return `${label}: ${formatted} (${percentage}%)`;
                                 }
                             }
                         }
                     }
-                });
+                }
+            });
+
+            console.log('[Relatorio] Gráfico de despesas criado com sucesso');
+
+        } catch (error) {
+            console.error('[Relatorio] Erro ao criar gráfico de despesas:', error);
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#d32f2f';
+            ctx.textAlign = 'center';
+            ctx.fillText('Erro ao carregar gráfico', canvas.width / 2, canvas.height / 2);
+        }
+    },
+
+    renderPizzaContas() {
+        console.log('[Relatorio] Iniciando renderPizzaContas()');
+
+        // Validar Chart.js
+        if (typeof Chart === 'undefined') {
+            console.error('[Relatorio] Chart.js não carregado');
+            return;
+        }
+
+        const canvas = document.getElementById('pizzaContas');
+        if (!canvas) {
+            console.error('[Relatorio] Canvas #pizzaContas não encontrado');
+            return;
+        }
+
+        // Destruir gráfico anterior
+        if (this.chartPizzaContas) {
+            this.chartPizzaContas.destroy();
+            this.chartPizzaContas = null;
+        }
+
+        // Calcular saldo por conta
+        const labels = [];
+        const data = [];
+        const backgroundColor = [];
+
+        AppState.contas.forEach((conta, index) => {
+            if (conta.saldo > 0) {
+                labels.push(conta.nome);
+                data.push(conta.saldo);
+
+                // Cores variadas para as contas
+                const colors = [
+                    '#2196F3',
+                    '#4CAF50',
+                    '#FF9800',
+                    '#9C27B0',
+                    '#00BCD4',
+                    '#FF5722',
+                    '#8BC34A',
+                    '#E91E63',
+                    '#673AB7',
+                    '#FFC107'
+                ];
+                backgroundColor.push(colors[index % colors.length]);
             }
+        });
+
+        console.log('[Relatorio] Saldo por conta:', { labels, data });
+
+        // Validar dados
+        if (labels.length === 0) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            ctx.fillText('Nenhuma conta com saldo', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Criar gráfico
+        try {
+            this.chartPizzaContas = new Chart(canvas, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const formatted = new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(value);
+                                    return `${label}: ${formatted} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            console.log('[Relatorio] Gráfico de contas criado com sucesso');
+
+        } catch (error) {
+            console.error('[Relatorio] Erro ao criar gráfico de contas:', error);
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#d32f2f';
+            ctx.textAlign = 'center';
+            ctx.fillText('Erro ao carregar gráfico', canvas.width / 2, canvas.height / 2);
+        }
+    },
+
+    renderPizzaTotais() {
+        console.log('[Relatorio] Iniciando renderPizzaTotais()');
+
+        // Validar Chart.js
+        if (typeof Chart === 'undefined') {
+            console.error('[Relatorio] Chart.js não carregado');
+            return;
+        }
+
+        const canvas = document.getElementById('pizzaTotais');
+        if (!canvas) {
+            console.error('[Relatorio] Canvas #pizzaTotais não encontrado');
+            return;
+        }
+
+        // Destruir gráfico anterior
+        if (this.chartPizzaTotais) {
+            this.chartPizzaTotais.destroy();
+            this.chartPizzaTotais = null;
+        }
+
+        // Calcular período (mês atual)
+        const hoje = new Date();
+        const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        const dataInicio = primeiroDia.toISOString().split('T')[0];
+        const dataFim = ultimoDia.toISOString().split('T')[0];
+
+        // Calcular totais
+        let receitaTotal = 0;
+        let despesaTotal = 0;
+
+        AppState.transacoes.forEach(t => {
+            if (t.data >= dataInicio && t.data <= dataFim) {
+                if (t.tipo === 'receita') receitaTotal += t.valor;
+                else if (t.tipo === 'despesa') despesaTotal += t.valor;
+            }
+        });
+
+        console.log('[Relatorio] Totais:', { receitaTotal, despesaTotal });
+
+        // Validar dados
+        if (receitaTotal === 0 && despesaTotal === 0) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            ctx.fillText('Nenhuma transação', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Preparar dados
+        const labels = [];
+        const data = [];
+        const backgroundColor = [];
+
+        if (receitaTotal > 0) {
+            labels.push('Receitas');
+            data.push(receitaTotal);
+            backgroundColor.push('#4CAF50');
+        }
+
+        if (despesaTotal > 0) {
+            labels.push('Despesas');
+            data.push(despesaTotal);
+            backgroundColor.push('#f44336');
+        }
+
+        // Criar gráfico
+        try {
+            this.chartPizzaTotais = new Chart(canvas, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((value / total) * 100).toFixed(1);
+
+                                            return {
+                                                text: `${label}: ${percentage}%`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const formatted = new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(value);
+
+                                    return `${label}: ${formatted} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            console.log('[Relatorio] Gráfico de totais criado com sucesso');
+
+        } catch (error) {
+            console.error('[Relatorio] Erro ao criar gráfico:', error);
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#d32f2f';
+            ctx.textAlign = 'center';
+            ctx.fillText('Erro ao carregar gráfico', canvas.width / 2, canvas.height / 2);
         }
     }
 };

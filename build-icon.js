@@ -38,15 +38,22 @@ async function generateIcons() {
     console.log(`✓ Gerado: icon-${size}x${size}.png`);
   }
 
-  // Gerar icon.png (256x256) na raiz de assets
+  // Verificar se icon.png já existe e tem dimensões adequadas
   const iconPngPath = path.join(assetsDir, 'icon.png');
-  await sharp(inputImage)
-    .resize(256, 256, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
-    })
-    .toFile(iconPngPath);
-  console.log(`✓ Gerado: icon.png (256x256)`);
+  const metadata = await sharp(inputImage).metadata();
+
+  if (metadata.width >= 256 && metadata.height >= 256) {
+    console.log(`✓ icon.png já existe (${metadata.width}x${metadata.height}) - pulando geração`);
+  } else {
+    await sharp(inputImage)
+      .resize(256, 256, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .toFile(iconPngPath + '.tmp');
+    fs.renameSync(iconPngPath + '.tmp', iconPngPath);
+    console.log(`✓ Gerado: icon.png (256x256)`);
+  }
 
   console.log('\n🔄 Gerando arquivo .ico com múltiplas resoluções...\n');
 

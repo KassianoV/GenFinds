@@ -65,16 +65,15 @@
                         <div class="summary-card-dash total">
                             <div class="card-icon">💰</div>
                             <div class="card-info">
-                                <h3>Saldo Total</h3>
+                                <h3>Patrimônio Líquido</h3>
                                 <p class="card-value" id="dashSaldoTotal">R$ 0,00</p>
-                                <span class="card-label">Todas as contas</span>
                             </div>
                         </div>
 
                         <div class="summary-card-dash receita">
                             <div class="card-icon">📈</div>
                             <div class="card-info">
-                                <h3>Receitas do Mês</h3>
+                                <h3>Receita Mensal</h3>
                                 <p class="card-value" id="dashReceitaMes">R$ 0,00</p>
                                 <span class="card-label" id="dashReceitaLabel">Dezembro 2024</span>
                             </div>
@@ -83,7 +82,7 @@
                         <div class="summary-card-dash despesa">
                             <div class="card-icon">📉</div>
                             <div class="card-info">
-                                <h3>Despesas do Mês</h3>
+                                <h3>Despesas Mensal</h3>
                                 <p class="card-value" id="dashDespesaMes">R$ 0,00</p>
                                 <span class="card-label" id="dashDespesaLabel">Dezembro 2024</span>
                             </div>
@@ -92,7 +91,7 @@
                         <div class="summary-card-dash economia">
                             <div class="card-icon">💸</div>
                             <div class="card-info">
-                                <h3>Economia do Mês</h3>
+                                <h3>Saldo Mensal</h3>
                                 <p class="card-value" id="dashEconomiaMes">R$ 0,00</p>
                                 <span class="card-label">Receitas - Despesas</span>
                             </div>
@@ -104,7 +103,7 @@
                         <div class="dashboard-chart">
                             <h3>Evolução Mensal</h3>
                             <div class="chart-placeholder">
-                                <canvas id="dashboardChart"></canvas>
+                                <canvas id="dashboardChart" width="800" height="300"></canvas>
                             </div>
                         </div>
 
@@ -146,6 +145,44 @@
                         </button>
                         <input type="file" id="fileImport" accept=".csv" style="display: none;">
                         <button class="btn btn-primary" id="btnNovaTransacao">+ Nova</button>
+                    </div>
+                </div>
+
+                <!-- Cards de Resumo Financeiro -->
+                <div class="transacoes-summary">
+                    <div class="summary-card-transacoes total">
+                        <div class="card-icon">💰</div>
+                        <div class="card-info">
+                            <h3>Patrimônio Líquido</h3>
+                            <p class="card-value" id="transacoesSaldoTotal">R$ 0,00</p>
+                        </div>
+                    </div>
+
+                    <div class="summary-card-transacoes receita">
+                        <div class="card-icon">📈</div>
+                        <div class="card-info">
+                            <h3>Receita Mensal</h3>
+                            <p class="card-value" id="transacoesReceitaMes">R$ 0,00</p>
+                            <span class="card-label" id="transacoesReceitaLabel">Janeiro 2026</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-card-transacoes despesa">
+                        <div class="card-icon">📉</div>
+                        <div class="card-info">
+                            <h3>Despesas Mensal</h3>
+                            <p class="card-value" id="transacoesDespesaMes">R$ 0,00</p>
+                            <span class="card-label" id="transacoesDespesaLabel">Janeiro 2026</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-card-transacoes economia">
+                        <div class="card-icon">💸</div>
+                        <div class="card-info">
+                            <h3>Saldo Mensal</h3>
+                            <p class="card-value" id="transacoesEconomiaMes">R$ 0,00</p>
+                            <span class="card-label">Receitas - Despesas</span>
+                        </div>
                     </div>
                 </div>
 
@@ -413,12 +450,6 @@
             <section class="page-content" id="relatorio-page" style="display: none;">
                 <div class="relatorio-filters">
                     <div class="filter-group">
-                        <label>Categorias das receitas</label>
-                        <select id="filtroReceitaCategoria" class="filter-select">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
                         <label>Categorias das despesas</label>
                         <select id="filtroDespesaCategoria" class="filter-select">
                             <option value="">Todas</option>
@@ -441,15 +472,6 @@
                     </div>
                 </div>
 
-                <div class="charts-container">
-                    <div class="chart-box">
-                        <canvas id="chartReceitas"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <canvas id="chartDespesas"></canvas>
-                    </div>
-                </div>
-
                 <div class="info-bottom">
                     <div class="info-card">
                         <h4>Informações de Saldo</h4>
@@ -459,10 +481,16 @@
                     </div>
                     <div class="chart-circles">
                         <div class="circle-chart">
-                            <canvas id="pizzaReceitas"></canvas>
+                            <h4 class="chart-title">Receitas vs Despesas</h4>
+                            <canvas id="pizzaTotais" width="300" height="250"></canvas>
                         </div>
                         <div class="circle-chart">
-                            <canvas id="pizzaDespesas"></canvas>
+                            <h4 class="chart-title">Saldo por Conta</h4>
+                            <canvas id="pizzaContas" width="300" height="250"></canvas>
+                        </div>
+                        <div class="circle-chart">
+                            <h4 class="chart-title">Despesas por Categoria</h4>
+                            <canvas id="pizzaDespesas" width="300" height="250"></canvas>
                         </div>
                     </div>
                 </div>
@@ -860,7 +888,7 @@
     <div class="toast-container" id="toastContainer"></div>
     
     <!-- Scripts -->
-    <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="../../node_modules/chart.js/dist/chart.umd.min.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/navigation.js"></script>
     <script src="scripts/dashboard.js"></script>

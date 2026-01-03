@@ -46,6 +46,71 @@ const TransacoesPage = {
         this.attachEventListeners();
         this.setCurrentMonth();
         this.render();
+        this.updateSummaryCards();
+    },
+
+    async updateSummaryCards() {
+        if (!AppState.currentUser) return;
+
+        // Calcular patrimônio líquido (soma de todas as contas)
+        const saldoTotal = AppState.contas.reduce((sum, conta) => sum + conta.saldo, 0);
+
+        // Calcular período baseado nos filtros atuais
+        const primeiroDia = new Date(this.filtros.ano, this.filtros.mes - 1, 1);
+        const ultimoDia = new Date(this.filtros.ano, this.filtros.mes, 0);
+
+        const dataInicio = primeiroDia.toISOString().split('T')[0];
+        const dataFim = ultimoDia.toISOString().split('T')[0];
+
+        try {
+            const response = await window.api.relatorio.getResumo(
+                AppState.currentUser.id,
+                dataInicio,
+                dataFim
+            );
+
+            if (response.success) {
+                const resumo = response.data;
+
+                // Atualizar cards com os valores
+                const saldoEl = document.getElementById('transacoesSaldoTotal');
+                const receitaEl = document.getElementById('transacoesReceitaMes');
+                const despesaEl = document.getElementById('transacoesDespesaMes');
+                const economiaEl = document.getElementById('transacoesEconomiaMes');
+
+                if (saldoEl) {
+                    saldoEl.textContent = Utils.formatCurrency(saldoTotal);
+                    saldoEl.style.color = saldoTotal >= 0 ? 'var(--info-color)' : 'var(--danger-color)';
+                }
+
+                if (receitaEl) {
+                    receitaEl.textContent = Utils.formatCurrency(resumo.receita);
+                }
+
+                if (despesaEl) {
+                    despesaEl.textContent = Utils.formatCurrency(resumo.despesa);
+                }
+
+                if (economiaEl) {
+                    economiaEl.textContent = Utils.formatCurrency(resumo.saldo);
+                    economiaEl.style.color = resumo.saldo >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+                }
+
+                // Atualizar labels com mês/ano selecionado
+                const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                const mesAtual = meses[this.filtros.mes - 1];
+                const anoAtual = this.filtros.ano;
+
+                const receitaLabel = document.getElementById('transacoesReceitaLabel');
+                const despesaLabel = document.getElementById('transacoesDespesaLabel');
+
+                if (receitaLabel) receitaLabel.textContent = `${mesAtual} ${anoAtual}`;
+                if (despesaLabel) despesaLabel.textContent = `${mesAtual} ${anoAtual}`;
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar resumo da página de transações:', error);
+        }
     },
 
     setCurrentMonth() {
@@ -143,6 +208,7 @@ const TransacoesPage = {
                 this.filtros.ano = parseInt(e.target.value);
                 this.paginacao.paginaAtual = 1;
                 this.render();
+                this.updateSummaryCards();
             });
         }
 
@@ -155,6 +221,7 @@ const TransacoesPage = {
                 this.filtros.mes = parseInt(e.target.dataset.month);
                 this.paginacao.paginaAtual = 1;
                 this.render();
+                this.updateSummaryCards();
             });
         });
 

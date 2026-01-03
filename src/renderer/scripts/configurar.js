@@ -2,6 +2,8 @@
 
 const ConfigurarPage = {
     currentTab: 'contas',
+    isRendering: false,
+    renderTimeout: null,
 
     init() {
         this.attachEventListeners();
@@ -96,6 +98,16 @@ const ConfigurarPage = {
     },
 
     switchTab(tabName) {
+        // Prevenir múltiplos renders simultâneos
+        if (this.isRendering) {
+            return;
+        }
+
+        // Cancelar timeout anterior se existir
+        if (this.renderTimeout) {
+            clearTimeout(this.renderTimeout);
+        }
+
         this.currentTab = tabName;
 
         const tabBtns = document.querySelectorAll('.tab-btn');
@@ -116,7 +128,10 @@ const ConfigurarPage = {
             }
         });
 
-        this.renderTab(tabName);
+        // Debounce de 100ms antes de renderizar
+        this.renderTimeout = setTimeout(() => {
+            this.renderTab(tabName);
+        }, 100);
     },
 
     render() {
@@ -124,17 +139,27 @@ const ConfigurarPage = {
     },
 
     renderTab(tabName) {
-        switch (tabName) {
-            case 'contas':
-                this.renderContas();
-                break;
-            case 'categoria':
-                this.renderCategorias();
-                break;
-            case 'orcamento':
-                this.renderOrcamentos();
-                this.updateOrcamentoCategorias();
-                break;
+        // Marcar como renderizando
+        this.isRendering = true;
+
+        try {
+            switch (tabName) {
+                case 'contas':
+                    this.renderContas();
+                    break;
+                case 'categoria':
+                    this.renderCategorias();
+                    break;
+                case 'orcamento':
+                    this.renderOrcamentos();
+                    this.updateOrcamentoCategorias();
+                    break;
+            }
+        } finally {
+            // Desmarcar após um pequeno delay
+            setTimeout(() => {
+                this.isRendering = false;
+            }, 50);
         }
     },
 

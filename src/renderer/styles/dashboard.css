@@ -350,12 +350,17 @@
 /* Gráficos */
 .chart-placeholder {
   height: 300px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
 
 .chart-placeholder canvas {
   max-height: 300px;
+  max-width: 100%;
+  width: 100% !important;
+  height: 300px !important;
 }
