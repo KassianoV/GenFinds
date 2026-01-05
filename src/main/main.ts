@@ -11,7 +11,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DatabaseManager } from '../database/database';
-import { Conta, Categoria, Orcamento, Transacao, PaginationParams } from '../types/database.types';
+import { Conta, Categoria, Orcamento, Cartao, Parcela, TransacaoCartao, Transacao, PaginationParams } from '../types/database.types';
 import {
   UsuarioCreateSchema,
   ContaCreateSchema,
@@ -464,6 +464,266 @@ ipcMain.handle('orcamento:delete', async (_, id: number) => {
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:delete failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+// ========== IPC HANDLERS - CARTÃO ==========
+
+ipcMain.handle(
+  'cartao:create',
+  async (_, cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const data = db.createCartao(cartao);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('cartao:create failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle('cartao:list', async (_, usuarioId: number) => {
+  try {
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getCartoes(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('cartao:list failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('cartao:get', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getCartao(validation.data);
+    if (!data) {
+      return { success: false, error: 'Cartão não encontrado' };
+    }
+    return { success: true, data };
+  } catch (error: any) {
+    logError('cartao:get failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('cartao:update', async (_, id: number, updates: Partial<Cartao>) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.updateCartao(validation.data, updates);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('cartao:update failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('cartao:delete', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.deleteCartao(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('cartao:delete failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+// ========== IPC HANDLERS - PARCELA ==========
+
+ipcMain.handle(
+  'parcela:create',
+  async (_, parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const data = db.createParcela(parcela);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('parcela:create failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle('parcela:list', async (_, usuarioId: number) => {
+  try {
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getParcelas(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('parcela:list failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('parcela:get', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getParcela(validation.data);
+    if (!data) {
+      return { success: false, error: 'Parcela não encontrada' };
+    }
+    return { success: true, data };
+  } catch (error: any) {
+    logError('parcela:get failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('parcela:update', async (_, id: number, updates: Partial<Parcela>) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.updateParcela(validation.data, updates);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('parcela:update failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('parcela:delete', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.deleteParcela(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('parcela:delete failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+// ========== IPC HANDLERS - TRANSAÇÃO DE CARTÃO ==========
+
+ipcMain.handle(
+  'transacao-cartao:create',
+  async (_, transacao: Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const data = db.createTransacaoCartao(transacao);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('transacao-cartao:create failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle(
+  'transacao-cartao:create-parcelada',
+  async (
+    _,
+    transacao: Omit<
+      TransacaoCartao,
+      'id' | 'created_at' | 'updated_at' | 'parcela_atual' | 'grupo_parcelamento'
+    >,
+    numeroParcelas: number
+  ) => {
+    try {
+      const data = db.createTransacaoParcelada(transacao, numeroParcelas);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('transacao-cartao:create-parcelada failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle(
+  'transacao-cartao:list',
+  async (_, usuarioId: number, cartaoId?: number, mes?: number, ano?: number) => {
+    try {
+      const validation = validateData(IdSchema, usuarioId);
+      if (!validation.success) {
+        return { success: false, error: validation.error };
+      }
+
+      const data = db.getTransacoesCartao(validation.data, cartaoId, mes, ano);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('transacao-cartao:list failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle('transacao-cartao:get', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getTransacaoCartao(validation.data);
+    if (!data) {
+      return { success: false, error: 'Transação não encontrada' };
+    }
+    return { success: true, data };
+  } catch (error: any) {
+    logError('transacao-cartao:get failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle(
+  'transacao-cartao:update',
+  async (_, id: number, updates: Partial<TransacaoCartao>) => {
+    try {
+      const validation = validateData(IdSchema, id);
+      if (!validation.success) {
+        return { success: false, error: validation.error };
+      }
+
+      const data = db.updateTransacaoCartao(validation.data, updates);
+      return { success: true, data };
+    } catch (error: any) {
+      logError('transacao-cartao:update failed', error);
+      return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+ipcMain.handle('transacao-cartao:delete', async (_, id: number) => {
+  try {
+    const validation = validateData(IdSchema, id);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.deleteTransacaoCartao(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('transacao-cartao:delete failed', error);
     return { success: false, error: sanitizeError(error) };
   }
 });

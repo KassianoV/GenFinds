@@ -1,7 +1,7 @@
 // src/preload/preload.ts
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { Conta, Categoria, Orcamento, Transacao } from '../types/database.types';
+import { Conta, Categoria, Orcamento, Cartao, Parcela, TransacaoCartao, Transacao } from '../types/database.types';
 
 const api = {
   usuario: {
@@ -40,6 +40,44 @@ const api = {
     update: (id: number, updates: Partial<Orcamento>) =>
       ipcRenderer.invoke('orcamento:update', id, updates),
     delete: (id: number) => ipcRenderer.invoke('orcamento:delete', id),
+  },
+
+  cartao: {
+    create: (cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>) =>
+      ipcRenderer.invoke('cartao:create', cartao),
+    list: (usuarioId: number) => ipcRenderer.invoke('cartao:list', usuarioId),
+    get: (id: number) => ipcRenderer.invoke('cartao:get', id),
+    update: (id: number, updates: Partial<Cartao>) =>
+      ipcRenderer.invoke('cartao:update', id, updates),
+    delete: (id: number) => ipcRenderer.invoke('cartao:delete', id),
+  },
+
+  parcela: {
+    create: (parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>) =>
+      ipcRenderer.invoke('parcela:create', parcela),
+    list: (usuarioId: number) => ipcRenderer.invoke('parcela:list', usuarioId),
+    get: (id: number) => ipcRenderer.invoke('parcela:get', id),
+    update: (id: number, updates: Partial<Parcela>) =>
+      ipcRenderer.invoke('parcela:update', id, updates),
+    delete: (id: number) => ipcRenderer.invoke('parcela:delete', id),
+  },
+
+  transacaoCartao: {
+    create: (transacao: Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>) =>
+      ipcRenderer.invoke('transacao-cartao:create', transacao),
+    createParcelada: (
+      transacao: Omit<
+        TransacaoCartao,
+        'id' | 'created_at' | 'updated_at' | 'parcela_atual' | 'grupo_parcelamento'
+      >,
+      numeroParcelas: number
+    ) => ipcRenderer.invoke('transacao-cartao:create-parcelada', transacao, numeroParcelas),
+    list: (usuarioId: number, cartaoId?: number, mes?: number, ano?: number) =>
+      ipcRenderer.invoke('transacao-cartao:list', usuarioId, cartaoId, mes, ano),
+    get: (id: number) => ipcRenderer.invoke('transacao-cartao:get', id),
+    update: (id: number, updates: Partial<TransacaoCartao>) =>
+      ipcRenderer.invoke('transacao-cartao:update', id, updates),
+    delete: (id: number) => ipcRenderer.invoke('transacao-cartao:delete', id),
   },
 
   transacao: {

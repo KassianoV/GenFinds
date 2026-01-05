@@ -364,3 +364,112 @@
   width: 100% !important;
   height: 300px !important;
 }
+/* Seção inferior do Dashboard */
+.dashboard-bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+/* Seção de Gastos por Conta */
+.dashboard-conta-gastos {
+  background-color: var(--bg-white);
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-conta-gastos h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.conta-gastos-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+}
+
+.conta-gastos-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.conta-gastos-content {
+  flex: 1;
+  color: white;
+}
+
+.conta-gastos-label {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.conta-gastos-valor {
+  margin: 0 0 5px 0;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.conta-gastos-mes {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* Lista de Gastos por Conta */
+.conta-gastos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conta-gasto-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--bg-light);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.conta-gasto-item:hover {
+  background-color: #f0f0f0;
+  border-color: var(--primary-color);
+}
+
+.conta-gasto-nome {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.conta-gasto-valor {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--danger-color);
+}
+
+.empty-message {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .dashboard-bottom-section {
+    grid-template-columns: 1fr;
+  }
+}

@@ -59,12 +59,17 @@ const Navigation = {
     switch (pageName) {
       case 'dashboard':
         if (typeof DashboardPage !== 'undefined') {
-          DashboardPage.render(); // ← ADICIONE ESTE CASO
+          DashboardPage.render();
         }
         break;
       case 'transacoes':
         if (typeof TransacoesPage !== 'undefined') {
           TransacoesPage.render();
+        }
+        break;
+      case 'cartao':
+        if (typeof CartaoPage !== 'undefined') {
+          CartaoPage.init();
         }
         break;
       case 'relatorio':

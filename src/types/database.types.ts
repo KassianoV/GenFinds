@@ -42,6 +42,52 @@ export interface Orcamento {
   updated_at: string;
 }
 
+export interface Cartao {
+  id: number;
+  nome: string;
+  valor: number;
+  vencimento: number;
+  status: 'aberta' | 'fechada' | 'paga';
+  usuario_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Parcela {
+  id: number;
+  descricao: string;
+  dia: number;
+  cartao_id: number;
+  valor_parcela: number;
+  quantidade_parcelas: number;
+  total: number;
+  usuario_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransacaoCartao {
+  id: number;
+  descricao: string;
+  valor: number;
+  data: string;
+  cartao_id: number;
+  categoria_id?: number;
+  parcelas: number;
+  parcela_atual: number;
+  grupo_parcelamento?: string;
+  observacoes?: string;
+  usuario_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransacaoCartaoCompleta extends TransacaoCartao {
+  cartao_nome: string;
+  categoria_nome?: string;
+  categoria_cor?: string;
+}
+
 export interface Transacao {
   id: number;
   descricao: string;

@@ -44,6 +44,8 @@
     "version:major": "npm version major && npm run changelog",
     "clean": "rimraf dist coverage release",
     "clean:test": "rimraf temp-test",
+    "verify:patrimonio": "node verify-patrimonio.js",
+    "fix:patrimonio": "node corrigir-patrimonio.js",
     "prepare": "npm run build",
     "pretest": "npm run build"
   },

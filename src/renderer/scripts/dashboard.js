@@ -11,6 +11,7 @@ const DashboardPage = {
     await this.updateSummaryCards();
     this.updateRecentTransactions();
     this.updateBudgets();
+    this.updateContaGastos();
     this.renderChart();
   },
 
@@ -205,6 +206,87 @@ const DashboardPage = {
             `;
 
       container.appendChild(card);
+    });
+  },
+
+  async updateContaGastos() {
+    const valorEl = document.getElementById('dashTotalGastoContas');
+    const labelEl = document.getElementById('dashGastosLabel');
+    const listEl = document.getElementById('dashContaGastosList');
+
+    if (!valorEl || !labelEl || !listEl) return;
+
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth() + 1;
+    const anoAtual = hoje.getFullYear();
+
+    const gastosPorCartao = {};
+    let totalGasto = 0;
+
+    // Buscar e calcular gastos por cartão de crédito
+    try {
+      if (AppState.currentUser) {
+        const resultCartoes = await window.api.cartao.list(AppState.currentUser.id);
+
+        if (resultCartoes.success && resultCartoes.data) {
+          const cartoes = resultCartoes.data;
+
+          // Para cada cartão, buscar transações do período
+          for (const cartao of cartoes) {
+            const resultTransacoes = await window.api.transacaoCartao.list(
+              AppState.currentUser.id,
+              cartao.id,
+              mesAtual,
+              anoAtual
+            );
+
+            if (resultTransacoes.success && resultTransacoes.data) {
+              const transacoes = resultTransacoes.data;
+              const totalCartao = transacoes.reduce((sum, t) => sum + t.valor, 0);
+
+              gastosPorCartao[cartao.id] = {
+                id: cartao.id,
+                nome: cartao.nome,
+                valor: totalCartao
+              };
+              totalGasto += totalCartao;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar gastos de cartões:', error);
+    }
+
+    // Atualizar valor total
+    valorEl.textContent = Utils.formatCurrency(totalGasto);
+
+    // Atualizar label do mês
+    const meses = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    labelEl.textContent = `${meses[mesAtual - 1]} ${anoAtual}`;
+
+    // Renderizar lista de cartões
+    listEl.innerHTML = '';
+
+    if (Object.keys(gastosPorCartao).length === 0) {
+      listEl.innerHTML = '<p class="empty-message">Nenhum cartão de crédito cadastrado</p>';
+      return;
+    }
+
+    // Ordenar por valor (maior para menor)
+    const gastosOrdenados = Object.entries(gastosPorCartao).sort((a, b) => b[1].valor - a[1].valor);
+
+    gastosOrdenados.forEach(([cartaoId, cartao]) => {
+      const item = document.createElement('div');
+      item.className = 'conta-gasto-item';
+      item.innerHTML = `
+        <span class="conta-gasto-nome">💳 ${cartao.nome}</span>
+        <span class="conta-gasto-valor">${Utils.formatCurrency(cartao.valor)}</span>
+      `;
+      listEl.appendChild(item);
     });
   },
 

@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/transacoes.css">
+    <link rel="stylesheet" href="styles/cartao.css">
     <link rel="stylesheet" href="styles/relatorio.css">
     <link rel="stylesheet" href="styles/configurar.css">
     <link rel="stylesheet" href="styles/configurar.css">
@@ -42,6 +43,10 @@
                 <button class="nav-item active" data-page="transacoes">
                     <span class="nav-icon">💳</span>
                     <span class="nav-text">Transações</span>
+                </button>
+                <button class="nav-item" data-page="cartao">
+                    <span class="nav-icon">🏦</span>
+                    <span class="nav-text">Cartão</span>
                 </button>
                 <button class="nav-item" data-page="relatorio">
                     <span class="nav-icon">📈</span>
@@ -125,12 +130,29 @@
                         </div>
                     </div>
 
-                   <!-- Orçamentos do Mês -->
-                    <div class="dashboard-budgets">
-                        <h3>Orçamentos do Mês</h3>
-                        <div class="budgets-grid" id="dashBudgetsGrid">
-                            <div class="empty-state">
-                                <p>Nenhum orçamento cadastrado</p>
+                   <!-- Orçamentos do Mês e Gastos por Conta -->
+                    <div class="dashboard-bottom-section">
+                        <div class="dashboard-budgets">
+                            <h3>Orçamentos do Mês</h3>
+                            <div class="budgets-grid" id="dashBudgetsGrid">
+                                <div class="empty-state">
+                                    <p>Nenhum orçamento cadastrado</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-conta-gastos">
+                            <h3>Gastos nos Cartões</h3>
+                            <div class="conta-gastos-card">
+                                <div class="conta-gastos-icon">💳</div>
+                                <div class="conta-gastos-content">
+                                    <p class="conta-gastos-label">Total gasto nos cartões de crédito</p>
+                                    <h2 class="conta-gastos-valor" id="dashTotalGastoContas">R$ 0,00</h2>
+                                    <span class="conta-gastos-mes" id="dashGastosLabel">Janeiro 2026</span>
+                                </div>
+                            </div>
+                            <div class="conta-gastos-list" id="dashContaGastosList">
+                                <!-- Lista de cartões será inserida aqui -->
                             </div>
                         </div>
                     </div>
@@ -452,15 +474,6 @@
 
             <!-- Relatório Page -->
             <section class="page-content" id="relatorio-page" style="display: none;">
-                <div class="relatorio-filters">
-                    <div class="filter-group">
-                        <label>Categorias das despesas</label>
-                        <select id="filtroDespesaCategoria" class="filter-select">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="summary-cards">
                     <div class="summary-card receita">
                         <h3>Receita</h3>
@@ -483,6 +496,12 @@
                             <p>Contas:</p>
                         </div>
                     </div>
+                    <div class="info-card">
+                        <h4>Informações de Cartões</h4>
+                        <div class="info-list" id="infoCartoes">
+                            <p>Carregando...</p>
+                        </div>
+                    </div>
                     <div class="chart-circles">
                         <div class="circle-chart">
                             <h4 class="chart-title">Receitas vs Despesas</h4>
@@ -499,6 +518,524 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Cartão Page -->
+            <section class="page-content" id="cartao-page" style="display: none;">
+                <div class="cartao-content">
+                    <!-- Sistema de Abas -->
+                    <div class="cartao-tabs">
+                        <button class="cartao-tab-btn active" data-tab="contas">Cartões</button>
+                        <button class="cartao-tab-btn" data-tab="fatura">Fatura</button>
+                        <button class="cartao-tab-btn" data-tab="parcela">Parcela</button>
+                    </div>
+
+                    <!-- Aba: Contas -->
+                    <div class="cartao-tab-content active" id="tab-cartao-contas">
+                        <!-- Formulário de Adição -->
+                        <div class="cartao-section">
+                            <div class="cartao-section-header">
+                                <h3>Adicionar novo Cartão</h3>
+                                <div class="cartao-actions-header">
+                                    <button type="button" class="btn-import-fatura" id="btnLancarCompra">
+                                        <span>💳</span> Lançar Compras
+                                    </button>
+                                    <button type="button" class="btn-import-fatura" id="btnImportarFatura">
+                                        <span>📄</span> Importar Fatura
+                                    </button>
+                                </div>
+                            </div>
+                            <form id="formCartao" class="cartao-form">
+                                <div class="cartao-form-row">
+                                    <div class="cartao-form-group">
+                                        <label>Nome do Cartão</label>
+                                        <input type="text" id="cartaoNome" placeholder="Ex: Nubank Roxinho" required>
+                                    </div>
+                                </div>
+                                <div class="cartao-form-row">
+                                    <div class="cartao-form-group">
+                                        <label>Valor da Fatura</label>
+                                        <input type="number" id="cartaoValor" placeholder="0.00" step="0.01" value="0">
+                                    </div>
+                                    <div class="cartao-form-group">
+                                        <label>Data de Vencimento (Dia do Mês)</label>
+                                        <input type="number" id="cartaoVencimento" placeholder="1-31" min="1" max="31" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-add-cartao">+ Adicionar Cartão</button>
+                            </form>
+                        </div>
+
+                        <!-- Lista de Cartões -->
+                        <div class="cartao-section">
+                            <h3>Cartões Cadastrados</h3>
+                            <div class="cartoes-list" id="cartoesListContainer">
+                                <div class="cartoes-empty" id="cartoesEmpty">
+                                    <div class="cartoes-empty-icon">💳</div>
+                                    <p class="cartoes-empty-text">Nenhuma cartão cadastrado</p>
+                                    <p class="cartoes-empty-hint">Adicione seu primeiro cartão de crédito acima</p>
+                                </div>
+                                <div id="cartoesList" style="display: none;">
+                                    <!-- Cartões serão inseridos aqui via JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba: Fatura -->
+                    <div class="cartao-tab-content" id="tab-cartao-fatura">
+                        <!-- Cabeçalho -->
+                        <div class="fatura-header">
+                            <div class="fatura-header-content">
+                                <h2 class="fatura-title">Gerenciar Faturas dos Cartões</h2>
+                                <p class="fatura-subtitle">Visualize as faturas do seu cartão de crédito</p>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Cartões Disponíveis -->
+                        <div class="fatura-cartoes-section">
+                            <h3>Cartões Cadastrados</h3>
+                            <div class="fatura-search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="faturaSearchCartao" placeholder="Buscar cartão...">
+                            </div>
+                            <div class="fatura-cartoes-grid" id="faturaCartoesGrid">
+                                <!-- Cartões serão inseridos aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Filtros -->
+                        <div class="fatura-filters">
+                            <div class="fatura-filter-group">
+                                <label>Cartão</label>
+                                <select id="faturaCartaoSelect" class="fatura-select">
+                                    <option value="">Selecione um cartão</option>
+                                </select>
+                            </div>
+                            <div class="fatura-filter-group">
+                                <label>Mês</label>
+                                <select id="faturaMesSelect" class="fatura-select">
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="fatura-filter-group">
+                                <label>Ano</label>
+                                <select id="faturaAnoSelect" class="fatura-select">
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                            <button type="button" class="btn-consultar-fatura" id="btnConsultarFatura">
+                                🔍 Consultar
+                            </button>
+                        </div>
+
+                        <!-- Resumo da Fatura -->
+                        <div class="fatura-resumo" id="faturaResumo" style="display: none;">
+                            <div class="fatura-resumo-card">
+                                <div class="fatura-resumo-icon">💳</div>
+                                <div class="fatura-resumo-content">
+                                    <h3 class="fatura-resumo-title">Valor Total da Fatura</h3>
+                                    <p class="fatura-resumo-valor" id="faturaValorTotal">R$ 0,00</p>
+                                    <div class="fatura-resumo-info">
+                                        <span id="faturaQuantidade">0 lançamentos</span>
+                                        <span class="fatura-status" id="faturaStatus">
+                                            <span class="status-dot"></span>
+                                            <span class="status-text">Pendente</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lançamentos -->
+                        <div class="fatura-lancamentos" id="faturaLancamentos" style="display: none;">
+                            <h3 class="fatura-lancamentos-title">Lançamentos da Fatura</h3>
+                            <div class="fatura-lancamentos-list" id="faturaLancamentosList">
+                                <!-- Lançamentos serão inseridos aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div class="fatura-empty" id="faturaEmpty">
+                            <div class="fatura-empty-icon">📊</div>
+                            <p class="fatura-empty-text">Selecione um cartão, mês e ano para visualizar a fatura</p>
+                        </div>
+
+                        <!-- No Data State -->
+                        <div class="fatura-no-data" id="faturaNoData" style="display: none;">
+                            <div class="fatura-empty-icon">📭</div>
+                            <p class="fatura-empty-text">Nenhum lançamento encontrado para este período</p>
+                        </div>
+                    </div>
+
+                    <!-- Aba: Parcela -->
+                    <div class="cartao-tab-content" id="tab-cartao-parcela">
+                        <!-- Formulário de Adição -->
+                        <div class="cartao-section">
+                            <h3>Adicionar Compra Parcelada</h3>
+                            <form id="formParcela" class="cartao-form">
+                                <div class="cartao-form-row">
+                                    <div class="cartao-form-group">
+                                        <label>Descrição</label>
+                                        <input type="text" id="parcelaDescricao" placeholder="Ex: Notebook Dell" required>
+                                    </div>
+                                </div>
+                                <div class="cartao-form-row">
+                                    <div class="cartao-form-group">
+                                        <label>Dia</label>
+                                        <input type="number" id="parcelaDia" placeholder="1-31" min="1" max="31" required>
+                                    </div>
+                                    <div class="cartao-form-group">
+                                        <label>Cartão Usado</label>
+                                        <select id="parcelaCartao" required>
+                                            <option value="">Selecione um cartão</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="cartao-form-row">
+                                    <div class="cartao-form-group">
+                                        <label>Valor da Parcela</label>
+                                        <input type="number" id="parcelaValor" placeholder="0.00" step="0.01" required>
+                                    </div>
+                                    <div class="cartao-form-group">
+                                        <label>Quantas Parcelas</label>
+                                        <input type="number" id="parcelaQuantidade" placeholder="Ex: 12" min="1" required>
+                                    </div>
+                                    <div class="cartao-form-group">
+                                        <label>Total</label>
+                                        <input type="number" id="parcelaTotal" placeholder="0.00" step="0.01" readonly>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-add-cartao">+ Adicionar Parcela</button>
+                            </form>
+                        </div>
+
+                        <!-- Tabela de Parcelas -->
+                        <div class="cartao-section">
+                            <h3>Compras Parceladas</h3>
+                            <div class="parcelas-table-container">
+                                <div class="parcelas-empty" id="parcelasEmpty">
+                                    <div class="parcelas-empty-icon">💳</div>
+                                    <p class="parcelas-empty-text">Nenhuma compra parcelada cadastrada</p>
+                                    <p class="parcelas-empty-hint">Adicione sua primeira compra parcelada acima</p>
+                                </div>
+                                <div id="parcelasTableWrapper" style="display: none;">
+                                    <table class="parcelas-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Descrição</th>
+                                                <th>Início</th>
+                                                <th>Cartão</th>
+                                                <th>Valor Parcela</th>
+                                                <th>Parcelas</th>
+                                                <th>Total</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="parcelasTableBody">
+                                            <!-- Parcelas serão inseridas aqui via JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal Editar Cartão -->
+            <div class="modal" id="modalEditarCartao">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Editar Cartão</h2>
+                        <button class="modal-close" id="closeModalEditarCartao">&times;</button>
+                    </div>
+                    <form id="formEditarCartao" class="modal-form">
+                        <input type="hidden" id="editCartaoId">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Cartão</label>
+                                <input type="text" id="editCartaoNome" placeholder="Ex: Nubank Roxinho" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Valor da Fatura</label>
+                                <input type="number" id="editCartaoValor" placeholder="0.00" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Vencimento (Dia do Mês)</label>
+                                <input type="number" id="editCartaoVencimento" placeholder="1-31" min="1" max="31" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="editCartaoStatus" required>
+                                    <option value="aberta">Aberta</option>
+                                    <option value="fechada">Fechada</option>
+                                    <option value="paga">Paga</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                            <button type="button" class="btn btn-secondary" id="cancelModalEditarCartao">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal Lançar Compra -->
+            <div class="modal" id="modalLancarCompra">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>💳 Lançar Compra no Cartão</h2>
+                        <button class="modal-close" id="closeModalLancarCompra">&times;</button>
+                    </div>
+                    <div class="modal-form">
+                        <form id="formLancarCompra">
+                            <div class="form-group">
+                                <label for="compraDescricao">Descrição *</label>
+                                <input
+                                    type="text"
+                                    id="compraDescricao"
+                                    placeholder="Ex: Supermercado Pão de Açúcar"
+                                    required
+                                />
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="compraValor">Valor Total *</label>
+                                    <input
+                                        type="number"
+                                        id="compraValor"
+                                        step="0.01"
+                                        min="0.01"
+                                        placeholder="0.00"
+                                        required
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="compraData">Data da Compra *</label>
+                                    <input type="date" id="compraData" required />
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="compraCartao">Cartão *</label>
+                                    <select id="compraCartao" required>
+                                        <option value="">Selecione um cartão</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="compraCategoria">Categoria</label>
+                                    <select id="compraCategoria">
+                                        <option value="">Selecione uma categoria</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="compraParcelas">Parcelamento *</label>
+                                <select id="compraParcelas" required>
+                                    <option value="1">À vista (1x)</option>
+                                    <option value="2">2x sem juros</option>
+                                    <option value="3">3x sem juros</option>
+                                    <option value="4">4x sem juros</option>
+                                    <option value="5">5x sem juros</option>
+                                    <option value="6">6x sem juros</option>
+                                    <option value="7">7x sem juros</option>
+                                    <option value="8">8x sem juros</option>
+                                    <option value="9">9x sem juros</option>
+                                    <option value="10">10x sem juros</option>
+                                    <option value="11">11x sem juros</option>
+                                    <option value="12">12x sem juros</option>
+                                </select>
+                            </div>
+
+                            <div class="parcela-info" id="parcelaInfo" style="display: none;">
+                                <div class="parcela-info-icon">ℹ️</div>
+                                <div class="parcela-info-text">
+                                    <strong id="parcelaInfoTexto"></strong>
+                                    <p id="parcelaInfoDetalhes"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="compraObservacoes">Observações</label>
+                                <textarea
+                                    id="compraObservacoes"
+                                    rows="3"
+                                    placeholder="Observações adicionais (opcional)"
+                                ></textarea>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelLancarCompra">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-primary">💾 Lançar Compra</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Importar Fatura OFX -->
+            <div class="modal" id="modalImportarFatura">
+                <div class="modal-content modal-import">
+                    <div class="modal-header">
+                        <h2>📄 Importar Fatura do Cartão (OFX)</h2>
+                        <button class="modal-close" id="closeModalImportarFaturaCartao">&times;</button>
+                    </div>
+                    <div class="modal-form">
+                        <!-- Etapa 1: Seleção de Arquivo e Cartão -->
+                        <div class="import-step" id="stepFatura1">
+                            <div class="form-group">
+                                <label>💳 Cartão de Crédito *</label>
+                                <select id="importFaturaCartao" required>
+                                    <option value="">Selecione um cartão</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>📁 Formato do Arquivo</label>
+                                <div class="format-info">
+                                    <div class="format-box">
+                                        <span class="format-icon">💼</span>
+                                        <div class="format-details">
+                                            <div class="format-name">OFX (Open Financial Exchange)</div>
+                                            <div class="format-desc">
+                                                Arquivo de fatura de cartão de crédito exportado do seu banco
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>📂 Selecione o arquivo OFX *</label>
+                                <div class="file-upload-area" id="fileUploadAreaFatura">
+                                    <input type="file" id="importFileFatura" accept=".ofx" style="display: none;" />
+
+                                    <div class="upload-placeholder">
+                                        <span class="upload-icon">📄</span>
+                                        <p class="upload-text">Clique ou arraste o arquivo aqui</p>
+                                        <p class="upload-hint">Formato aceito: .ofx (máx. 5MB)</p>
+                                    </div>
+
+                                    <div class="file-info" id="fileInfoFatura" style="display: none;">
+                                        <span class="file-icon">📄</span>
+                                        <div class="file-details">
+                                            <p class="file-name" id="fileNameFatura"></p>
+                                            <p class="file-size" id="fileSizeFatura"></p>
+                                        </div>
+                                        <button type="button" class="btn-remove-file" id="removeFileFatura">✕</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelImportFatura">Cancelar</button>
+                                <button type="button" class="btn btn-primary" id="btnProcessarImportFatura" disabled>
+                                    ➡️ Processar Arquivo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Etapa 2: Preview e Categorização -->
+                        <div class="import-step" id="stepFatura2" style="display: none;">
+                            <div class="import-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total de registros:</span>
+                                    <span class="summary-value" id="totalRegistrosFatura">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Categorizados automaticamente:</span>
+                                    <span class="summary-value success" id="totalCategorizadosFatura">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Sem categoria:</span>
+                                    <span class="summary-value warning" id="totalSemCategoriaFatura">0</span>
+                                </div>
+                            </div>
+
+                            <div class="preview-table-container">
+                                <h3>Preview das Transações</h3>
+                                <table class="preview-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Descrição</th>
+                                            <th>Valor</th>
+                                            <th>Categoria</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewTableBodyFatura">
+                                        <!-- Preenchido dinamicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="btnVoltarImportFatura">
+                                    ⬅️ Voltar
+                                </button>
+                                <button type="button" class="btn btn-primary" id="btnConfirmarImportFatura">
+                                    ✅ Confirmar Importação
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Etapa 3: Processamento -->
+                        <div class="import-step" id="stepFatura3" style="display: none;">
+                            <div class="processing-container">
+                                <div class="processing-icon">⏳</div>
+                                <h3>Importando transações...</h3>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFillFatura"></div>
+                                </div>
+                                <p class="progress-text" id="progressTextFatura">0%</p>
+                            </div>
+                        </div>
+
+                        <!-- Etapa 4: Resultado -->
+                        <div class="import-step" id="stepFatura4" style="display: none;">
+                            <div class="result-container">
+                                <div class="result-icon success" id="resultIconFatura">✓</div>
+                                <h2 id="resultTitleFatura">Importação concluída!</h2>
+                                <div class="result-stats">
+                                    <div class="result-stat">
+                                        <span class="result-stat-value" id="importadosCountFatura">0</span>
+                                        <span class="result-stat-label">Transações importadas</span>
+                                    </div>
+                                    <div class="result-stat">
+                                        <span class="result-stat-value" id="categorizadosCountFatura">0</span>
+                                        <span class="result-stat-label">Categorizadas automaticamente</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="btnFecharResultadoFatura">Fechar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Configurar Page -->
             <section class="page-content" id="configurar-page" style="display: none;">
@@ -897,6 +1434,7 @@
     <script src="scripts/navigation.js"></script>
     <script src="scripts/dashboard.js"></script>
     <script src="scripts/transacoes.js"></script>
+    <script src="scripts/cartao.js"></script>
     <script src="scripts/relatorio.js"></script>
     <script src="scripts/configurar.js"></script>
     <script src="scripts/import.js"></script>

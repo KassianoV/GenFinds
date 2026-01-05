@@ -9,6 +9,10 @@ import {
   Conta,
   Categoria,
   Orcamento,
+  Cartao,
+  Parcela,
+  TransacaoCartao,
+  TransacaoCartaoCompleta,
   Transacao,
   ResumoFinanceiro,
   TransacaoCompleta,
@@ -132,6 +136,74 @@ export class DatabaseManager {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data)`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)`);
 
+    // Tabela de Cartões de Crédito
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS cartoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        valor REAL DEFAULT 0,
+        vencimento INTEGER CHECK(vencimento BETWEEN 1 AND 31) NOT NULL,
+        status TEXT CHECK(status IN ('aberta', 'fechada', 'paga')) DEFAULT 'aberta',
+        usuario_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Tabela de Parcelas
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS parcelas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        descricao TEXT NOT NULL,
+        dia INTEGER CHECK(dia BETWEEN 1 AND 31) NOT NULL,
+        cartao_id INTEGER NOT NULL,
+        valor_parcela REAL NOT NULL,
+        quantidade_parcelas INTEGER NOT NULL,
+        total REAL NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_cartoes_usuario ON cartoes(usuario_id)`);
+
+    // Tabela de Transações de Cartão
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS transacoes_cartao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        descricao TEXT NOT NULL,
+        valor REAL NOT NULL,
+        data DATE NOT NULL,
+        cartao_id INTEGER NOT NULL,
+        categoria_id INTEGER,
+        parcelas INTEGER DEFAULT 1,
+        parcela_atual INTEGER DEFAULT 1,
+        grupo_parcelamento TEXT,
+        observacoes TEXT,
+        usuario_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE,
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_data ON transacoes_cartao(data)`);
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_cartao ON transacoes_cartao(cartao_id)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_usuario ON transacoes_cartao(usuario_id)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_grupo ON transacoes_cartao(grupo_parcelamento)`
+    );
+
     // ========== TRIGGERS PARA GESTÃO AUTOMÁTICA DE SALDO ==========
 
     // Trigger: Atualizar saldo quando inserir transação
@@ -176,6 +248,53 @@ export class DatabaseManager {
         SET saldo = saldo + (CASE WHEN NEW.tipo = 'receita' THEN NEW.valor ELSE -NEW.valor END),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = NEW.conta_id;
+      END;
+    `);
+
+    // ========== TRIGGERS PARA GESTÃO AUTOMÁTICA DE VALOR DO CARTÃO ==========
+
+    // Trigger: Atualizar valor do cartão quando inserir transação de cartão
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_cartao_insert
+      AFTER INSERT ON transacoes_cartao
+      FOR EACH ROW
+      BEGIN
+        UPDATE cartoes
+        SET valor = valor + NEW.valor,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.cartao_id;
+      END;
+    `);
+
+    // Trigger: Reverter valor do cartão quando deletar transação de cartão
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_cartao_delete
+      AFTER DELETE ON transacoes_cartao
+      FOR EACH ROW
+      BEGIN
+        UPDATE cartoes
+        SET valor = valor - OLD.valor,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = OLD.cartao_id;
+      END;
+    `);
+
+    // Trigger: Ajustar valor do cartão quando atualizar transação de cartão
+    this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS atualizar_cartao_update
+      AFTER UPDATE ON transacoes_cartao
+      FOR EACH ROW
+      BEGIN
+        -- Reverter valor da transação antiga
+        UPDATE cartoes
+        SET valor = valor - OLD.valor
+        WHERE id = OLD.cartao_id;
+
+        -- Aplicar valor da transação nova
+        UPDATE cartoes
+        SET valor = valor + NEW.valor,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.cartao_id;
       END;
     `);
   }
@@ -443,6 +562,467 @@ export class DatabaseManager {
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
+    };
+  }
+
+  // ========== MÉTODOS DE CARTÃO ==========
+
+  createCartao(cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>): Cartao {
+    // Validações de campos obrigatórios
+    if (!cartao.nome || cartao.nome.trim() === '') {
+      throw new Error('Nome do cartão é obrigatório');
+    }
+    if (cartao.vencimento < 1 || cartao.vencimento > 31) {
+      throw new Error('Data de vencimento deve ser entre 1 e 31');
+    }
+
+    this.db.run(
+      'INSERT INTO cartoes (nome, valor, vencimento, status, usuario_id) VALUES (?, ?, ?, ?, ?)',
+      [cartao.nome, cartao.valor, cartao.vencimento, cartao.status, cartao.usuario_id]
+    );
+    this.save();
+
+    // Invalidar cache de cartões
+    this.invalidateCache(`cartoes:${cartao.usuario_id}`);
+
+    const result = this.db.exec('SELECT * FROM cartoes ORDER BY id DESC LIMIT 1');
+    return this.rowToCartao(result[0]);
+  }
+
+  getCartoes(usuarioId: number): Cartao[] {
+    // Tentar buscar do cache
+    const cacheKey = `cartoes:${usuarioId}`;
+    const cached = this.getCached<Cartao[]>(cacheKey);
+    if (cached) return cached;
+
+    // Se não estiver em cache, buscar do banco
+    const result = this.db.exec('SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY nome', [
+      usuarioId,
+    ]);
+    const data =
+      result.length === 0
+        ? []
+        : result[0].values.map((row: SqlValue[]) =>
+            this.rowToCartaoFromArray(row, result[0].columns)
+          );
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
+  }
+
+  getCartao(id: number): Cartao | undefined {
+    const result = this.db.exec('SELECT * FROM cartoes WHERE id = ?', [id]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    return this.rowToCartao(result[0]);
+  }
+
+  updateCartao(id: number, updates: Partial<Cartao>): boolean {
+    const allowedFields = ['nome', 'valor', 'vencimento', 'status', 'usuario_id'];
+
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
+
+    if (validUpdates.length === 0) {
+      return false;
+    }
+
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+
+    this.db.run(`UPDATE cartoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      ...values,
+      id,
+    ] as SqlValue[]);
+    this.save();
+
+    // Invalidar cache de cartões
+    this.invalidateCache('cartoes:');
+
+    return true;
+  }
+
+  deleteCartao(id: number): boolean {
+    this.db.run('DELETE FROM cartoes WHERE id = ?', [id]);
+    this.save();
+
+    // Invalidar cache de cartões
+    this.invalidateCache('cartoes:');
+
+    return true;
+  }
+
+  private rowToCartao(result: QueryExecResult): Cartao {
+    const row = result.values[0];
+    return this.rowToCartaoFromArray(row, result.columns);
+  }
+
+  private rowToCartaoFromArray(row: SqlValue[], cols: string[]): Cartao {
+    return {
+      id: Number(row[cols.indexOf('id')]),
+      nome: String(row[cols.indexOf('nome')]),
+      valor: Number(row[cols.indexOf('valor')]),
+      vencimento: Number(row[cols.indexOf('vencimento')]),
+      status: String(row[cols.indexOf('status')]) as 'aberta' | 'fechada' | 'paga',
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
+      created_at: String(row[cols.indexOf('created_at')]),
+      updated_at: String(row[cols.indexOf('updated_at')]),
+    };
+  }
+
+  // ========== MÉTODOS DE PARCELA ==========
+
+  createParcela(parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>): Parcela {
+    // Validações de campos obrigatórios
+    if (!parcela.descricao || parcela.descricao.trim() === '') {
+      throw new Error('Descrição é obrigatória');
+    }
+    if (parcela.dia < 1 || parcela.dia > 31) {
+      throw new Error('Dia deve ser entre 1 e 31');
+    }
+    if (parcela.quantidade_parcelas < 1) {
+      throw new Error('Quantidade de parcelas deve ser maior que 0');
+    }
+
+    this.db.run(
+      'INSERT INTO parcelas (descricao, dia, cartao_id, valor_parcela, quantidade_parcelas, total, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        parcela.descricao,
+        parcela.dia,
+        parcela.cartao_id,
+        parcela.valor_parcela,
+        parcela.quantidade_parcelas,
+        parcela.total,
+        parcela.usuario_id,
+      ]
+    );
+    this.save();
+
+    // Invalidar cache de parcelas
+    this.invalidateCache(`parcelas:${parcela.usuario_id}`);
+
+    const result = this.db.exec('SELECT * FROM parcelas ORDER BY id DESC LIMIT 1');
+    return this.rowToParcela(result[0]);
+  }
+
+  getParcelas(usuarioId: number): Parcela[] {
+    // Tentar buscar do cache
+    const cacheKey = `parcelas:${usuarioId}`;
+    const cached = this.getCached<Parcela[]>(cacheKey);
+    if (cached) return cached;
+
+    // Se não estiver em cache, buscar do banco
+    const result = this.db.exec(
+      'SELECT * FROM parcelas WHERE usuario_id = ? ORDER BY created_at DESC',
+      [usuarioId]
+    );
+    const data =
+      result.length === 0
+        ? []
+        : result[0].values.map((row: SqlValue[]) =>
+            this.rowToParcelaFromArray(row, result[0].columns)
+          );
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
+  }
+
+  getParcela(id: number): Parcela | undefined {
+    const result = this.db.exec('SELECT * FROM parcelas WHERE id = ?', [id]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    return this.rowToParcela(result[0]);
+  }
+
+  updateParcela(id: number, updates: Partial<Parcela>): boolean {
+    const allowedFields = [
+      'descricao',
+      'dia',
+      'cartao_id',
+      'valor_parcela',
+      'quantidade_parcelas',
+      'total',
+    ];
+
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
+
+    if (validUpdates.length === 0) {
+      return false;
+    }
+
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+
+    this.db.run(`UPDATE parcelas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      ...values,
+      id,
+    ] as SqlValue[]);
+    this.save();
+
+    // Invalidar cache de parcelas
+    this.invalidateCache('parcelas:');
+
+    return true;
+  }
+
+  deleteParcela(id: number): boolean {
+    this.db.run('DELETE FROM parcelas WHERE id = ?', [id]);
+    this.save();
+
+    // Invalidar cache de parcelas
+    this.invalidateCache('parcelas:');
+
+    return true;
+  }
+
+  private rowToParcela(result: QueryExecResult): Parcela {
+    const row = result.values[0];
+    return this.rowToParcelaFromArray(row, result.columns);
+  }
+
+  private rowToParcelaFromArray(row: SqlValue[], cols: string[]): Parcela {
+    return {
+      id: Number(row[cols.indexOf('id')]),
+      descricao: String(row[cols.indexOf('descricao')]),
+      dia: Number(row[cols.indexOf('dia')]),
+      cartao_id: Number(row[cols.indexOf('cartao_id')]),
+      valor_parcela: Number(row[cols.indexOf('valor_parcela')]),
+      quantidade_parcelas: Number(row[cols.indexOf('quantidade_parcelas')]),
+      total: Number(row[cols.indexOf('total')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
+      created_at: String(row[cols.indexOf('created_at')]),
+      updated_at: String(row[cols.indexOf('updated_at')]),
+    };
+  }
+
+  // ========== MÉTODOS DE TRANSAÇÃO DE CARTÃO ==========
+
+  createTransacaoCartao(
+    transacao: Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>
+  ): TransacaoCartao {
+    // Validações
+    if (!transacao.descricao || transacao.descricao.trim() === '') {
+      throw new Error('Descrição é obrigatória');
+    }
+    if (transacao.parcelas < 1) {
+      throw new Error('Parcelas deve ser maior que 0');
+    }
+    if (transacao.parcela_atual < 1 || transacao.parcela_atual > transacao.parcelas) {
+      throw new Error('Parcela atual inválida');
+    }
+
+    this.db.run(
+      `INSERT INTO transacoes_cartao (descricao, valor, data, cartao_id, categoria_id,
+       parcelas, parcela_atual, grupo_parcelamento, observacoes, usuario_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        transacao.descricao,
+        transacao.valor,
+        transacao.data,
+        transacao.cartao_id,
+        transacao.categoria_id || null,
+        transacao.parcelas,
+        transacao.parcela_atual,
+        transacao.grupo_parcelamento || null,
+        transacao.observacoes || null,
+        transacao.usuario_id,
+      ] as SqlValue[]
+    );
+
+    this.save();
+
+    // Invalidar cache
+    this.invalidateCache(`cartoes:${transacao.usuario_id}`);
+    this.invalidateCache(`transacoes_cartao:${transacao.usuario_id}`);
+
+    const result = this.db.exec('SELECT * FROM transacoes_cartao ORDER BY id DESC LIMIT 1');
+    return this.rowToTransacaoCartao(result[0]);
+  }
+
+  createTransacaoParcelada(
+    transacao: Omit<
+      TransacaoCartao,
+      'id' | 'created_at' | 'updated_at' | 'parcela_atual' | 'grupo_parcelamento'
+    >,
+    numeroParcelas: number
+  ): TransacaoCartao[] {
+    const grupoId = `parcela-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const valorParcela = transacao.valor / numeroParcelas;
+    const dataBase = new Date(transacao.data);
+    const transacoesCriadas: TransacaoCartao[] = [];
+
+    for (let i = 1; i <= numeroParcelas; i++) {
+      // Calcular data de cada parcela (mes atual + i-1 meses)
+      const dataParcela = new Date(dataBase);
+      dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+
+      const parcelaData = {
+        ...transacao,
+        valor: valorParcela,
+        data: dataParcela.toISOString().split('T')[0],
+        parcelas: numeroParcelas,
+        parcela_atual: i,
+        grupo_parcelamento: grupoId,
+        descricao: `${transacao.descricao} (${i}/${numeroParcelas})`,
+      };
+
+      const created = this.createTransacaoCartao(parcelaData);
+      transacoesCriadas.push(created);
+    }
+
+    return transacoesCriadas;
+  }
+
+  getTransacoesCartao(
+    usuarioId: number,
+    cartaoId?: number,
+    mes?: number,
+    ano?: number
+  ): TransacaoCartaoCompleta[] {
+    const cacheKey = `transacoes_cartao:${usuarioId}:${cartaoId || 'all'}:${mes || 'all'}:${ano || 'all'}`;
+
+    // Tentar buscar do cache
+    const cached = this.getCached<TransacaoCartaoCompleta[]>(cacheKey);
+    if (cached) return cached;
+
+    let query = `
+      SELECT
+        tc.*,
+        c.nome as cartao_nome,
+        cat.nome as categoria_nome,
+        cat.cor as categoria_cor
+      FROM transacoes_cartao tc
+      JOIN cartoes c ON tc.cartao_id = c.id
+      LEFT JOIN categorias cat ON tc.categoria_id = cat.id
+      WHERE tc.usuario_id = ?
+    `;
+
+    const params: SqlValue[] = [usuarioId];
+
+    if (cartaoId) {
+      query += ' AND tc.cartao_id = ?';
+      params.push(cartaoId);
+    }
+
+    if (mes && ano) {
+      query += ` AND strftime('%m', tc.data) = ? AND strftime('%Y', tc.data) = ?`;
+      params.push(mes.toString().padStart(2, '0'), ano.toString());
+    }
+
+    query += ' ORDER BY tc.data DESC, tc.created_at DESC';
+
+    const result = this.db.exec(query, params);
+    const data =
+      result.length === 0
+        ? []
+        : result[0].values.map((row: SqlValue[]) =>
+            this.rowToTransacaoCartaoCompletaFromArray(row, result[0].columns)
+          );
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
+  }
+
+  getTransacaoCartao(id: number): TransacaoCartao | undefined {
+    const result = this.db.exec('SELECT * FROM transacoes_cartao WHERE id = ?', [id]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    return this.rowToTransacaoCartao(result[0]);
+  }
+
+  updateTransacaoCartao(id: number, updates: Partial<TransacaoCartao>): boolean {
+    const allowedFields = [
+      'descricao',
+      'valor',
+      'data',
+      'cartao_id',
+      'categoria_id',
+      'parcelas',
+      'parcela_atual',
+      'grupo_parcelamento',
+      'observacoes',
+    ];
+
+    const validUpdates = Object.entries(updates).filter(
+      ([key]) => allowedFields.includes(key) && key !== 'id'
+    );
+
+    if (validUpdates.length === 0) {
+      return false;
+    }
+
+    const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
+    const values = validUpdates.map(([, value]) => value);
+
+    this.db.run(
+      `UPDATE transacoes_cartao SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, id] as SqlValue[]
+    );
+
+    this.save();
+
+    // Invalidar cache
+    this.invalidateCache('cartoes:');
+    this.invalidateCache('transacoes_cartao:');
+
+    return true;
+  }
+
+  deleteTransacaoCartao(id: number): boolean {
+    this.db.run('DELETE FROM transacoes_cartao WHERE id = ?', [id]);
+    this.save();
+
+    // Invalidar cache
+    this.invalidateCache('cartoes:');
+    this.invalidateCache('transacoes_cartao:');
+
+    return true;
+  }
+
+  private rowToTransacaoCartao(result: QueryExecResult): TransacaoCartao {
+    const row = result.values[0];
+    return this.rowToTransacaoCartaoFromArray(row, result.columns);
+  }
+
+  private rowToTransacaoCartaoFromArray(row: SqlValue[], cols: string[]): TransacaoCartao {
+    return {
+      id: Number(row[cols.indexOf('id')]),
+      descricao: String(row[cols.indexOf('descricao')]),
+      valor: Number(row[cols.indexOf('valor')]),
+      data: String(row[cols.indexOf('data')]),
+      cartao_id: Number(row[cols.indexOf('cartao_id')]),
+      categoria_id: row[cols.indexOf('categoria_id')] ? Number(row[cols.indexOf('categoria_id')]) : undefined,
+      parcelas: Number(row[cols.indexOf('parcelas')]),
+      parcela_atual: Number(row[cols.indexOf('parcela_atual')]),
+      grupo_parcelamento: row[cols.indexOf('grupo_parcelamento')]
+        ? String(row[cols.indexOf('grupo_parcelamento')])
+        : undefined,
+      observacoes: row[cols.indexOf('observacoes')] ? String(row[cols.indexOf('observacoes')]) : undefined,
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
+      created_at: String(row[cols.indexOf('created_at')]),
+      updated_at: String(row[cols.indexOf('updated_at')]),
+    };
+  }
+
+  private rowToTransacaoCartaoCompletaFromArray(
+    row: SqlValue[],
+    cols: string[]
+  ): TransacaoCartaoCompleta {
+    return {
+      ...this.rowToTransacaoCartaoFromArray(row, cols),
+      cartao_nome: String(row[cols.indexOf('cartao_nome')]),
+      categoria_nome: row[cols.indexOf('categoria_nome')]
+        ? String(row[cols.indexOf('categoria_nome')])
+        : undefined,
+      categoria_cor: row[cols.indexOf('categoria_cor')]
+        ? String(row[cols.indexOf('categoria_cor')])
+        : undefined,
     };
   }
 

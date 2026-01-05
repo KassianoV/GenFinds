@@ -1,0 +1,976 @@
+/* src/renderer/styles/cartao.css */
+
+/* Container Principal */
+.cartao-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Sistema de Abas */
+.cartao-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.cartao-tab-btn {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.cartao-tab-btn:hover {
+  color: var(--primary-color);
+}
+
+.cartao-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Conteúdo das Abas */
+.cartao-tab-content {
+  display: none;
+}
+
+.cartao-tab-content.active {
+  display: block;
+}
+
+/* Seção de Formulário */
+.cartao-section {
+  background-color: var(--bg-white);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+}
+
+.cartao-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+/* Formulário de Adição */
+.cartao-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cartao-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.cartao-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.cartao-form-group label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.cartao-form-group input,
+.cartao-form-group select {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+  background-color: var(--bg-white);
+}
+
+.cartao-form-group input:focus,
+.cartao-form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.cartao-form-group input::placeholder {
+  color: #999;
+}
+
+/* Botão de Adicionar */
+.btn-add-cartao {
+  background-color: var(--success-color);
+  color: var(--text-light);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.btn-add-cartao:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn-add-cartao:active {
+  transform: translateY(0);
+}
+
+/* Lista de Cartões */
+.cartoes-list {
+  background-color: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 25px;
+}
+
+/* Card de Cartão Individual */
+.cartao-card {
+  background-color: var(--bg-light);
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cartao-card:last-child {
+  margin-bottom: 0;
+}
+
+.cartao-card:hover {
+  background-color: #eeeeee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(5px);
+}
+
+/* Informações do Cartão */
+.cartao-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cartao-nome {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cartao-nome .icon {
+  font-size: 20px;
+}
+
+.cartao-valor {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cartao-valor.aberta {
+  color: var(--danger-color);
+}
+
+.cartao-valor.fechada {
+  color: var(--warning-color);
+}
+
+.cartao-valor.paga {
+  color: var(--success-color);
+}
+
+.cartao-vencimento {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cartao-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid;
+  width: fit-content;
+}
+
+.cartao-status.aberta {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.cartao-status.fechada {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+.cartao-status.paga {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: var(--info-color);
+  border-color: var(--info-color);
+}
+
+.cartao-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Ações do Cartão */
+.cartao-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-cartao-action {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  border: 1px solid;
+}
+
+.btn-cartao-edit {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-cartao-edit:hover {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+}
+
+.btn-cartao-delete {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.btn-cartao-delete:hover {
+  background-color: var(--danger-color);
+  color: var(--text-light);
+}
+
+/* Empty State */
+.cartoes-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.cartoes-empty-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.3;
+}
+
+.cartoes-empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.cartoes-empty-hint {
+  font-size: 14px;
+  color: #999;
+}
+
+/* Header com botão */
+.cartao-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.cartao-section-header h3 {
+  margin-bottom: 0;
+}
+
+.btn-import-fatura {
+  background-color: var(--info-color);
+  color: var(--text-light);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-import-fatura:hover {
+  background-color: #1976d2;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* ========== ABA FATURA ========== */
+
+/* Cabeçalho */
+.fatura-header {
+  margin-bottom: 30px;
+}
+
+.fatura-header-content {
+  text-align: center;
+}
+
+.fatura-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+}
+
+.fatura-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Filtros */
+.fatura-filters {
+  background-color: var(--bg-white);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: end;
+}
+
+.fatura-filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.fatura-filter-group label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.fatura-select {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+  background-color: var(--bg-white);
+}
+
+.fatura-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.btn-consultar-fatura {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-consultar-fatura:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* Resumo da Fatura */
+.fatura-resumo {
+  margin-bottom: 30px;
+}
+
+.fatura-resumo-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  color: var(--text-light);
+}
+
+.fatura-resumo-icon {
+  font-size: 64px;
+  opacity: 0.9;
+}
+
+.fatura-resumo-content {
+  flex: 1;
+}
+
+.fatura-resumo-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.fatura-resumo-valor {
+  font-size: 42px;
+  font-weight: 700;
+  margin: 0 0 15px 0;
+  letter-spacing: -1px;
+}
+
+.fatura-resumo-info {
+  display: flex;
+  gap: 25px;
+  font-size: 14px;
+  align-items: center;
+}
+
+.fatura-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.fatura-status .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.fatura-status.paga {
+  background-color: rgba(76, 175, 80, 0.3);
+}
+
+.fatura-status.pendente {
+  background-color: rgba(255, 152, 0, 0.3);
+}
+
+/* Lançamentos */
+.fatura-lancamentos {
+  background-color: var(--bg-white);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.fatura-lancamentos-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.fatura-lancamentos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fatura-lancamento-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: var(--bg-light);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+.fatura-lancamento-item:hover {
+  background-color: #eeeeee;
+  transform: translateX(5px);
+}
+
+.fatura-lancamento-info {
+  flex: 1;
+}
+
+.fatura-lancamento-descricao {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.fatura-lancamento-data {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fatura-lancamento-valor {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--danger-color);
+}
+
+/* Empty States */
+.fatura-empty,
+.fatura-no-data {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.fatura-empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.fatura-empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ========== ABA PARCELA ========== */
+
+/* Tabela de Parcelas */
+.parcelas-table-container {
+  width: 100%;
+}
+
+.parcelas-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-white);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.parcelas-table thead {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+}
+
+.parcelas-table th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.parcelas-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.parcelas-table tbody tr:hover {
+  background-color: var(--bg-light);
+}
+
+.parcelas-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.parcelas-table td {
+  padding: 15px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.parcelas-table td:nth-child(4),
+.parcelas-table td:nth-child(6) {
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.parcelas-table td:nth-child(5) {
+  color: var(--text-secondary);
+}
+
+.parcelas-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-parcela-action {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  border: 1px solid;
+}
+
+.btn-parcela-delete {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.btn-parcela-delete:hover {
+  background-color: var(--danger-color);
+  color: var(--text-light);
+}
+
+/* Empty State Parcelas */
+.parcelas-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.parcelas-empty-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.3;
+}
+
+.parcelas-empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.parcelas-empty-hint {
+  font-size: 14px;
+  color: #999;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .cartao-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cartao-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .cartao-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .cartao-section {
+    padding: 15px;
+  }
+
+  .cartoes-list {
+    padding: 15px;
+  }
+
+  .cartao-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .btn-import-fatura {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .fatura-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-consultar-fatura {
+    width: 100%;
+  }
+
+  .fatura-resumo-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .fatura-resumo-valor {
+    font-size: 36px;
+  }
+
+  .fatura-resumo-info {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .fatura-lancamento-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .fatura-lancamento-valor {
+    align-self: flex-end;
+  }
+
+  .parcelas-table-container {
+    overflow-x: auto;
+  }
+
+  .parcelas-table {
+    min-width: 600px;
+  }
+
+  .parcelas-table th,
+  .parcelas-table td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+/* Header com múltiplos botões */
+.cartao-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.cartao-actions-header {
+  display: flex;
+  gap: 10px;
+}
+
+/* Modal Lançar Compra */
+.parcela-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  background: rgba(44, 95, 45, 0.05);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.parcela-info-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.parcela-info-text {
+  flex: 1;
+}
+
+.parcela-info-text strong {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.parcela-info-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Badges de parcela e categoria */
+.parcela-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(44, 95, 45, 0.1);
+  border: 1px solid var(--primary-color);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-left: 8px;
+}
+
+.categoria-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.fatura-lancamento-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Estilos de categorização do preview */
+.categoria-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.categoria-tag.auto {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.categoria-tag.sem-categoria {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+  border: 1px solid #ff9800;
+}
+/* Estilos adicionais para a aba de fatura */
+
+/* Seção de Cartões na Fatura */
+.fatura-cartoes-section {
+  background-color: var(--bg-white);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fatura-cartoes-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+/* Campo de busca */
+.fatura-search-box {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.fatura-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.fatura-search-box input {
+  width: 100%;
+  padding: 10px 10px 10px 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.fatura-search-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Grid de Cartões */
+.fatura-cartoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.fatura-cartao-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fatura-cartao-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.fatura-cartao-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.fatura-cartao-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fatura-cartao-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fatura-cartao-info p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fatura-cartao-valor {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--danger-color);
+}
+
+.empty-message {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

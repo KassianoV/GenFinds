@@ -13,34 +13,14 @@ const RelatorioPage = {
   },
 
   attachEventListeners() {
-    const filtroDespesa = document.getElementById('filtroDespesaCategoria');
-
-    if (filtroDespesa) {
-      filtroDespesa.addEventListener('change', () => this.updateSummary());
-    }
+    // Filtros removidos para deixar os relatórios mais limpos
   },
 
   render() {
-    this.updateFilters();
     this.updateSummary();
     this.updateInfoCredito();
+    this.updateInfoCartoes();
     this.renderCharts();
-  },
-
-  updateFilters() {
-    const filtroDespesa = document.getElementById('filtroDespesaCategoria');
-
-    if (filtroDespesa) {
-      filtroDespesa.innerHTML = '<option value="">Todas</option>';
-      AppState.categorias
-        .filter((c) => c.tipo === 'despesa')
-        .forEach((cat) => {
-          const option = document.createElement('option');
-          option.value = cat.id;
-          option.textContent = cat.nome;
-          filtroDespesa.appendChild(option);
-        });
-    }
   },
 
   async updateSummary() {
@@ -118,6 +98,72 @@ const RelatorioPage = {
     });
 
     container.appendChild(lista);
+  },
+
+  async updateInfoCartoes() {
+    const container = document.getElementById('infoCartoes');
+    if (!container) return;
+
+    try {
+      // Buscar cartões do usuário
+      if (!AppState.currentUser) {
+        container.innerHTML = '<p>Usuário não identificado</p>';
+        return;
+      }
+
+      const result = await window.api.cartao.list(AppState.currentUser.id);
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        container.innerHTML = '<p>Nenhum cartão cadastrado</p>';
+        return;
+      }
+
+      const cartoes = result.data;
+      container.innerHTML = '<p><strong>Cartões:</strong></p>';
+
+      const lista = document.createElement('ul');
+      lista.style.listStyle = 'none';
+      lista.style.padding = '0';
+
+      cartoes.forEach((cartao) => {
+        const item = document.createElement('li');
+        item.style.padding = '8px 0';
+        item.style.borderBottom = '1px solid var(--border-color)';
+
+        // Definir cor baseada no status
+        let statusColor = 'var(--warning-color)';
+        if (cartao.status === 'paga') {
+          statusColor = 'var(--success-color)';
+        } else if (cartao.status === 'fechada') {
+          statusColor = 'var(--danger-color)';
+        }
+
+        const statusText = {
+          'aberta': 'Aberta',
+          'fechada': 'Fechada',
+          'paga': 'Paga'
+        }[cartao.status] || 'Aberta';
+
+        item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">${cartao.nome}</div>
+              <div style="font-size: 0.85em; color: var(--text-secondary);">
+                Vence dia ${cartao.vencimento} • <span style="color: ${statusColor};">${statusText}</span>
+              </div>
+            </div>
+            <strong style="color: var(--danger-color);">${Utils.formatCurrency(cartao.valor)}</strong>
+          </div>
+        `;
+
+        lista.appendChild(item);
+      });
+
+      container.appendChild(lista);
+    } catch (error) {
+      console.error('Erro ao carregar cartões:', error);
+      container.innerHTML = '<p>Erro ao carregar cartões</p>';
+    }
   },
 
   renderCharts() {
