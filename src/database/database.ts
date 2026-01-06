@@ -672,6 +672,31 @@ export class DatabaseManager {
     };
   }
 
+  // Recalcular valor total do cartão baseado em todas as suas transações
+  recalcularValorCartao(cartaoId: number): void {
+    // Buscar todas as transações do cartão
+    const result = this.db.exec(
+      'SELECT SUM(valor) as total FROM transacoes_cartao WHERE cartao_id = ?',
+      [cartaoId]
+    );
+
+    let valorTotal = 0;
+    if (result.length > 0 && result[0].values.length > 0) {
+      const total = result[0].values[0][0];
+      valorTotal = total ? Number(total) : 0;
+    }
+
+    // Atualizar o valor do cartão
+    this.db.run(
+      'UPDATE cartoes SET valor = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [valorTotal, cartaoId]
+    );
+    this.save();
+
+    // Invalidar cache de cartões
+    this.invalidateCache('cartoes:');
+  }
+
   // ========== MÉTODOS DE PARCELA ==========
 
   createParcela(parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>): Parcela {
@@ -836,6 +861,9 @@ export class DatabaseManager {
 
     this.save();
 
+    // Recalcular valor total do cartão
+    this.recalcularValorCartao(transacao.cartao_id);
+
     // Invalidar cache
     this.invalidateCache(`cartoes:${transacao.usuario_id}`);
     this.invalidateCache(`transacoes_cartao:${transacao.usuario_id}`);
@@ -957,6 +985,12 @@ export class DatabaseManager {
       return false;
     }
 
+    // Buscar cartao_id antes de atualizar
+    const transacao = this.getTransacaoCartao(id);
+    if (!transacao) {
+      return false;
+    }
+
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
@@ -967,6 +1001,12 @@ export class DatabaseManager {
 
     this.save();
 
+    // Recalcular valor total do cartão (usar o cartão original e o novo se mudou)
+    this.recalcularValorCartao(transacao.cartao_id);
+    if (updates.cartao_id && updates.cartao_id !== transacao.cartao_id) {
+      this.recalcularValorCartao(updates.cartao_id);
+    }
+
     // Invalidar cache
     this.invalidateCache('cartoes:');
     this.invalidateCache('transacoes_cartao:');
@@ -975,8 +1015,17 @@ export class DatabaseManager {
   }
 
   deleteTransacaoCartao(id: number): boolean {
+    // Buscar cartao_id antes de deletar
+    const transacao = this.getTransacaoCartao(id);
+    if (!transacao) {
+      return false;
+    }
+
     this.db.run('DELETE FROM transacoes_cartao WHERE id = ?', [id]);
     this.save();
+
+    // Recalcular valor total do cartão
+    this.recalcularValorCartao(transacao.cartao_id);
 
     // Invalidar cache
     this.invalidateCache('cartoes:');

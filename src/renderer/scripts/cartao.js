@@ -4,6 +4,7 @@ const CartaoPage = {
   currentTab: 'contas',
   cartoes: [],
   currentEditId: null,
+  currentEditCompraId: null,
   faturaAtual: null,
   parcelas: [],
   transacoesCartao: [],
@@ -11,13 +12,25 @@ const CartaoPage = {
   currentFileFatura: null,
   parsedDataFatura: [],
   cartaoSelecionadoFatura: null,
+  // Flag para evitar duplicação de event listeners
+  _initialized: false,
 
   init() {
+    // Evitar duplicação de event listeners
+    if (this._initialized) {
+      // Apenas recarregar dados se já inicializado
+      this.loadCartoes();
+      return;
+    }
+
     this.attachEventListeners();
     this.attachImportFaturaEventListeners();
     this.loadCartoes();
     this.initFaturaTab();
     this.initParcelaTab();
+
+    // Marcar como inicializado
+    this._initialized = true;
   },
 
   attachEventListeners() {
@@ -115,19 +128,7 @@ const CartaoPage = {
       btnConsultarFatura.addEventListener('click', () => this.consultarFatura());
     }
 
-    // Form de Adicionar Parcela
-    const formParcela = document.getElementById('formParcela');
-    if (formParcela) {
-      formParcela.addEventListener('submit', (e) => this.handleParcelaSubmit(e));
-    }
-
-    // Cálculo automático do total
-    const parcelaValor = document.getElementById('parcelaValor');
-    const parcelaQuantidade = document.getElementById('parcelaQuantidade');
-    if (parcelaValor && parcelaQuantidade) {
-      parcelaValor.addEventListener('input', () => this.calculateTotal());
-      parcelaQuantidade.addEventListener('input', () => this.calculateTotal());
-    }
+    // Removido: formulário de adicionar parcela (agora só exibe compras parceladas existentes)
   },
 
   switchTab(tabName) {
@@ -206,8 +207,12 @@ const CartaoPage = {
         this.cartoes = result.data || [];
         this.renderCartoes();
         this.populateCartaoDropdown();
-        this.populateParcelaCartaoDropdown();
         this.renderFaturaCartoes();
+
+        // Recarregar parcelas se estiver na aba de parcelas
+        if (this.currentTab === 'parcela') {
+          this.loadParcelas();
+        }
       } else {
         console.error('Erro ao carregar cartões:', result.error);
         Utils.showError('Erro ao carregar cartões');
@@ -379,16 +384,38 @@ const CartaoPage = {
     const cartao = this.cartoes.find((c) => c.id === id);
     if (!cartao) return;
 
-    if (!Utils.confirm(`Tem certeza que deseja remover o cartão "${cartao.nome}"?`)) {
+    if (!Utils.confirm(`Tem certeza que deseja remover o cartão "${cartao.nome}"? Todas as transações deste cartão também serão removidas.`)) {
       return;
     }
 
     try {
+      // Primeiro, buscar todas as transações do cartão
+      const transacoesResult = await window.api.transacaoCartao.list(AppState.currentUser.id);
+
+      if (transacoesResult.success) {
+        const transacoesDoCartao = (transacoesResult.data || []).filter(t => t.cartao_id === id);
+
+        // Deletar todas as transações do cartão
+        for (const transacao of transacoesDoCartao) {
+          await window.api.transacaoCartao.delete(transacao.id);
+        }
+      }
+
+      // Depois, deletar o cartão
       const result = await window.api.cartao.delete(id);
 
       if (result.success) {
-        Utils.showSuccess('Cartão removido com sucesso!');
+        Utils.showSuccess('Cartão e suas transações removidos com sucesso!');
         this.loadCartoes();
+        // Recarregar parcelas se estiver na aba de parcelas
+        if (this.currentTab === 'parcela') {
+          this.loadParcelas();
+        }
+        // Recarregar fatura se estiver na aba de fatura
+        if (this.currentTab === 'fatura') {
+          this.faturaAtual = null;
+          this.renderFatura();
+        }
       } else {
         Utils.showError(result.error || 'Erro ao remover cartão');
       }
@@ -469,14 +496,40 @@ const CartaoPage = {
       `)
       .join('');
 
-    // Adicionar event listeners para selecionar cartão ao clicar
+    // Adicionar event listeners para selecionar cartão ao clicar e consultar fatura
     document.querySelectorAll('.fatura-cartao-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         const cartaoId = e.currentTarget.dataset.cartaoId;
+
+        // Selecionar o cartão no dropdown
         const select = document.getElementById('faturaCartaoSelect');
         if (select) {
           select.value = cartaoId;
         }
+
+        // Definir mês e ano atuais se ainda não estiverem definidos
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth() + 1;
+        const anoAtual = hoje.getFullYear();
+
+        const mesSelect = document.getElementById('faturaMesSelect');
+        const anoSelect = document.getElementById('faturaAnoSelect');
+
+        if (mesSelect && !mesSelect.value) {
+          mesSelect.value = mesAtual;
+        }
+        if (anoSelect && !anoSelect.value) {
+          anoSelect.value = anoAtual;
+        }
+
+        // Consultar fatura automaticamente
+        this.consultarFatura();
+
+        // Visual feedback: destacar o card selecionado
+        document.querySelectorAll('.fatura-cartao-card').forEach(c => {
+          c.classList.remove('selected');
+        });
+        e.currentTarget.classList.add('selected');
       });
     });
   },
@@ -523,6 +576,8 @@ const CartaoPage = {
   },
 
   async consultarFatura() {
+    console.log('[Fatura] Iniciando consulta de fatura...');
+
     if (!AppState.currentUser) {
       Utils.showError('Usuário não identificado');
       return;
@@ -531,6 +586,8 @@ const CartaoPage = {
     const cartaoId = document.getElementById('faturaCartaoSelect').value;
     const mes = parseInt(document.getElementById('faturaMesSelect').value);
     const ano = parseInt(document.getElementById('faturaAnoSelect').value);
+
+    console.log('[Fatura] Parâmetros:', { cartaoId, mes, ano });
 
     if (!cartaoId) {
       Utils.showWarning('Por favor, selecione um cartão');
@@ -546,6 +603,8 @@ const CartaoPage = {
         ano
       );
 
+      console.log('[Fatura] Resultado da busca:', result);
+
       if (!result.success) {
         Utils.showError(result.error || 'Erro ao buscar transações');
         return;
@@ -553,6 +612,9 @@ const CartaoPage = {
 
       const transacoes = result.data || [];
       const cartao = this.cartoes.find((c) => c.id === parseInt(cartaoId));
+
+      console.log('[Fatura] Transações encontradas:', transacoes.length);
+      console.log('[Fatura] Cartão:', cartao);
 
       if (!cartao) {
         Utils.showError('Cartão não encontrado');
@@ -572,20 +634,36 @@ const CartaoPage = {
         lancamentos: transacoes,
       };
 
+      console.log('[Fatura] Fatura montada:', this.faturaAtual);
+      console.log('[Fatura] Chamando renderFatura()...');
+
       this.renderFatura();
+
+      console.log('[Fatura] Consulta concluída com sucesso');
     } catch (error) {
-      console.error('Erro ao consultar fatura:', error);
+      console.error('[Fatura] Erro ao consultar fatura:', error);
       Utils.showError('Erro ao consultar fatura');
     }
   },
 
   renderFatura() {
-    const resumoSection = document.getElementById('faturaResumoSection');
-    const lancamentosSection = document.getElementById('faturaLancamentosSection');
+    console.log('[Fatura] Iniciando renderFatura()...');
+    console.log('[Fatura] faturaAtual:', this.faturaAtual);
+
+    const resumoSection = document.getElementById('faturaResumo');
+    const lancamentosSection = document.getElementById('faturaLancamentos');
     const emptyState = document.getElementById('faturaEmpty');
     const noDataState = document.getElementById('faturaNoData');
 
+    console.log('[Fatura] Elementos encontrados:', {
+      resumoSection: !!resumoSection,
+      lancamentosSection: !!lancamentosSection,
+      emptyState: !!emptyState,
+      noDataState: !!noDataState
+    });
+
     if (!this.faturaAtual) {
+      console.log('[Fatura] Nenhuma fatura para renderizar');
       // Mostrar empty state
       if (emptyState) emptyState.style.display = 'block';
       if (noDataState) noDataState.style.display = 'none';
@@ -594,25 +672,32 @@ const CartaoPage = {
       return;
     }
 
+    console.log('[Fatura] Escondendo empty state...');
     // Esconder empty state
     if (emptyState) emptyState.style.display = 'none';
 
+    console.log('[Fatura] Renderizando resumo...');
     // Renderizar resumo
     this.renderFaturaResumo();
 
+    console.log('[Fatura] Verificando lançamentos:', this.faturaAtual.lancamentos.length);
     // Renderizar lançamentos
     if (this.faturaAtual.lancamentos.length === 0) {
+      console.log('[Fatura] Nenhum lançamento encontrado, mostrando estado vazio');
       if (noDataState) noDataState.style.display = 'block';
       if (lancamentosSection) lancamentosSection.style.display = 'none';
     } else {
+      console.log('[Fatura] Renderizando', this.faturaAtual.lancamentos.length, 'lançamentos...');
       if (noDataState) noDataState.style.display = 'none';
       if (lancamentosSection) lancamentosSection.style.display = 'block';
       this.renderFaturaLancamentos();
     }
+
+    console.log('[Fatura] renderFatura() concluído');
   },
 
   renderFaturaResumo() {
-    const resumoSection = document.getElementById('faturaResumoSection');
+    const resumoSection = document.getElementById('faturaResumo');
     if (!resumoSection || !this.faturaAtual) return;
 
     resumoSection.style.display = 'block';
@@ -645,43 +730,142 @@ const CartaoPage = {
     const lancamentosList = document.getElementById('faturaLancamentosList');
     if (!lancamentosList || !this.faturaAtual) return;
 
-    lancamentosList.innerHTML = this.faturaAtual.lancamentos
-      .map((lancamento) => {
-        const valorFormatado = this.formatCurrency(lancamento.valor);
-        const dataFormatada = this.formatDate(lancamento.data);
+    // Criar estrutura de tabela
+    const tabelaHTML = `
+      <table class="fatura-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Parcelas</th>
+            <th>Valor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.faturaAtual.lancamentos
+            .map((lancamento) => {
+              const valorFormatado = this.formatCurrency(lancamento.valor);
+              const dataFormatada = this.formatDate(lancamento.data);
 
-        // Mostrar informação de parcelamento se houver
-        const parcelamentoInfo =
-          lancamento.parcelas > 1
-            ? `<span class="parcela-badge">${lancamento.parcela_atual}/${lancamento.parcelas}</span>`
-            : '';
+              // Informação de parcelamento
+              const parcelamentoTexto =
+                lancamento.parcelas > 1
+                  ? `${lancamento.parcela_atual}/${lancamento.parcelas}`
+                  : 'À vista';
 
-        // Mostrar categoria se houver
-        const categoriaInfo = lancamento.categoria_nome
-          ? `<span class="categoria-badge" style="${
-              lancamento.categoria_cor
-                ? `background-color: ${lancamento.categoria_cor}22; color: ${lancamento.categoria_cor}`
-                : ''
-            }">${lancamento.categoria_nome}</span>`
-          : '';
+              // Categoria
+              const categoriaTexto = lancamento.categoria_nome || 'Sem categoria';
+              const categoriaStyle = lancamento.categoria_cor
+                ? `background-color: ${lancamento.categoria_cor}22; color: ${lancamento.categoria_cor}; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;`
+                : 'color: var(--text-secondary); font-size: 0.85em;';
 
-        return `
-          <div class="fatura-lancamento-item">
-            <div class="fatura-lancamento-info">
-              <div class="fatura-lancamento-descricao">
-                ${lancamento.descricao}
-                ${parcelamentoInfo}
-              </div>
-              <div class="fatura-lancamento-meta">
-                <span class="fatura-lancamento-data">${dataFormatada}</span>
-                ${categoriaInfo}
-              </div>
-            </div>
-            <div class="fatura-lancamento-valor">${valorFormatado}</div>
-          </div>
-        `;
-      })
-      .join('');
+              return `
+                <tr>
+                  <td style="white-space: nowrap;">${dataFormatada}</td>
+                  <td><strong>${lancamento.descricao}</strong></td>
+                  <td><span style="${categoriaStyle}">${categoriaTexto}</span></td>
+                  <td style="text-align: center;">
+                    ${
+                      lancamento.parcelas > 1
+                        ? `<span class="parcela-badge">${parcelamentoTexto}</span>`
+                        : parcelamentoTexto
+                    }
+                  </td>
+                  <td style="text-align: right; font-weight: 600; color: var(--danger-color);">${valorFormatado}</td>
+                  <td style="text-align: center; white-space: nowrap;">
+                    <button class="btn-fatura-action btn-fatura-edit" data-id="${lancamento.id}" title="Editar compra">
+                      ✏️
+                    </button>
+                    <button class="btn-fatura-action btn-fatura-delete" data-id="${lancamento.id}" title="Excluir compra">
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              `;
+            })
+            .join('')}
+        </tbody>
+      </table>
+    `;
+
+    lancamentosList.innerHTML = tabelaHTML;
+
+    // Adicionar event listeners aos botões
+    this.attachFaturaLancamentoListeners();
+  },
+
+  attachFaturaLancamentoListeners() {
+    // Botões de editar
+    document.querySelectorAll('.btn-fatura-edit').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id);
+        this.editarCompraFatura(id);
+      });
+    });
+
+    // Botões de excluir
+    document.querySelectorAll('.btn-fatura-delete').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id);
+        this.excluirCompraFatura(id);
+      });
+    });
+  },
+
+  async editarCompraFatura(id) {
+    const lancamento = this.faturaAtual.lancamentos.find((l) => l.id === id);
+    if (!lancamento) {
+      Utils.showError('Compra não encontrada');
+      return;
+    }
+
+    // Preencher modal de lançar compra com os dados atuais
+    document.getElementById('compraDescricao').value = lancamento.descricao;
+    document.getElementById('compraValor').value = lancamento.valor;
+    document.getElementById('compraData').value = lancamento.data;
+    document.getElementById('compraCartao').value = lancamento.cartao_id;
+    if (lancamento.categoria_id) {
+      document.getElementById('compraCategoria').value = lancamento.categoria_id;
+    }
+    document.getElementById('compraParcelas').value = lancamento.parcelas;
+    if (lancamento.observacoes) {
+      document.getElementById('compraObservacoes').value = lancamento.observacoes;
+    }
+
+    // Armazenar ID para edição
+    this.currentEditCompraId = id;
+
+    // Abrir modal
+    this.openLancarCompraModal();
+  },
+
+  async excluirCompraFatura(id) {
+    const lancamento = this.faturaAtual.lancamentos.find((l) => l.id === id);
+    if (!lancamento) {
+      Utils.showError('Compra não encontrada');
+      return;
+    }
+
+    if (!Utils.confirm(`Tem certeza que deseja excluir a compra "${lancamento.descricao}"?`)) {
+      return;
+    }
+
+    try {
+      const result = await window.api.transacaoCartao.delete(id);
+
+      if (result.success) {
+        Utils.showSuccess('Compra excluída com sucesso!');
+        this.loadCartoes();
+        this.consultarFatura();
+      } else {
+        Utils.showError(result.error || 'Erro ao excluir compra');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir compra:', error);
+      Utils.showError('Erro ao excluir compra');
+    }
   },
 
   // ========== MODAL LANÇAR COMPRA ==========
@@ -693,19 +877,21 @@ const CartaoPage = {
       return;
     }
 
-    // Resetar formulário
-    document.getElementById('formLancarCompra').reset();
+    // Resetar formulário apenas se não estiver editando
+    if (!this.currentEditCompraId) {
+      document.getElementById('formLancarCompra').reset();
 
-    // Definir data padrão como hoje
-    const hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('compraData').value = hoje;
+      // Definir data padrão como hoje
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('compraData').value = hoje;
+    }
 
     // Preencher dropdowns
     this.populateCompraCartaoDropdown();
     this.populateCompraCategoriaDropdown();
 
-    // Esconder info de parcela
-    document.getElementById('parcelaInfo').style.display = 'none';
+    // Atualizar informação de parcela
+    this.updateParcelaInfo();
 
     modal.classList.add('active');
   },
@@ -716,6 +902,7 @@ const CartaoPage = {
       modal.classList.remove('active');
     }
     document.getElementById('formLancarCompra').reset();
+    this.currentEditCompraId = null;
   },
 
   populateCompraCartaoDropdown() {
@@ -820,8 +1007,34 @@ const CartaoPage = {
     }
 
     try {
-      if (parcelas > 1) {
-        // Compra parcelada - criar múltiplas transações
+      // Verificar se está editando
+      if (this.currentEditCompraId) {
+        // EDITAR compra existente
+        const updates = {
+          descricao,
+          valor,
+          data,
+          cartao_id,
+          categoria_id,
+          observacoes,
+        };
+
+        const result = await window.api.transacaoCartao.update(this.currentEditCompraId, updates);
+
+        if (result.success) {
+          Utils.showSuccess('Compra atualizada com sucesso!');
+          this.closeLancarCompraModal();
+          this.loadCartoes();
+
+          // Se estiver na aba fatura, recarregar
+          if (this.currentTab === 'fatura' && this.faturaAtual) {
+            this.consultarFatura();
+          }
+        } else {
+          Utils.showError(result.error || 'Erro ao atualizar compra');
+        }
+      } else if (parcelas > 1) {
+        // CRIAR compra parcelada - criar múltiplas transações
         const transacao = {
           descricao,
           valor,
@@ -848,7 +1061,7 @@ const CartaoPage = {
           Utils.showError(result.error || 'Erro ao lançar compra parcelada');
         }
       } else {
-        // Compra à vista - criar transação única
+        // CRIAR compra à vista - criar transação única
         const transacao = {
           descricao,
           valor,
@@ -1501,112 +1714,45 @@ const CartaoPage = {
     this.loadParcelas();
   },
 
-  populateParcelaCartaoDropdown() {
-    const cartaoSelect = document.getElementById('parcelaCartao');
-    if (!cartaoSelect) return;
-
-    cartaoSelect.innerHTML = '<option value="">Selecione um cartão</option>';
-
-    this.cartoes.forEach((cartao) => {
-      const option = document.createElement('option');
-      option.value = cartao.id;
-      option.textContent = cartao.nome;
-      cartaoSelect.appendChild(option);
-    });
-  },
-
-  calculateTotal() {
-    const valorInput = document.getElementById('parcelaValor');
-    const quantidadeInput = document.getElementById('parcelaQuantidade');
-    const totalInput = document.getElementById('parcelaTotal');
-
-    if (!valorInput || !quantidadeInput || !totalInput) return;
-
-    const valor = parseFloat(valorInput.value) || 0;
-    const quantidade = parseInt(quantidadeInput.value) || 0;
-    const total = valor * quantidade;
-
-    totalInput.value = total.toFixed(2);
-  },
-
-  async handleParcelaSubmit(e) {
-    e.preventDefault();
-
-    if (!AppState.currentUser) {
-      Utils.showError('Usuário não identificado');
-      return;
-    }
-
-    const descricao = document.getElementById('parcelaDescricao').value.trim();
-    const dia = parseInt(document.getElementById('parcelaDia').value);
-    const cartao_id = parseInt(document.getElementById('parcelaCartao').value);
-    const valor_parcela = parseFloat(document.getElementById('parcelaValor').value);
-    const quantidade_parcelas = parseInt(document.getElementById('parcelaQuantidade').value);
-    const total = parseFloat(document.getElementById('parcelaTotal').value);
-
-    // Validações
-    if (!descricao) {
-      Utils.showWarning('Por favor, preencha a descrição');
-      return;
-    }
-
-    if (dia < 1 || dia > 31) {
-      Utils.showWarning('Dia deve ser entre 1 e 31');
-      return;
-    }
-
-    if (!cartao_id) {
-      Utils.showWarning('Por favor, selecione um cartão');
-      return;
-    }
-
-    if (quantidade_parcelas < 1) {
-      Utils.showWarning('Quantidade de parcelas deve ser maior que 0');
-      return;
-    }
-
-    try {
-      const parcela = {
-        descricao,
-        dia,
-        cartao_id,
-        valor_parcela,
-        quantidade_parcelas,
-        total,
-        usuario_id: AppState.currentUser.id,
-      };
-
-      const result = await window.api.parcela.create(parcela);
-
-      if (result.success) {
-        Utils.showSuccess('Parcela adicionada com sucesso!');
-        document.getElementById('formParcela').reset();
-        this.loadParcelas();
-      } else {
-        Utils.showError(result.error || 'Erro ao adicionar parcela');
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar parcela:', error);
-      Utils.showError('Erro ao adicionar parcela');
-    }
-  },
-
   async loadParcelas() {
     if (!AppState.currentUser) return;
 
     try {
-      const result = await window.api.parcela.list(AppState.currentUser.id);
+      // Buscar todas as transações de cartão do usuário que sejam parceladas
+      const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
 
       if (result.success) {
-        this.parcelas = result.data || [];
+        // Filtrar apenas transações parceladas (parcelas > 1)
+        const transacoesParceladas = (result.data || []).filter((t) => t.parcelas > 1);
+
+        // Agrupar transações parceladas únicas (baseado em grupo de parcelas)
+        // Vamos criar um mapa de compras únicas baseado nos dados
+        const comprasUnicas = new Map();
+
+        transacoesParceladas.forEach((t) => {
+          // Criar uma chave única baseada em: descrição, valor, cartão_id, parcelas, categoria_id
+          const chave = `${t.descricao}-${t.valor}-${t.cartao_id}-${t.parcelas}-${t.categoria_id || 'sem'}`;
+
+          if (!comprasUnicas.has(chave)) {
+            comprasUnicas.set(chave, t);
+          } else {
+            // Se já existe, manter a transação mais antiga (primeira parcela)
+            const existente = comprasUnicas.get(chave);
+            if (new Date(t.data) < new Date(existente.data)) {
+              comprasUnicas.set(chave, t);
+            }
+          }
+        });
+
+        this.parcelas = Array.from(comprasUnicas.values());
         this.renderParcelas();
       } else {
-        console.error('Erro ao carregar parcelas:', result.error);
-        Utils.showError('Erro ao carregar parcelas');
+        console.error('Erro ao carregar compras parceladas:', result.error);
+        Utils.showError('Erro ao carregar compras parceladas');
       }
     } catch (error) {
-      console.error('Erro ao carregar parcelas:', error);
-      Utils.showError('Erro ao carregar parcelas');
+      console.error('Erro ao carregar compras parceladas:', error);
+      Utils.showError('Erro ao carregar compras parceladas');
     }
   },
 
@@ -1624,77 +1770,46 @@ const CartaoPage = {
     emptyState.style.display = 'none';
     tableWrapper.style.display = 'block';
 
-    tableBody.innerHTML = this.parcelas
-      .map((parcela) => {
-        const cartao = this.cartoes.find((c) => c.id === parcela.cartao_id);
-        const cartaoNome = cartao ? cartao.nome : 'Desconhecido';
-        const valorParcelaFormatado = this.formatCurrency(parcela.valor_parcela);
-        const totalFormatado = this.formatCurrency(parcela.total);
+    // Data atual para calcular qual parcela está sendo exibida
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth(); // 0-11
+    const anoAtual = hoje.getFullYear();
 
-        // Calcular data de início baseada no dia informado
-        const hoje = new Date();
-        const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), parcela.dia);
-        const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
+    tableBody.innerHTML = this.parcelas
+      .map((transacao) => {
+        // Data da compra (primeira parcela)
+        const dataCompra = new Date(transacao.data);
+        const mesCompra = dataCompra.getMonth(); // 0-11
+        const anoCompra = dataCompra.getFullYear();
+
+        // Calcular diferença de meses entre a compra e o mês atual
+        const diferencaMeses = (anoAtual - anoCompra) * 12 + (mesAtual - mesCompra);
+
+        // Número da parcela atual (mínimo 1, máximo parcelas)
+        const parcelaAtual = Math.min(Math.max(diferencaMeses + 1, 1), transacao.parcelas);
+
+        // Valor da parcela (valor total dividido pelo número de parcelas)
+        const valorParcela = transacao.valor;
+        const valorFormatado = this.formatCurrency(valorParcela);
+        const dataFormatada = this.formatDate(transacao.data);
+
+        // Mostrar informação de categoria se houver
+        const categoriaInfo = transacao.categoria_nome
+          ? transacao.categoria_nome
+          : 'Sem categoria';
 
         return `
           <tr>
-            <td>${parcela.descricao}</td>
-            <td>${dataInicioFormatada}</td>
-            <td>${cartaoNome}</td>
-            <td>${valorParcelaFormatado}</td>
-            <td>${parcela.quantidade_parcelas}x</td>
-            <td>${totalFormatado}</td>
-            <td>
-              <div class="parcelas-actions">
-                <button class="btn-parcela-action btn-parcela-delete" data-id="${parcela.id}">
-                  🗑️ Remover
-                </button>
-              </div>
-            </td>
+            <td>${transacao.descricao}</td>
+            <td>${dataFormatada}</td>
+            <td>${transacao.cartao_nome || 'Desconhecido'}</td>
+            <td>${valorFormatado}</td>
+            <td>${parcelaAtual}/${transacao.parcelas}</td>
+            <td>${categoriaInfo}</td>
           </tr>
         `;
       })
       .join('');
-
-    // Anexar event listeners aos botões de ação
-    this.attachParcelaActionListeners();
-  },
-
-  attachParcelaActionListeners() {
-    // Botões de Remover
-    document.querySelectorAll('.btn-parcela-delete').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = parseInt(e.currentTarget.dataset.id);
-        this.deleteParcela(id);
-      });
-    });
-  },
-
-  async deleteParcela(id) {
-    const parcela = this.parcelas.find((p) => p.id === id);
-    if (!parcela) return;
-
-    if (!Utils.confirm(`Tem certeza que deseja remover a parcela "${parcela.descricao}"?`)) {
-      return;
-    }
-
-    try {
-      const result = await window.api.parcela.delete(id);
-
-      if (result.success) {
-        Utils.showSuccess('Parcela removida com sucesso!');
-        this.loadParcelas();
-      } else {
-        Utils.showError(result.error || 'Erro ao remover parcela');
-      }
-    } catch (error) {
-      console.error('Erro ao remover parcela:', error);
-      Utils.showError('Erro ao remover parcela');
-    }
   },
 };
 
