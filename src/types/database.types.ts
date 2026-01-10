@@ -47,7 +47,7 @@ export interface Cartao {
   nome: string;
   valor: number;
   vencimento: number;
-  status: 'aberta' | 'fechada' | 'paga';
+  status: 'aberta' | 'fechada' | 'paga' | 'pendente';
   usuario_id: number;
   created_at: string;
   updated_at: string;
@@ -84,6 +84,7 @@ export interface TransacaoCartao {
 
 export interface TransacaoCartaoCompleta extends TransacaoCartao {
   cartao_nome: string;
+  cartao_vencimento: number;
   categoria_nome?: string;
   categoria_cor?: string;
 }

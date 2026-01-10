@@ -17,6 +17,14 @@ const Utils = {
   },
 
   formatDate(dateString) {
+    // Parse da data como LOCAL para evitar problemas de timezone
+    // Se vier no formato YYYY-MM-DD, fazer parse manual
+    if (dateString.includes('-')) {
+      const [ano, mes, dia] = dateString.split('-').map(Number);
+      const date = new Date(ano, mes - 1, dia); // mes - 1 porque JS usa 0-11
+      return date.toLocaleDateString('pt-BR');
+    }
+    // Fallback para outros formatos
     const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('pt-BR');
   },

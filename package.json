@@ -1,6 +1,6 @@
 {
   "name": "genfins",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Sistema de Gestão de Finanças Pessoais - GenFins",
   "main": "dist/main/main.js",
   "author": "Kassiano Vieira",

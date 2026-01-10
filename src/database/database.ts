@@ -143,7 +143,7 @@ export class DatabaseManager {
         nome TEXT NOT NULL,
         valor REAL DEFAULT 0,
         vencimento INTEGER CHECK(vencimento BETWEEN 1 AND 31) NOT NULL,
-        status TEXT CHECK(status IN ('aberta', 'fechada', 'paga')) DEFAULT 'aberta',
+        status TEXT CHECK(status IN ('aberta', 'fechada', 'paga', 'pendente')) DEFAULT 'aberta',
         usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -665,7 +665,7 @@ export class DatabaseManager {
       nome: String(row[cols.indexOf('nome')]),
       valor: Number(row[cols.indexOf('valor')]),
       vencimento: Number(row[cols.indexOf('vencimento')]),
-      status: String(row[cols.indexOf('status')]) as 'aberta' | 'fechada' | 'paga',
+      status: String(row[cols.indexOf('status')]) as 'aberta' | 'fechada' | 'paga' | 'pendente',
       usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
@@ -881,18 +881,73 @@ export class DatabaseManager {
   ): TransacaoCartao[] {
     const grupoId = `parcela-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const valorParcela = transacao.valor / numeroParcelas;
-    const dataBase = new Date(transacao.data);
+
+    // Parse da data como data LOCAL para evitar problemas de timezone
+    const [ano, mes, dia] = transacao.data.split('-').map(Number);
+    const dataCompra = new Date(ano, mes - 1, dia); // mes - 1 porque mês em JS é 0-11
     const transacoesCriadas: TransacaoCartao[] = [];
 
+    // Buscar dados do cartão para obter o dia de vencimento
+    const cartao = this.getCartao(transacao.cartao_id);
+    if (!cartao) {
+      throw new Error('Cartão não encontrado');
+    }
+
+    const diaVencimento = cartao.vencimento;
+    const diaFechamento = diaVencimento - 6; // 6 dias antes do vencimento
+    const diaCompra = dia; // Usar o dia original da string
+
+    // Determinar se a compra entra na fatura do mês atual ou do próximo mês
+    // Se a compra foi feita DEPOIS do fechamento, ela entra no próximo mês
+    let mesesOffset = 0;
+
+    // Se o dia de fechamento é negativo (ex: vencimento dia 5, fechamento dia -1)
+    // isso significa que o fechamento é no final do mês anterior
+    if (diaFechamento <= 0) {
+      // Fechamento no mês anterior
+      // Se estamos no início do mês (antes do vencimento), a compra entra no mês atual
+      if (diaCompra < diaVencimento) {
+        mesesOffset = 0; // Entra na fatura do mês atual
+      } else {
+        mesesOffset = 1; // Entra na fatura do próximo mês
+      }
+    } else {
+      // Fechamento no mesmo mês
+      // Se a compra foi feita depois do fechamento, entra no próximo mês
+      if (diaCompra > diaFechamento) {
+        mesesOffset = 1; // Entra na fatura do próximo mês
+      } else {
+        mesesOffset = 0; // Entra na fatura do mês atual
+      }
+    }
+
     for (let i = 1; i <= numeroParcelas; i++) {
-      // Calcular data de cada parcela (mes atual + i-1 meses)
-      const dataParcela = new Date(dataBase);
-      dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+      // Calcular data de cada parcela
+      // A primeira parcela começa no mês determinado pelo offset
+      // As demais parcelas seguem mês a mês
+      const dataParcela = new Date(dataCompra);
+      dataParcela.setMonth(dataParcela.getMonth() + mesesOffset + (i - 1));
+
+      // IMPORTANTE: Mantém o dia ORIGINAL da compra
+      // NÃO ajustamos para o dia de vencimento do cartão
+      // A lógica de fechamento determinará em qual fatura a parcela aparece
+
+      // Garantir que o dia não ultrapasse o último dia do mês
+      // (exemplo: compra dia 31, mas o mês seguinte só tem 30 dias)
+      const ultimoDiaDoMes = new Date(dataParcela.getFullYear(), dataParcela.getMonth() + 1, 0).getDate();
+      const diaFinal = Math.min(diaCompra, ultimoDiaDoMes);
+      dataParcela.setDate(diaFinal);
+
+      // Formatar data como YYYY-MM-DD usando componentes locais (não UTC)
+      const anoFinal = dataParcela.getFullYear();
+      const mesFinal = String(dataParcela.getMonth() + 1).padStart(2, '0');
+      const diaFinalStr = String(dataParcela.getDate()).padStart(2, '0');
+      const dataParcelaStr = `${anoFinal}-${mesFinal}-${diaFinalStr}`;
 
       const parcelaData = {
         ...transacao,
         valor: valorParcela,
-        data: dataParcela.toISOString().split('T')[0],
+        data: dataParcelaStr,
         parcelas: numeroParcelas,
         parcela_atual: i,
         grupo_parcelamento: grupoId,
@@ -904,6 +959,53 @@ export class DatabaseManager {
     }
 
     return transacoesCriadas;
+  }
+
+  /**
+   * Calcula o mês e ano da fatura em que uma transação deve aparecer,
+   * considerando o dia de fechamento do cartão (6 dias antes do vencimento).
+   *
+   * @param dataTransacao Data real da transação
+   * @param diaVencimento Dia do vencimento do cartão (1-31)
+   * @returns { mes: number, ano: number } - Mês (1-12) e ano da fatura
+   */
+  private calcularMesFatura(dataTransacao: string, diaVencimento: number): { mes: number; ano: number } {
+    // Parse da data como data LOCAL para evitar problemas de timezone
+    const [ano, mes, dia] = dataTransacao.split('-').map(Number);
+
+    const diaFechamento = diaVencimento - 6; // 6 dias antes do vencimento
+    const diaCompra = dia;
+    const mesCompra = mes; // 1-12
+    const anoCompra = ano;
+
+    // Determinar se a compra entra na fatura do mês atual ou do próximo mês
+    // Mesma lógica usada nas compras parceladas
+    let mesesOffset = 0;
+
+    if (diaFechamento <= 0) {
+      // Fechamento no mês anterior
+      // Se estamos no início do mês (antes do vencimento), a compra entra no mês atual
+      if (diaCompra < diaVencimento) {
+        mesesOffset = 0; // Entra na fatura do mês atual
+      } else {
+        mesesOffset = 1; // Entra na fatura do próximo mês
+      }
+    } else {
+      // Fechamento no mesmo mês
+      // Se a compra foi feita depois do fechamento, entra no próximo mês
+      if (diaCompra > diaFechamento) {
+        mesesOffset = 1; // Entra na fatura do próximo mês
+      } else {
+        mesesOffset = 0; // Entra na fatura do mês atual
+      }
+    }
+
+    // Calcular mês e ano da fatura
+    const dataFatura = new Date(anoCompra, mesCompra - 1 + mesesOffset, 1);
+    return {
+      mes: dataFatura.getMonth() + 1, // 1-12
+      ano: dataFatura.getFullYear(),
+    };
   }
 
   getTransacoesCartao(
@@ -922,6 +1024,7 @@ export class DatabaseManager {
       SELECT
         tc.*,
         c.nome as cartao_nome,
+        c.vencimento as cartao_vencimento,
         cat.nome as categoria_nome,
         cat.cor as categoria_cor
       FROM transacoes_cartao tc
@@ -937,20 +1040,43 @@ export class DatabaseManager {
       params.push(cartaoId);
     }
 
+    // Se mes e ano foram especificados, buscar um range mais amplo
+    // (mês anterior e seguinte) para depois filtrar corretamente
     if (mes && ano) {
-      query += ` AND strftime('%m', tc.data) = ? AND strftime('%Y', tc.data) = ?`;
-      params.push(mes.toString().padStart(2, '0'), ano.toString());
+      const mesAnterior = mes === 1 ? 12 : mes - 1;
+      const anoAnterior = mes === 1 ? ano - 1 : ano;
+      const mesSeguinte = mes === 12 ? 1 : mes + 1;
+      const anoSeguinte = mes === 12 ? ano + 1 : ano;
+
+      query += ` AND (
+        (strftime('%Y', tc.data) = ? AND strftime('%m', tc.data) = ?) OR
+        (strftime('%Y', tc.data) = ? AND strftime('%m', tc.data) = ?) OR
+        (strftime('%Y', tc.data) = ? AND strftime('%m', tc.data) = ?)
+      )`;
+      params.push(
+        anoAnterior.toString(), mesAnterior.toString().padStart(2, '0'),
+        ano.toString(), mes.toString().padStart(2, '0'),
+        anoSeguinte.toString(), mesSeguinte.toString().padStart(2, '0')
+      );
     }
 
     query += ' ORDER BY tc.data DESC, tc.created_at DESC';
 
     const result = this.db.exec(query, params);
-    const data =
+    let data: TransacaoCartaoCompleta[] =
       result.length === 0
         ? []
         : result[0].values.map((row: SqlValue[]) =>
             this.rowToTransacaoCartaoCompletaFromArray(row, result[0].columns)
           );
+
+    // Se mes e ano foram especificados, filtrar baseado no dia de fechamento do cartão
+    if (mes && ano) {
+      data = data.filter((transacao) => {
+        const mesFatura = this.calcularMesFatura(transacao.data, transacao.cartao_vencimento);
+        return mesFatura.mes === mes && mesFatura.ano === ano;
+      });
+    }
 
     // Armazenar em cache
     this.setCache(cacheKey, data);
@@ -1066,6 +1192,7 @@ export class DatabaseManager {
     return {
       ...this.rowToTransacaoCartaoFromArray(row, cols),
       cartao_nome: String(row[cols.indexOf('cartao_nome')]),
+      cartao_vencimento: Number(row[cols.indexOf('cartao_vencimento')]),
       categoria_nome: row[cols.indexOf('categoria_nome')]
         ? String(row[cols.indexOf('categoria_nome')])
         : undefined,
