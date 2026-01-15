@@ -504,8 +504,7 @@ const ImportManager = {
           tipo: item.tipo,
           data: item.data,
           conta_id: this.contaSelecionada.id,
-          categoria_id: item.categoria ? item.categoria.id : null,
-          usuario_id: AppState.currentUser.id,
+          categoria_id: item.categoria ? item.categoria.id : null
           observacoes: 'Importado via arquivo ' + this.currentFile.name,
         };
 

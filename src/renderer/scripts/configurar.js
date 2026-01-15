@@ -202,8 +202,7 @@ const ConfigurarPage = {
       nome: document.getElementById('contaNome').value,
       saldo: parseFloat(document.getElementById('contaSaldo').value),
       tipo: document.getElementById('contaTipo').value,
-      ativa: true,
-      usuario_id: AppState.currentUser.id,
+      ativa: true
     };
 
     try {
@@ -357,8 +356,7 @@ const ConfigurarPage = {
     const formData = {
       nome: document.getElementById('categoriaNome').value,
       tipo: document.getElementById('categoriaTipo').value,
-      cor: document.getElementById('categoriaCor').value,
-      usuario_id: AppState.currentUser.id,
+      cor: document.getElementById('categoriaCor').value
     };
 
     try {
@@ -544,8 +542,7 @@ const ConfigurarPage = {
       categoria_id: parseInt(document.getElementById('orcamentoCategoria').value),
       valor_planejado: parseFloat(document.getElementById('orcamentoValor').value),
       mes: parseInt(document.getElementById('orcamentoMes').value),
-      ano: parseInt(document.getElementById('orcamentoAno').value),
-      usuario_id: AppState.currentUser.id,
+      ano: parseInt(document.getElementById('orcamentoAno').value)
     };
 
     try {

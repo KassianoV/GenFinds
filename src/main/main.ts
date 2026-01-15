@@ -204,15 +204,9 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('conta:list', async (_, usuarioId: number) => {
+ipcMain.handle('conta:list', async () => {
   try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, usuarioId);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
-    }
-
-    const data = db.getContas(validation.data);
+    const data = db.getContas();
     return { success: true, data };
   } catch (error: any) {
     logError('conta:list failed', error);
@@ -294,20 +288,14 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('categoria:list', async (_, usuarioId: number, tipo?: 'receita' | 'despesa') => {
+ipcMain.handle('categoria:list', async (_, tipo?: 'receita' | 'despesa') => {
   try {
-    // Validação de entrada
-    const idValidation = validateData(IdSchema, usuarioId);
-    if (!idValidation.success) {
-      return { success: false, error: idValidation.error };
-    }
-
     const tipoValidation = validateData(TipoCategoriaSchema, tipo);
     if (!tipoValidation.success) {
       return { success: false, error: tipoValidation.error };
     }
 
-    const data = db.getCategorias(idValidation.data, tipoValidation.data);
+    const data = db.getCategorias(tipoValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('categoria:list failed', error);
@@ -389,14 +377,8 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('orcamento:list', async (_, usuarioId: number, mes?: number, ano?: number) => {
+ipcMain.handle('orcamento:list', async (_, mes?: number, ano?: number) => {
   try {
-    // Validação de entrada
-    const idValidation = validateData(IdSchema, usuarioId);
-    if (!idValidation.success) {
-      return { success: false, error: idValidation.error };
-    }
-
     const mesValidation = validateData(MesSchema, mes);
     if (!mesValidation.success) {
       return { success: false, error: mesValidation.error };
@@ -407,7 +389,7 @@ ipcMain.handle('orcamento:list', async (_, usuarioId: number, mes?: number, ano?
       return { success: false, error: anoValidation.error };
     }
 
-    const data = db.getOrcamentos(idValidation.data, mesValidation.data, anoValidation.data);
+    const data = db.getOrcamentos(mesValidation.data, anoValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:list failed', error);
@@ -483,14 +465,9 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('cartao:list', async (_, usuarioId: number) => {
+ipcMain.handle('cartao:list', async () => {
   try {
-    const validation = validateData(IdSchema, usuarioId);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
-    }
-
-    const data = db.getCartoes(validation.data);
+    const data = db.getCartoes();
     return { success: true, data };
   } catch (error: any) {
     logError('cartao:list failed', error);
@@ -561,14 +538,9 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('parcela:list', async (_, usuarioId: number) => {
+ipcMain.handle('parcela:list', async () => {
   try {
-    const validation = validateData(IdSchema, usuarioId);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
-    }
-
-    const data = db.getParcelas(validation.data);
+    const data = db.getParcelas();
     return { success: true, data };
   } catch (error: any) {
     logError('parcela:list failed', error);
@@ -661,14 +633,9 @@ ipcMain.handle(
 
 ipcMain.handle(
   'transacao-cartao:list',
-  async (_, usuarioId: number, cartaoId?: number, mes?: number, ano?: number) => {
+  async (_, cartaoId?: number, mes?: number, ano?: number) => {
     try {
-      const validation = validateData(IdSchema, usuarioId);
-      if (!validation.success) {
-        return { success: false, error: validation.error };
-      }
-
-      const data = db.getTransacoesCartao(validation.data, cartaoId, mes, ano);
+      const data = db.getTransacoesCartao(cartaoId, mes, ano);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao-cartao:list failed', error);
@@ -749,20 +716,14 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('transacao:list', async (_, usuarioId: number, limit?: number) => {
+ipcMain.handle('transacao:list', async (_, limit?: number) => {
   try {
-    // Validação de entrada
-    const idValidation = validateData(IdSchema, usuarioId);
-    if (!idValidation.success) {
-      return { success: false, error: idValidation.error };
-    }
-
     const limitValidation = validateData(LimitSchema, limit);
     if (!limitValidation.success) {
       return { success: false, error: limitValidation.error };
     }
 
-    const data = db.getTransacoes(idValidation.data, limitValidation.data);
+    const data = db.getTransacoes(limitValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:list failed', error);
@@ -770,20 +731,12 @@ ipcMain.handle('transacao:list', async (_, usuarioId: number, limit?: number) =>
   }
 });
 
-// ✅ CORRIGIDO: Handler com paginação - valores padrão definidos antes da validação
 ipcMain.handle(
   'transacao:list-paginated',
-  async (_, usuarioId: number, page?: number, pageSize?: number) => {
+  async (_, page?: number, pageSize?: number) => {
     try {
-      // Validação de entrada
-      const idValidation = validateData(IdSchema, usuarioId);
-      if (!idValidation.success) {
-        return { success: false, error: idValidation.error };
-      }
-
-      // ✅ CORREÇÃO: Garantir valores não-undefined antes da validação
       const paginationParams = {
-        page: page ?? 1, // Usar nullish coalescing para garantir número
+        page: page ?? 1,
         pageSize: pageSize ?? 50,
       };
 
@@ -792,11 +745,7 @@ ipcMain.handle(
         return { success: false, error: paginationValidation.error };
       }
 
-      // O Zod garante que page e pageSize terão valores padrão (1 e 50)
-      const data = db.getTransacoesPaginated(
-        idValidation.data,
-        paginationValidation.data as PaginationParams
-      );
+      const data = db.getTransacoesPaginated(paginationValidation.data as PaginationParams);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao:list-paginated failed', error);
@@ -862,14 +811,8 @@ ipcMain.handle('transacao:delete', async (_, id: number) => {
 
 ipcMain.handle(
   'relatorio:resumo',
-  async (_, usuarioId: number, dataInicio?: string, dataFim?: string) => {
+  async (_, dataInicio?: string, dataFim?: string) => {
     try {
-      // Validação de entrada
-      const idValidation = validateData(IdSchema, usuarioId);
-      if (!idValidation.success) {
-        return { success: false, error: idValidation.error };
-      }
-
       const dataInicioValidation = validateData(DataSchema, dataInicio);
       if (!dataInicioValidation.success) {
         return { success: false, error: dataInicioValidation.error };
@@ -881,7 +824,6 @@ ipcMain.handle(
       }
 
       const data = db.getResumoFinanceiro(
-        idValidation.data,
         dataInicioValidation.data,
         dataFimValidation.data
       );

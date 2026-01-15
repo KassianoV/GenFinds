@@ -38,13 +38,13 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 1000000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categoria = db.createCategoria({
         nome: 'Categoria Teste',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       const startTime = performance.now();
@@ -58,7 +58,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           data: `2024-12-${String((i % 30) + 1).padStart(2, '0')}`,
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id,
+          
         });
       }
 
@@ -69,7 +69,7 @@ describe('DatabaseManager - Testes de Performance', () => {
       expect(duration).toBeLessThan(5000); // Menos de 5 segundos
 
       // Verificar que todas foram criadas
-      const transacoes = db.getTransacoes(usuario.id);
+      const transacoes = db.getTransacoes();
       expect(transacoes.length).toBe(1000);
     }, 10000); // Timeout de 10 segundos
 
@@ -83,7 +83,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           nome: `Categoria ${i}`,
           tipo: i % 2 === 0 ? 'receita' : 'despesa',
           cor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-          usuario_id: usuario.id,
+          
         });
       }
 
@@ -93,7 +93,7 @@ describe('DatabaseManager - Testes de Performance', () => {
       console.log(`Tempo para criar 100 categorias: ${duration.toFixed(2)}ms`);
       expect(duration).toBeLessThan(1000);
 
-      const categorias = db.getCategorias(usuario.id);
+      const categorias = db.getCategorias();
       expect(categorias.length).toBe(100);
     });
   });
@@ -112,7 +112,7 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 100000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categorias = [];
@@ -121,7 +121,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           db.createCategoria({
             nome: `Cat ${i}`,
             tipo: i % 2 === 0 ? 'receita' : 'despesa',
-            usuario_id: usuario.id,
+            
           })
         );
       }
@@ -138,7 +138,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           data: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id,
+          
         });
       }
     });
@@ -147,7 +147,7 @@ describe('DatabaseManager - Testes de Performance', () => {
       const usuario = db.getUsuarioByEmail('query@email.com');
 
       const startTime = performance.now();
-      const transacoes = db.getTransacoes(usuario!.id);
+      const transacoes = db.getTransacoes();
       const endTime = performance.now();
 
       const duration = endTime - startTime;
@@ -161,7 +161,7 @@ describe('DatabaseManager - Testes de Performance', () => {
       const usuario = db.getUsuarioByEmail('query@email.com');
 
       const startTime = performance.now();
-      const resumo = db.getResumoFinanceiro(usuario!.id, '2024-01-01', '2024-12-31');
+      const resumo = db.getResumoFinanceiro('2024-01-01', '2024-12-31');
       const endTime = performance.now();
 
       const duration = endTime - startTime;
@@ -179,7 +179,7 @@ describe('DatabaseManager - Testes de Performance', () => {
 
       limits.forEach((limit) => {
         const startTime = performance.now();
-        const transacoes = db.getTransacoes(usuario!.id, limit);
+        const transacoes = db.getTransacoes(limit);
         const endTime = performance.now();
 
         const duration = endTime - startTime;
@@ -204,13 +204,13 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 50000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       // Criar 500 transações
@@ -224,7 +224,7 @@ describe('DatabaseManager - Testes de Performance', () => {
             data: '2024-12-25',
             conta_id: conta.id,
             categoria_id: categoria.id,
-            usuario_id: usuario.id,
+            
           })
         );
       }
@@ -265,13 +265,13 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 100000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       // Criar 500 transações
@@ -285,7 +285,7 @@ describe('DatabaseManager - Testes de Performance', () => {
             data: '2024-12-25',
             conta_id: conta.id,
             categoria_id: categoria.id,
-            usuario_id: usuario.id,
+            
           })
         );
       }
@@ -304,7 +304,7 @@ describe('DatabaseManager - Testes de Performance', () => {
       expect(duration).toBeLessThan(1000);
 
       // Verificar que foram deletadas
-      const remaining = db.getTransacoes(usuario.id);
+      const remaining = db.getTransacoes();
       expect(remaining.length).toBe(0);
     });
   });
@@ -322,7 +322,7 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 10000000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categorias = [];
@@ -331,7 +331,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           db.createCategoria({
             nome: `Cat ${i}`,
             tipo: i % 2 === 0 ? 'receita' : 'despesa',
-            usuario_id: usuario.id,
+            
           })
         );
       }
@@ -350,7 +350,7 @@ describe('DatabaseManager - Testes de Performance', () => {
           data: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id,
+          
         });
 
         // Log de progresso a cada 1000
@@ -365,12 +365,12 @@ describe('DatabaseManager - Testes de Performance', () => {
       console.log(`Tempo total para 10.000 transações: ${(duration / 1000).toFixed(2)}s`);
 
       // Verificar que todas foram criadas
-      const transacoes = db.getTransacoes(usuario.id);
+      const transacoes = db.getTransacoes();
       expect(transacoes.length).toBe(10000);
 
       // Testar consulta no conjunto grande
       const queryStart = performance.now();
-      const resumo = db.getResumoFinanceiro(usuario.id, '2024-01-01', '2024-12-31');
+      const resumo = db.getResumoFinanceiro('2024-01-01', '2024-12-31');
       const queryEnd = performance.now();
 
       console.log(
@@ -395,13 +395,13 @@ describe('DatabaseManager - Testes de Performance', () => {
         saldo: 100000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const categoria = db.createCategoria({
         nome: 'Cat',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       // Criar 1000 transações
@@ -415,20 +415,20 @@ describe('DatabaseManager - Testes de Performance', () => {
             data: '2024-12-25',
             conta_id: conta.id,
             categoria_id: categoria.id,
-            usuario_id: usuario.id,
+            
           })
         );
       }
 
       // Verificar criação
-      let allTransacoes = db.getTransacoes(usuario.id);
+      let allTransacoes = db.getTransacoes();
       expect(allTransacoes.length).toBe(1000);
 
       // Deletar todas
       transacoes.forEach((t) => db.deleteTransacao(t.id));
 
       // Verificar limpeza
-      allTransacoes = db.getTransacoes(usuario.id);
+      allTransacoes = db.getTransacoes();
       expect(allTransacoes.length).toBe(0);
 
       // Criar novas transações para garantir que IDs não conflitam
@@ -440,11 +440,11 @@ describe('DatabaseManager - Testes de Performance', () => {
           data: '2024-12-26',
           conta_id: conta.id,
           categoria_id: categoria.id,
-          usuario_id: usuario.id,
+          
         });
       }
 
-      const novasTransacoes = db.getTransacoes(usuario.id);
+      const novasTransacoes = db.getTransacoes();
       expect(novasTransacoes.length).toBe(100);
     });
   });

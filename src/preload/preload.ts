@@ -13,7 +13,7 @@ const api = {
   conta: {
     create: (conta: Omit<Conta, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('conta:create', conta),
-    list: (usuarioId: number) => ipcRenderer.invoke('conta:list', usuarioId),
+    list: () => ipcRenderer.invoke('conta:list'),
     get: (id: number) => ipcRenderer.invoke('conta:get', id),
     update: (id: number, updates: Partial<Conta>) =>
       ipcRenderer.invoke('conta:update', id, updates),
@@ -23,8 +23,8 @@ const api = {
   categoria: {
     create: (categoria: Omit<Categoria, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('categoria:create', categoria),
-    list: (usuarioId: number, tipo?: 'receita' | 'despesa') =>
-      ipcRenderer.invoke('categoria:list', usuarioId, tipo),
+    list: (tipo?: 'receita' | 'despesa') =>
+      ipcRenderer.invoke('categoria:list', tipo),
     get: (id: number) => ipcRenderer.invoke('categoria:get', id),
     update: (id: number, updates: Partial<Categoria>) =>
       ipcRenderer.invoke('categoria:update', id, updates),
@@ -34,8 +34,8 @@ const api = {
   orcamento: {
     create: (orcamento: Omit<Orcamento, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('orcamento:create', orcamento),
-    list: (usuarioId: number, mes?: number, ano?: number) =>
-      ipcRenderer.invoke('orcamento:list', usuarioId, mes, ano),
+    list: (mes?: number, ano?: number) =>
+      ipcRenderer.invoke('orcamento:list', mes, ano),
     get: (id: number) => ipcRenderer.invoke('orcamento:get', id),
     update: (id: number, updates: Partial<Orcamento>) =>
       ipcRenderer.invoke('orcamento:update', id, updates),
@@ -45,7 +45,7 @@ const api = {
   cartao: {
     create: (cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('cartao:create', cartao),
-    list: (usuarioId: number) => ipcRenderer.invoke('cartao:list', usuarioId),
+    list: () => ipcRenderer.invoke('cartao:list'),
     get: (id: number) => ipcRenderer.invoke('cartao:get', id),
     update: (id: number, updates: Partial<Cartao>) =>
       ipcRenderer.invoke('cartao:update', id, updates),
@@ -55,7 +55,7 @@ const api = {
   parcela: {
     create: (parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('parcela:create', parcela),
-    list: (usuarioId: number) => ipcRenderer.invoke('parcela:list', usuarioId),
+    list: () => ipcRenderer.invoke('parcela:list'),
     get: (id: number) => ipcRenderer.invoke('parcela:get', id),
     update: (id: number, updates: Partial<Parcela>) =>
       ipcRenderer.invoke('parcela:update', id, updates),
@@ -72,8 +72,8 @@ const api = {
       >,
       numeroParcelas: number
     ) => ipcRenderer.invoke('transacao-cartao:create-parcelada', transacao, numeroParcelas),
-    list: (usuarioId: number, cartaoId?: number, mes?: number, ano?: number) =>
-      ipcRenderer.invoke('transacao-cartao:list', usuarioId, cartaoId, mes, ano),
+    list: (cartaoId?: number, mes?: number, ano?: number) =>
+      ipcRenderer.invoke('transacao-cartao:list', cartaoId, mes, ano),
     get: (id: number) => ipcRenderer.invoke('transacao-cartao:get', id),
     update: (id: number, updates: Partial<TransacaoCartao>) =>
       ipcRenderer.invoke('transacao-cartao:update', id, updates),
@@ -83,10 +83,10 @@ const api = {
   transacao: {
     create: (transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('transacao:create', transacao),
-    list: (usuarioId: number, limit?: number) =>
-      ipcRenderer.invoke('transacao:list', usuarioId, limit),
-    listPaginated: (usuarioId: number, page?: number, pageSize?: number) =>
-      ipcRenderer.invoke('transacao:list-paginated', usuarioId, page, pageSize),
+    list: (limit?: number) =>
+      ipcRenderer.invoke('transacao:list', limit),
+    listPaginated: (page?: number, pageSize?: number) =>
+      ipcRenderer.invoke('transacao:list-paginated', page, pageSize),
     get: (id: number) => ipcRenderer.invoke('transacao:get', id),
     update: (id: number, updates: Partial<Transacao>) =>
       ipcRenderer.invoke('transacao:update', id, updates),
@@ -94,8 +94,8 @@ const api = {
   },
 
   relatorio: {
-    getResumo: (usuarioId: number, dataInicio?: string, dataFim?: string) =>
-      ipcRenderer.invoke('relatorio:resumo', usuarioId, dataInicio, dataFim),
+    getResumo: (dataInicio?: string, dataFim?: string) =>
+      ipcRenderer.invoke('relatorio:resumo', dataInicio, dataFim),
   },
 };
 

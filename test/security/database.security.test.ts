@@ -18,7 +18,7 @@ describe('SQL Injection Security Tests', () => {
   describe('getTransacoes - LIMIT parameter', () => {
     test('deve aceitar limit numérico válido', async () => {
       const usuario = db.createUsuario('Teste', 'teste@exemplo.com');
-      const result = db.getTransacoes(usuario.id, 10);
+      const result = db.getTransacoes(10);
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
     });
@@ -31,11 +31,11 @@ describe('SQL Injection Security Tests', () => {
 
       // ✅ Deve falhar ou retornar vazio sem executar DROP
       expect(() => {
-        db.getTransacoes(usuario.id, maliciousLimit);
+        db.getTransacoes(maliciousLimit);
       }).not.toThrow();
 
       // Verificar que a tabela ainda existe
-      const result = db.getTransacoes(usuario.id);
+      const result = db.getTransacoes();
       expect(result).toBeDefined();
     });
 
@@ -43,9 +43,9 @@ describe('SQL Injection Security Tests', () => {
       const usuario = db.createUsuario('Teste', 'teste@exemplo.com');
 
       // Testes de validação
-      const result1 = db.getTransacoes(usuario.id, 5.7); // float
-      const result2 = db.getTransacoes(usuario.id, -10); // negativo
-      const result3 = db.getTransacoes(usuario.id, 0); // zero
+      const result1 = db.getTransacoes(5.7); // float
+      const result2 = db.getTransacoes(-10); // negativo
+      const result3 = db.getTransacoes(0); // zero
 
       expect(result1).toBeDefined();
       expect(result2).toBeDefined();
@@ -61,7 +61,7 @@ describe('SQL Injection Security Tests', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       // ✅ Campos permitidos
@@ -84,7 +84,7 @@ describe('SQL Injection Security Tests', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       // ❌ Tentativa de ataque
@@ -110,7 +110,7 @@ describe('SQL Injection Security Tests', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       // ❌ Campo inexistente/malicioso
@@ -131,7 +131,7 @@ describe('SQL Injection Security Tests', () => {
         nome: 'Alimentação',
         tipo: 'despesa',
         cor: '#FF0000',
-        usuario_id: usuario.id,
+        
       });
 
       const result = db.updateCategoria(categoria.id, {
@@ -151,7 +151,7 @@ describe('SQL Injection Security Tests', () => {
       const categoria = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       const invalidUpdate = {
@@ -169,7 +169,7 @@ describe('SQL Injection Security Tests', () => {
       const categoria = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       const orcamento = db.createOrcamento({
@@ -177,7 +177,7 @@ describe('SQL Injection Security Tests', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id,
+        
       });
 
       const result = db.updateOrcamento(orcamento.id, {
@@ -203,12 +203,12 @@ describe('SQL Injection Security Tests', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
       const categoria = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       const transacao = db.createTransacao({
@@ -218,7 +218,7 @@ describe('SQL Injection Security Tests', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoria.id,
-        usuario_id: usuario.id,
+        
       });
 
       const result = db.updateTransacao(transacao.id, {
@@ -290,7 +290,7 @@ describe('Integration Security Tests', () => {
       saldo: 5000,
       tipo: 'corrente',
       ativa: true,
-      usuario_id: usuario.id,
+      
     });
     expect(conta.id).toBeDefined();
 
@@ -299,7 +299,7 @@ describe('Integration Security Tests', () => {
       nome: 'Salário',
       tipo: 'receita',
       cor: '#4CAF50',
-      usuario_id: usuario.id,
+      
     });
     expect(categoria.id).toBeDefined();
 
@@ -311,7 +311,7 @@ describe('Integration Security Tests', () => {
       data: '2024-12-01',
       conta_id: conta.id,
       categoria_id: categoria.id,
-      usuario_id: usuario.id,
+      
     });
     expect(transacao.id).toBeDefined();
 

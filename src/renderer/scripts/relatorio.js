@@ -34,9 +34,7 @@ const RelatorioPage = {
     const dataFim = ultimoDia.toISOString().split('T')[0];
 
     try {
-      const response = await window.api.relatorio.getResumo(
-        AppState.currentUser.id,
-        dataInicio,
+      const response = await window.api.relatorio.getResumo(dataInicio,
         dataFim
       );
 
@@ -111,7 +109,7 @@ const RelatorioPage = {
         return;
       }
 
-      const result = await window.api.cartao.list(AppState.currentUser.id);
+      const result = await window.api.cartao.list();
 
       if (!result.success || !result.data || result.data.length === 0) {
         container.innerHTML = '<p>Nenhum cartão cadastrado</p>';

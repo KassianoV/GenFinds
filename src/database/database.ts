@@ -51,6 +51,10 @@ export class DatabaseManager {
     }
 
     this.initDatabase();
+
+    // Garantir que existe um usuário padrão
+    this.ensureDefaultUser();
+
     this.save();
   }
 
@@ -63,11 +67,19 @@ export class DatabaseManager {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
+        password_hash TEXT,
         avatar TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migração: adicionar coluna password_hash se não existir
+    try {
+      this.db.run(`ALTER TABLE usuarios ADD COLUMN password_hash TEXT`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     this.db.run(`
       CREATE TABLE IF NOT EXISTS contas (
@@ -76,10 +88,8 @@ export class DatabaseManager {
         saldo REAL DEFAULT 0,
         tipo TEXT CHECK(tipo IN ('corrente', 'poupanca', 'investimento', 'carteira')) NOT NULL,
         ativa BOOLEAN DEFAULT 1,
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -90,11 +100,9 @@ export class DatabaseManager {
         tipo TEXT CHECK(tipo IN ('receita', 'despesa')) NOT NULL,
         cor TEXT,
         icone TEXT,
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        UNIQUE(nome, tipo, usuario_id)
+        UNIQUE(nome, tipo)
       )
     `);
 
@@ -105,11 +113,9 @@ export class DatabaseManager {
         valor_planejado REAL NOT NULL,
         mes INTEGER CHECK(mes BETWEEN 1 AND 12) NOT NULL,
         ano INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
         UNIQUE(categoria_id, mes, ano)
       )
     `);
@@ -123,18 +129,15 @@ export class DatabaseManager {
         data DATE NOT NULL,
         conta_id INTEGER NOT NULL,
         categoria_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
         observacoes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE,
-        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
       )
     `);
 
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data)`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)`);
 
     // Tabela de Cartões de Crédito
     this.db.run(`
@@ -144,10 +147,8 @@ export class DatabaseManager {
         valor REAL DEFAULT 0,
         vencimento INTEGER CHECK(vencimento BETWEEN 1 AND 31) NOT NULL,
         status TEXT CHECK(status IN ('aberta', 'fechada', 'paga', 'pendente')) DEFAULT 'aberta',
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -161,15 +162,11 @@ export class DatabaseManager {
         valor_parcela REAL NOT NULL,
         quantidade_parcelas INTEGER NOT NULL,
         total REAL NOT NULL,
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE
       )
     `);
-
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_cartoes_usuario ON cartoes(usuario_id)`);
 
     // Tabela de Transações de Cartão
     this.db.run(`
@@ -184,21 +181,16 @@ export class DatabaseManager {
         parcela_atual INTEGER DEFAULT 1,
         grupo_parcelamento TEXT,
         observacoes TEXT,
-        usuario_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE,
-        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL
       )
     `);
 
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_data ON transacoes_cartao(data)`);
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_cartao ON transacoes_cartao(cartao_id)`
-    );
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_usuario ON transacoes_cartao(usuario_id)`
     );
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_grupo ON transacoes_cartao(grupo_parcelamento)`
@@ -432,6 +424,34 @@ export class DatabaseManager {
     return this.getUsuarioByEmail(email)!;
   }
 
+  /**
+   * Garante que existe um usuário padrão no sistema
+   * Se não existir nenhum usuário, cria um usuário padrão
+   */
+  ensureDefaultUser(): Usuario {
+    const result = this.db.exec('SELECT * FROM usuarios LIMIT 1');
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      // Não existe usuário, criar um padrão
+      this.db.run('INSERT INTO usuarios (nome, email) VALUES (?, ?)', [
+        'Usuário',
+        'usuario@genfinds.local'
+      ]);
+      this.save();
+      return this.getUsuarioByEmail('usuario@genfinds.local')!;
+    }
+
+    // Retornar o primeiro usuário encontrado
+    return this.rowToUsuario(result[0]);
+  }
+
+  /**
+   * Obtém o usuário padrão do sistema
+   */
+  getDefaultUser(): Usuario {
+    return this.ensureDefaultUser();
+  }
+
   getUsuario(id: number): Usuario | undefined {
     const result = this.db.exec('SELECT * FROM usuarios WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
@@ -466,28 +486,26 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO contas (nome, saldo, tipo, ativa, usuario_id) VALUES (?, ?, ?, ?, ?)',
-      [conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0, conta.usuario_id]
+      'INSERT INTO contas (nome, saldo, tipo, ativa) VALUES (?, ?, ?, ?)',
+      [conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0]
     );
     this.save();
 
     // Invalidar cache de contas
-    this.invalidateCache(`contas:${conta.usuario_id}`);
+    this.invalidateCache(`contas`);
 
     const result = this.db.exec('SELECT * FROM contas ORDER BY id DESC LIMIT 1');
     return this.rowToConta(result[0]);
   }
 
-  getContas(usuarioId: number): Conta[] {
+  getContas(): Conta[] {
     // Tentar buscar do cache
-    const cacheKey = `contas:${usuarioId}`;
+    const cacheKey = `contas`;
     const cached = this.getCached<Conta[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    const result = this.db.exec('SELECT * FROM contas WHERE usuario_id = ? ORDER BY nome', [
-      usuarioId,
-    ]);
+    const result = this.db.exec('SELECT * FROM contas ORDER BY nome');
     const data =
       result.length === 0
         ? []
@@ -508,7 +526,7 @@ export class DatabaseManager {
   }
 
   updateConta(id: number, updates: Partial<Conta>): boolean {
-    const allowedFields = ['nome', 'saldo', 'tipo', 'ativa', 'usuario_id'];
+    const allowedFields = ['nome', 'saldo', 'tipo', 'ativa'];
 
     const validUpdates = Object.entries(updates).filter(
       ([key]) => allowedFields.includes(key) && key !== 'id'
@@ -527,8 +545,8 @@ export class DatabaseManager {
     ] as SqlValue[]);
     this.save();
 
-    // Invalidar cache de contas (invalidar todos para simplificar)
-    this.invalidateCache('contas:');
+    // Invalidar cache de contas
+    this.invalidateCache('contas');
 
     return true;
   }
@@ -538,7 +556,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de contas
-    this.invalidateCache('contas:');
+    this.invalidateCache('contas');
 
     return true;
   }
@@ -559,7 +577,6 @@ export class DatabaseManager {
         | 'investimento'
         | 'carteira',
       ativa: Number(row[cols.indexOf('ativa')]) === 1,
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -577,28 +594,26 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO cartoes (nome, valor, vencimento, status, usuario_id) VALUES (?, ?, ?, ?, ?)',
-      [cartao.nome, cartao.valor, cartao.vencimento, cartao.status, cartao.usuario_id]
+      'INSERT INTO cartoes (nome, valor, vencimento, status) VALUES (?, ?, ?, ?)',
+      [cartao.nome, cartao.valor, cartao.vencimento, cartao.status]
     );
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache(`cartoes:${cartao.usuario_id}`);
+    this.invalidateCache(`cartoes`);
 
     const result = this.db.exec('SELECT * FROM cartoes ORDER BY id DESC LIMIT 1');
     return this.rowToCartao(result[0]);
   }
 
-  getCartoes(usuarioId: number): Cartao[] {
+  getCartoes(): Cartao[] {
     // Tentar buscar do cache
-    const cacheKey = `cartoes:${usuarioId}`;
+    const cacheKey = `cartoes`;
     const cached = this.getCached<Cartao[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    const result = this.db.exec('SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY nome', [
-      usuarioId,
-    ]);
+    const result = this.db.exec('SELECT * FROM cartoes ORDER BY nome');
     const data =
       result.length === 0
         ? []
@@ -619,7 +634,7 @@ export class DatabaseManager {
   }
 
   updateCartao(id: number, updates: Partial<Cartao>): boolean {
-    const allowedFields = ['nome', 'valor', 'vencimento', 'status', 'usuario_id'];
+    const allowedFields = ['nome', 'valor', 'vencimento', 'status'];
 
     const validUpdates = Object.entries(updates).filter(
       ([key]) => allowedFields.includes(key) && key !== 'id'
@@ -639,7 +654,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache('cartoes:');
+    this.invalidateCache('cartoes');
 
     return true;
   }
@@ -649,7 +664,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache('cartoes:');
+    this.invalidateCache('cartoes');
 
     return true;
   }
@@ -666,7 +681,6 @@ export class DatabaseManager {
       valor: Number(row[cols.indexOf('valor')]),
       vencimento: Number(row[cols.indexOf('vencimento')]),
       status: String(row[cols.indexOf('status')]) as 'aberta' | 'fechada' | 'paga' | 'pendente',
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -712,7 +726,7 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO parcelas (descricao, dia, cartao_id, valor_parcela, quantidade_parcelas, total, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO parcelas (descricao, dia, cartao_id, valor_parcela, quantidade_parcelas, total) VALUES (?, ?, ?, ?, ?, ?)',
       [
         parcela.descricao,
         parcela.dia,
@@ -720,28 +734,26 @@ export class DatabaseManager {
         parcela.valor_parcela,
         parcela.quantidade_parcelas,
         parcela.total,
-        parcela.usuario_id,
       ]
     );
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache(`parcelas:${parcela.usuario_id}`);
+    this.invalidateCache(`parcelas`);
 
     const result = this.db.exec('SELECT * FROM parcelas ORDER BY id DESC LIMIT 1');
     return this.rowToParcela(result[0]);
   }
 
-  getParcelas(usuarioId: number): Parcela[] {
+  getParcelas(): Parcela[] {
     // Tentar buscar do cache
-    const cacheKey = `parcelas:${usuarioId}`;
+    const cacheKey = `parcelas`;
     const cached = this.getCached<Parcela[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
     const result = this.db.exec(
-      'SELECT * FROM parcelas WHERE usuario_id = ? ORDER BY created_at DESC',
-      [usuarioId]
+      'SELECT * FROM parcelas ORDER BY created_at DESC'
     );
     const data =
       result.length === 0
@@ -790,7 +802,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache('parcelas:');
+    this.invalidateCache('parcelas');
 
     return true;
   }
@@ -800,7 +812,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache('parcelas:');
+    this.invalidateCache('parcelas');
 
     return true;
   }
@@ -819,7 +831,6 @@ export class DatabaseManager {
       valor_parcela: Number(row[cols.indexOf('valor_parcela')]),
       quantidade_parcelas: Number(row[cols.indexOf('quantidade_parcelas')]),
       total: Number(row[cols.indexOf('total')]),
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -843,8 +854,8 @@ export class DatabaseManager {
 
     this.db.run(
       `INSERT INTO transacoes_cartao (descricao, valor, data, cartao_id, categoria_id,
-       parcelas, parcela_atual, grupo_parcelamento, observacoes, usuario_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       parcelas, parcela_atual, grupo_parcelamento, observacoes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transacao.descricao,
         transacao.valor,
@@ -855,7 +866,6 @@ export class DatabaseManager {
         transacao.parcela_atual,
         transacao.grupo_parcelamento || null,
         transacao.observacoes || null,
-        transacao.usuario_id,
       ] as SqlValue[]
     );
 
@@ -865,8 +875,8 @@ export class DatabaseManager {
     this.recalcularValorCartao(transacao.cartao_id);
 
     // Invalidar cache
-    this.invalidateCache(`cartoes:${transacao.usuario_id}`);
-    this.invalidateCache(`transacoes_cartao:${transacao.usuario_id}`);
+    this.invalidateCache(`cartoes`);
+    this.invalidateCache(`transacoes_cartao`);
 
     const result = this.db.exec('SELECT * FROM transacoes_cartao ORDER BY id DESC LIMIT 1');
     return this.rowToTransacaoCartao(result[0]);
@@ -1009,12 +1019,11 @@ export class DatabaseManager {
   }
 
   getTransacoesCartao(
-    usuarioId: number,
     cartaoId?: number,
     mes?: number,
     ano?: number
   ): TransacaoCartaoCompleta[] {
-    const cacheKey = `transacoes_cartao:${usuarioId}:${cartaoId || 'all'}:${mes || 'all'}:${ano || 'all'}`;
+    const cacheKey = `transacoes_cartao:${cartaoId || 'all'}:${mes || 'all'}:${ano || 'all'}`;
 
     // Tentar buscar do cache
     const cached = this.getCached<TransacaoCartaoCompleta[]>(cacheKey);
@@ -1030,10 +1039,10 @@ export class DatabaseManager {
       FROM transacoes_cartao tc
       JOIN cartoes c ON tc.cartao_id = c.id
       LEFT JOIN categorias cat ON tc.categoria_id = cat.id
-      WHERE tc.usuario_id = ?
+      WHERE 1=1
     `;
 
-    const params: SqlValue[] = [usuarioId];
+    const params: SqlValue[] = [];
 
     if (cartaoId) {
       query += ' AND tc.cartao_id = ?';
@@ -1179,7 +1188,6 @@ export class DatabaseManager {
         ? String(row[cols.indexOf('grupo_parcelamento')])
         : undefined,
       observacoes: row[cols.indexOf('observacoes')] ? String(row[cols.indexOf('observacoes')]) : undefined,
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -1211,33 +1219,32 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO categorias (nome, tipo, cor, icone, usuario_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO categorias (nome, tipo, cor, icone) VALUES (?, ?, ?, ?)',
       [
         categoria.nome,
         categoria.tipo,
         categoria.cor ?? null,
         categoria.icone ?? null,
-        categoria.usuario_id,
       ]
     );
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache(`categorias:${categoria.usuario_id}`);
+    this.invalidateCache(`categorias`);
 
     const result = this.db.exec('SELECT * FROM categorias ORDER BY id DESC LIMIT 1');
     return this.rowToCategoria(result[0]);
   }
 
-  getCategorias(usuarioId: number, tipo?: 'receita' | 'despesa'): Categoria[] {
+  getCategorias(tipo?: 'receita' | 'despesa'): Categoria[] {
     // Tentar buscar do cache
-    const cacheKey = `categorias:${usuarioId}:${tipo || 'all'}`;
+    const cacheKey = `categorias:${tipo || 'all'}`;
     const cached = this.getCached<Categoria[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    let query = 'SELECT * FROM categorias WHERE usuario_id = ?';
-    const params: SqlValue[] = [usuarioId];
+    let query = 'SELECT * FROM categorias WHERE 1=1';
+    const params: SqlValue[] = [];
 
     if (tipo) {
       query += ' AND tipo = ?';
@@ -1269,7 +1276,7 @@ export class DatabaseManager {
   // ✅ CORRIGIDO: Whitelist de campos permitidos
   updateCategoria(id: number, updates: Partial<Categoria>): boolean {
     // Whitelist de campos que podem ser atualizados
-    const allowedFields = ['nome', 'tipo', 'cor', 'icone', 'usuario_id'];
+    const allowedFields = ['nome', 'tipo', 'cor', 'icone'];
 
     const validUpdates = Object.entries(updates).filter(
       ([key]) => allowedFields.includes(key) && key !== 'id'
@@ -1289,7 +1296,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache('categorias:');
+    this.invalidateCache('categorias');
 
     return true;
   }
@@ -1299,7 +1306,7 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache('categorias:');
+    this.invalidateCache('categorias');
 
     return true;
   }
@@ -1319,7 +1326,6 @@ export class DatabaseManager {
       tipo: String(row[cols.indexOf('tipo')]) as 'receita' | 'despesa',
       cor: corValue !== null ? String(corValue) : undefined,
       icone: iconeValue !== null ? String(iconeValue) : undefined,
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -1329,13 +1335,12 @@ export class DatabaseManager {
 
   createOrcamento(orcamento: Omit<Orcamento, 'id' | 'created_at' | 'updated_at'>): Orcamento {
     this.db.run(
-      'INSERT INTO orcamentos (categoria_id, valor_planejado, mes, ano, usuario_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO orcamentos (categoria_id, valor_planejado, mes, ano) VALUES (?, ?, ?, ?)',
       [
         orcamento.categoria_id,
         orcamento.valor_planejado,
         orcamento.mes,
         orcamento.ano,
-        orcamento.usuario_id,
       ]
     );
     this.save();
@@ -1344,9 +1349,9 @@ export class DatabaseManager {
     return this.rowToOrcamento(result[0]);
   }
 
-  getOrcamentos(usuarioId: number, mes?: number, ano?: number): Orcamento[] {
-    let query = 'SELECT * FROM orcamentos WHERE usuario_id = ?';
-    const params: SqlValue[] = [usuarioId];
+  getOrcamentos(mes?: number, ano?: number): Orcamento[] {
+    let query = 'SELECT * FROM orcamentos WHERE 1=1';
+    const params: SqlValue[] = [];
 
     if (mes !== undefined) {
       query += ' AND mes = ?';
@@ -1374,7 +1379,7 @@ export class DatabaseManager {
   // ✅ CORRIGIDO: Whitelist de campos permitidos
   updateOrcamento(id: number, updates: Partial<Orcamento>): boolean {
     // Whitelist de campos que podem ser atualizados
-    const allowedFields = ['categoria_id', 'valor_planejado', 'mes', 'ano', 'usuario_id'];
+    const allowedFields = ['categoria_id', 'valor_planejado', 'mes', 'ano'];
 
     const validUpdates = Object.entries(updates).filter(
       ([key]) => allowedFields.includes(key) && key !== 'id'
@@ -1413,7 +1418,6 @@ export class DatabaseManager {
       valor_planejado: Number(row[cols.indexOf('valor_planejado')]),
       mes: Number(row[cols.indexOf('mes')]),
       ano: Number(row[cols.indexOf('ano')]),
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       created_at: String(row[cols.indexOf('created_at')]),
       updated_at: String(row[cols.indexOf('updated_at')]),
     };
@@ -1424,7 +1428,7 @@ export class DatabaseManager {
   createTransacao(transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>): Transacao {
     return this.executeInTransaction(() => {
       this.db.run(
-        'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, usuario_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           transacao.descricao,
           transacao.valor,
@@ -1432,7 +1436,6 @@ export class DatabaseManager {
           transacao.data,
           transacao.conta_id,
           transacao.categoria_id,
-          transacao.usuario_id,
           transacao.observacoes || null,
         ]
       );
@@ -1447,7 +1450,7 @@ export class DatabaseManager {
   }
 
   // ✅ CORRIGIDO: LIMIT agora usa parâmetros preparados
-  getTransacoes(usuarioId: number, limit?: number): TransacaoCompleta[] {
+  getTransacoes(limit?: number): TransacaoCompleta[] {
     let query = `
       SELECT
         t.*,
@@ -1457,11 +1460,11 @@ export class DatabaseManager {
       FROM transacoes t
       JOIN contas ct ON t.conta_id = ct.id
       JOIN categorias cat ON t.categoria_id = cat.id
-      WHERE t.usuario_id = ?
+      WHERE 1=1
       ORDER BY t.data DESC, t.created_at DESC
     `;
 
-    const params: SqlValue[] = [usuarioId];
+    const params: SqlValue[] = [];
 
     // ✅ CORREÇÃO: Validar e adicionar LIMIT de forma segura
     if (limit !== undefined && limit > 0) {
@@ -1480,7 +1483,6 @@ export class DatabaseManager {
 
   // ✅ NOVO: Método de paginação para grandes volumes
   getTransacoesPaginated(
-    usuarioId: number,
     pagination: PaginationParams
   ): PaginatedResult<TransacaoCompleta> {
     const { page = 1, pageSize = 50 } = pagination;
@@ -1494,10 +1496,10 @@ export class DatabaseManager {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM transacoes t
-      WHERE t.usuario_id = ?
+      WHERE 1=1
     `;
 
-    const countResult = this.db.exec(countQuery, [usuarioId]);
+    const countResult = this.db.exec(countQuery);
     const total = (countResult[0]?.values[0]?.[0] as number) || 0;
     const totalPages = Math.ceil(total / safePageSize);
 
@@ -1511,12 +1513,12 @@ export class DatabaseManager {
       FROM transacoes t
       JOIN contas ct ON t.conta_id = ct.id
       JOIN categorias cat ON t.categoria_id = cat.id
-      WHERE t.usuario_id = ?
+      WHERE 1=1
       ORDER BY t.data DESC, t.created_at DESC
       LIMIT ? OFFSET ?
     `;
 
-    const dataResult = this.db.exec(dataQuery, [usuarioId, safePageSize, offset]);
+    const dataResult = this.db.exec(dataQuery, [safePageSize, offset]);
     const data =
       dataResult.length === 0
         ? []
@@ -1552,7 +1554,6 @@ export class DatabaseManager {
       'data',
       'conta_id',
       'categoria_id',
-      'usuario_id',
       'observacoes',
     ];
 
@@ -1607,7 +1608,6 @@ export class DatabaseManager {
       data: String(row[cols.indexOf('data')]),
       conta_id: Number(row[cols.indexOf('conta_id')]),
       categoria_id: Number(row[cols.indexOf('categoria_id')]),
-      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       observacoes: row[cols.indexOf('observacoes')]
         ? String(row[cols.indexOf('observacoes')])
         : undefined,
@@ -1629,16 +1629,16 @@ export class DatabaseManager {
 
   // ========== MÉTODOS DE RELATÓRIO ==========
 
-  getResumoFinanceiro(usuarioId: number, dataInicio?: string, dataFim?: string): ResumoFinanceiro {
+  getResumoFinanceiro(dataInicio?: string, dataFim?: string): ResumoFinanceiro {
     let query = `
-      SELECT 
+      SELECT
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesa
-      FROM transacoes 
-      WHERE usuario_id = ?
+      FROM transacoes
+      WHERE 1=1
     `;
 
-    const params: SqlValue[] = [usuarioId];
+    const params: SqlValue[] = [];
 
     if (dataInicio) {
       query += ' AND data >= ?';

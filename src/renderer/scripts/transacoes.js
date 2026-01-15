@@ -76,9 +76,7 @@ const TransacoesPage = {
     const dataFim = ultimoDia.toISOString().split('T')[0];
 
     try {
-      const response = await window.api.relatorio.getResumo(
-        AppState.currentUser.id,
-        dataInicio,
+      const response = await window.api.relatorio.getResumo(dataInicio,
         dataFim
       );
 
@@ -647,8 +645,7 @@ const TransacoesPage = {
       tipo: document.getElementById('transacaoTipo').value,
       data: document.getElementById('transacaoData').value,
       conta_id: parseInt(document.getElementById('transacaoConta').value),
-      categoria_id: parseInt(document.getElementById('transacaoCategoria').value),
-      usuario_id: AppState.currentUser.id,
+      categoria_id: parseInt(document.getElementById('transacaoCategoria').value)
       observacoes: document.getElementById('transacaoObservacoes').value || undefined,
     };
 

@@ -4,6 +4,7 @@ export interface Usuario {
   id: number;
   nome: string;
   email: string;
+  password_hash?: string;
   avatar?: string;
   created_at: string;
   updated_at: string;
@@ -15,7 +16,6 @@ export interface Conta {
   saldo: number;
   tipo: 'corrente' | 'poupanca' | 'investimento' | 'carteira';
   ativa: boolean;
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -26,7 +26,6 @@ export interface Categoria {
   tipo: 'receita' | 'despesa';
   cor?: string;
   icone?: string;
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +36,6 @@ export interface Orcamento {
   valor_planejado: number;
   mes: number;
   ano: number;
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -48,7 +46,6 @@ export interface Cartao {
   valor: number;
   vencimento: number;
   status: 'aberta' | 'fechada' | 'paga' | 'pendente';
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +58,6 @@ export interface Parcela {
   valor_parcela: number;
   quantidade_parcelas: number;
   total: number;
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -77,7 +73,6 @@ export interface TransacaoCartao {
   parcela_atual: number;
   grupo_parcelamento?: string;
   observacoes?: string;
-  usuario_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -97,7 +92,6 @@ export interface Transacao {
   data: string;
   conta_id: number;
   categoria_id: number;
-  usuario_id: number;
   observacoes?: string;
   created_at: string;
   updated_at: string;

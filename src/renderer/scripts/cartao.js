@@ -198,7 +198,6 @@ const CartaoPage = {
         valor,
         vencimento,
         status: 'aberta', // Status padrão
-        usuario_id: AppState.currentUser.id,
       };
 
       const result = await window.api.cartao.create(cartao);
@@ -262,8 +261,7 @@ const CartaoPage = {
         parcelas: 1, // À VISTA
         parcela_atual: 1,
         grupo_parcelamento: null,
-        observacoes: null,
-        usuario_id: AppState.currentUser.id,
+        observacoes: null
       };
 
       const result = await window.api.transacaoCartao.create(transacao);
@@ -331,8 +329,7 @@ const CartaoPage = {
         cartao_id: cartaoId,
         categoria_id: categoriaId || null,
         parcelas: 1, // Vai ser sobrescrito pela API
-        observacoes: null,
-        usuario_id: AppState.currentUser.id,
+        observacoes: null
       };
 
       const result = await window.api.transacaoCartao.createParcelada(transacao, parcelas);
@@ -356,7 +353,7 @@ const CartaoPage = {
     if (!AppState.currentUser) return;
 
     try {
-      const result = await window.api.cartao.list(AppState.currentUser.id);
+      const result = await window.api.cartao.list();
 
       if (result.success) {
         this.cartoes = result.data || [];
@@ -572,7 +569,7 @@ const CartaoPage = {
 
     try {
       // Primeiro, buscar todas as transações do cartão
-      const transacoesResult = await window.api.transacaoCartao.list(AppState.currentUser.id);
+      const transacoesResult = await window.api.transacaoCartao.list();
 
       if (transacoesResult.success) {
         const transacoesDoCartao = (transacoesResult.data || []).filter(t => t.cartao_id === id);
@@ -675,9 +672,7 @@ const CartaoPage = {
    */
   async calcularValorFaturaMes(cartaoId, mes, ano) {
     try {
-      const result = await window.api.transacaoCartao.list(
-        AppState.currentUser.id,
-        cartaoId,
+      const result = await window.api.transacaoCartao.list(cartaoId,
         mes,
         ano
       );
@@ -875,7 +870,7 @@ const CartaoPage = {
     if (!AppState.currentUser) return;
 
     try {
-      const result = await window.api.categoria.list(AppState.currentUser.id);
+      const result = await window.api.categoria.list();
 
       if (result.success) {
         const categorias = result.data || [];
@@ -937,9 +932,7 @@ const CartaoPage = {
       // - Compras feitas ANTES do fechamento aparecem na fatura do MÊS ATUAL
       // - Compras feitas DEPOIS do fechamento aparecem na fatura do PRÓXIMO MÊS
       // - Compras parceladas já têm a data ajustada automaticamente no momento do lançamento
-      const result = await window.api.transacaoCartao.list(
-        AppState.currentUser.id,
-        parseInt(cartaoId),
+      const result = await window.api.transacaoCartao.list(parseInt(cartaoId),
         mes,
         ano
       );
@@ -1494,8 +1487,7 @@ const CartaoPage = {
           cartao_id,
           categoria_id,
           parcelas,
-          observacoes,
-          usuario_id: AppState.currentUser.id,
+          observacoes
         };
 
         const result = await window.api.transacaoCartao.createParcelada(transacao, parcelas);
@@ -1527,8 +1519,7 @@ const CartaoPage = {
           categoria_id,
           parcelas: 1,
           parcela_atual: 1,
-          observacoes,
-          usuario_id: AppState.currentUser.id,
+          observacoes
         };
 
         const result = await window.api.transacaoCartao.create(transacao);
@@ -2054,8 +2045,7 @@ const CartaoPage = {
           categoria_id: item.categoria ? item.categoria.id : null,
           parcelas: 1,
           parcela_atual: 1,
-          observacoes: 'Importado via arquivo OFX - ' + this.currentFileFatura.name,
-          usuario_id: AppState.currentUser.id,
+          observacoes: 'Importado via arquivo OFX - ' + this.currentFileFatura.name
         };
 
         // Se não tem categoria, usar primeira categoria de despesa
@@ -2188,7 +2178,7 @@ const CartaoPage = {
 
     try {
       // Buscar todas as transações de cartão do usuário que sejam parceladas
-      const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
+      const result = await window.api.transacaoCartao.list();
 
       if (result.success) {
         const transacoesParceladas = (result.data || []).filter((t) => t.parcelas > 1);
@@ -2462,7 +2452,7 @@ const CartaoPage = {
     }
 
     // Buscar todas as parcelas do grupo
-    const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
+    const result = await window.api.transacaoCartao.list();
 
     if (!result.success) {
       Utils.showError('Erro ao buscar parcelas');

@@ -92,7 +92,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       expect(conta).toBeDefined();
@@ -109,7 +109,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 500,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       db.createConta({
@@ -117,10 +117,10 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 1500,
         tipo: 'poupanca',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
-      const contas = db.getContas(usuario.id);
+      const contas = db.getContas();
 
       expect(contas).toHaveLength(2);
       expect(contas[0].nome).toBe('Conta 1'); // Ordenado por nome
@@ -133,7 +133,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 2000,
         tipo: 'investimento',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const found = db.getConta(created.id);
@@ -149,7 +149,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const updated = db.updateConta(conta.id, {
@@ -170,7 +170,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 500,
         tipo: 'carteira',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const deleted = db.deleteConta(conta.id);
@@ -194,7 +194,7 @@ describe('DatabaseManager - Testes Unitários', () => {
           saldo: 100,
           tipo,
           ativa: true,
-          usuario_id: usuario.id,
+          
         });
 
         expect(conta.tipo).toBe(tipo);
@@ -207,7 +207,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       const result = db.updateConta(conta.id, {
@@ -235,7 +235,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         tipo: 'receita',
         cor: '#4CAF50',
         icone: '💰',
-        usuario_id: usuario.id,
+        
       });
 
       expect(categoria).toBeDefined();
@@ -248,7 +248,7 @@ describe('DatabaseManager - Testes Unitários', () => {
       const categoria = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       expect(categoria).toBeDefined();
@@ -259,23 +259,23 @@ describe('DatabaseManager - Testes Unitários', () => {
       db.createCategoria({
         nome: 'Salário',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       db.createCategoria({
         nome: 'Freelance',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
-      const receitas = db.getCategorias(usuario.id, 'receita');
-      const despesas = db.getCategorias(usuario.id, 'despesa');
+      const receitas = db.getCategorias('receita');
+      const despesas = db.getCategorias('despesa');
 
       expect(receitas).toHaveLength(2);
       expect(despesas).toHaveLength(1);
@@ -285,16 +285,16 @@ describe('DatabaseManager - Testes Unitários', () => {
       db.createCategoria({
         nome: 'Cat 1',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       db.createCategoria({
         nome: 'Cat 2',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
-      const todas = db.getCategorias(usuario.id);
+      const todas = db.getCategorias();
       expect(todas).toHaveLength(2);
     });
 
@@ -302,7 +302,7 @@ describe('DatabaseManager - Testes Unitários', () => {
       const categoria = db.createCategoria({
         nome: 'Original',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       const updated = db.updateCategoria(categoria.id, {
@@ -321,7 +321,7 @@ describe('DatabaseManager - Testes Unitários', () => {
       const categoria = db.createCategoria({
         nome: 'Para Deletar',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
 
       const deleted = db.deleteCategoria(categoria.id);
@@ -335,14 +335,14 @@ describe('DatabaseManager - Testes Unitários', () => {
       db.createCategoria({
         nome: 'Duplicada',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       expect(() => {
         db.createCategoria({
           nome: 'Duplicada',
           tipo: 'receita',
-          usuario_id: usuario.id,
+          
         });
       }).toThrow();
     });
@@ -361,7 +361,7 @@ describe('DatabaseManager - Testes Unitários', () => {
       categoria = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
     });
 
@@ -371,7 +371,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id,
+        
       });
 
       expect(orcamento).toBeDefined();
@@ -386,7 +386,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id,
+        
       });
 
       db.createOrcamento({
@@ -394,11 +394,11 @@ describe('DatabaseManager - Testes Unitários', () => {
         valor_planejado: 1500,
         mes: 1,
         ano: 2025,
-        usuario_id: usuario.id,
+        
       });
 
-      const orcamentosDez = db.getOrcamentos(usuario.id, 12, 2024);
-      const orcamentosJan = db.getOrcamentos(usuario.id, 1, 2025);
+      const orcamentosDez = db.getOrcamentos(12, 2024);
+      const orcamentosJan = db.getOrcamentos(1, 2025);
 
       expect(orcamentosDez).toHaveLength(1);
       expect(orcamentosJan).toHaveLength(1);
@@ -411,7 +411,7 @@ describe('DatabaseManager - Testes Unitários', () => {
           valor_planejado: 1000,
           mes: 13, // Inválido
           ano: 2024,
-          usuario_id: usuario.id,
+          
         });
       }).toThrow();
 
@@ -421,7 +421,7 @@ describe('DatabaseManager - Testes Unitários', () => {
           valor_planejado: 1000,
           mes: 0, // Inválido
           ano: 2024,
-          usuario_id: usuario.id,
+          
         });
       }).toThrow();
     });
@@ -432,7 +432,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id,
+        
       });
 
       const updated = db.updateOrcamento(orcamento.id, {
@@ -451,7 +451,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         valor_planejado: 1000,
         mes: 12,
         ano: 2024,
-        usuario_id: usuario.id,
+        
       });
 
       const deleted = db.deleteOrcamento(orcamento.id);
@@ -480,19 +480,19 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 1000,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       categoriaReceita = db.createCategoria({
         nome: 'Salário',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       categoriaDespesa = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
     });
 
@@ -504,7 +504,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-01',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       expect(transacao).toBeDefined();
@@ -521,7 +521,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-15',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
         observacoes: 'Compras do mês',
       });
 
@@ -540,7 +540,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-20',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       const contaAtualizada = db.getConta(conta.id);
@@ -557,7 +557,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-20',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
       });
 
       const contaAtualizada = db.getConta(conta.id);
@@ -574,12 +574,12 @@ describe('DatabaseManager - Testes Unitários', () => {
           data: `2024-12-${String(i).padStart(2, '0')}`,
           conta_id: conta.id,
           categoria_id: i % 2 === 0 ? categoriaReceita.id : categoriaDespesa.id,
-          usuario_id: usuario.id,
+          
         });
       }
 
-      const todas = db.getTransacoes(usuario.id);
-      const limitadas = db.getTransacoes(usuario.id, 3);
+      const todas = db.getTransacoes();
+      const limitadas = db.getTransacoes(3);
 
       expect(todas.length).toBe(5);
       expect(limitadas.length).toBe(3);
@@ -593,10 +593,10 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
-      const transacoes = db.getTransacoes(usuario.id);
+      const transacoes = db.getTransacoes();
 
       expect(transacoes[0].conta_nome).toBe(conta.nome);
       expect(transacoes[0].categoria_nome).toBe(categoriaReceita.nome);
@@ -610,7 +610,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
       });
 
       const updated = db.updateTransacao(transacao.id, {
@@ -635,7 +635,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       // Saldo deve ter aumentado
@@ -660,7 +660,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-25',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
       });
 
       // Saldo deve ter diminuído
@@ -694,19 +694,19 @@ describe('DatabaseManager - Testes Unitários', () => {
         saldo: 0,
         tipo: 'corrente',
         ativa: true,
-        usuario_id: usuario.id,
+        
       });
 
       categoriaReceita = db.createCategoria({
         nome: 'Salário',
         tipo: 'receita',
-        usuario_id: usuario.id,
+        
       });
 
       categoriaDespesa = db.createCategoria({
         nome: 'Alimentação',
         tipo: 'despesa',
-        usuario_id: usuario.id,
+        
       });
     });
 
@@ -719,7 +719,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-01',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       db.createTransacao({
@@ -729,7 +729,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-15',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       // Criar despesas
@@ -740,7 +740,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-10',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
       });
 
       db.createTransacao({
@@ -750,10 +750,10 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-20',
         conta_id: conta.id,
         categoria_id: categoriaDespesa.id,
-        usuario_id: usuario.id,
+        
       });
 
-      const resumo = db.getResumoFinanceiro(usuario.id);
+      const resumo = db.getResumoFinanceiro();
 
       expect(resumo.receita).toBe(6500); // 5000 + 1500
       expect(resumo.despesa).toBe(1000); // 800 + 200
@@ -769,7 +769,7 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2024-12-15',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
       // Transações em janeiro
@@ -780,19 +780,19 @@ describe('DatabaseManager - Testes Unitários', () => {
         data: '2025-01-15',
         conta_id: conta.id,
         categoria_id: categoriaReceita.id,
-        usuario_id: usuario.id,
+        
       });
 
-      const resumoDez = db.getResumoFinanceiro(usuario.id, '2024-12-01', '2024-12-31');
+      const resumoDez = db.getResumoFinanceiro('2024-12-01', '2024-12-31');
 
-      const resumoJan = db.getResumoFinanceiro(usuario.id, '2025-01-01', '2025-01-31');
+      const resumoJan = db.getResumoFinanceiro('2025-01-01', '2025-01-31');
 
       expect(resumoDez.receita).toBe(5000);
       expect(resumoJan.receita).toBe(3000);
     });
 
     test('deve retornar zeros quando não há transações', () => {
-      const resumo = db.getResumoFinanceiro(usuario.id);
+      const resumo = db.getResumoFinanceiro();
 
       expect(resumo.receita).toBe(0);
       expect(resumo.despesa).toBe(0);

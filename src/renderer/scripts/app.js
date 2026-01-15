@@ -158,7 +158,7 @@ const DataManager = {
   async loadContas() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.conta.list(AppState.currentUser.id);
+    const response = await window.api.conta.list();
     if (response.success) {
       AppState.contas = response.data || [];
       console.log('Contas carregadas:', AppState.contas.length);
@@ -168,7 +168,7 @@ const DataManager = {
   async loadCategorias() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.categoria.list(AppState.currentUser.id);
+    const response = await window.api.categoria.list();
     if (response.success) {
       AppState.categorias = response.data || [];
       console.log('Categorias carregadas:', AppState.categorias.length);
@@ -178,7 +178,7 @@ const DataManager = {
   async loadOrcamentos() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.orcamento.list(AppState.currentUser.id);
+    const response = await window.api.orcamento.list();
     if (response.success) {
       AppState.orcamentos = response.data || [];
       console.log('Orçamentos carregados:', AppState.orcamentos.length);
@@ -188,7 +188,7 @@ const DataManager = {
   async loadTransacoes() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.transacao.list(AppState.currentUser.id);
+    const response = await window.api.transacao.list();
     if (response.success) {
       AppState.transacoes = response.data || [];
       console.log('Transações carregadas:', AppState.transacoes.length);
