@@ -20,9 +20,57 @@
     <link rel="stylesheet" href="styles/configurar.css">
     <link rel="stylesheet" href="styles/toast.css">
     <link rel="stylesheet" href="styles/import.css">
+    <link rel="stylesheet" href="styles/login.css">
 </head>
 <body>
-    <div class="app-container">
+    <!-- Tela de Autenticação -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <img src="assets/logo.ico" alt="GenFins Logo">
+                <h1>GenFins</h1>
+                <p>Gerenciador Financeiro</p>
+            </div>
+
+            <!-- Formulário de Login -->
+            <div id="loginForm" class="auth-form">
+                <h2>Entrar</h2>
+                <div class="form-group">
+                    <label for="loginNome">Nome de usuário</label>
+                    <input type="text" id="loginNome" placeholder="Digite seu nome" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="loginSenha">Senha</label>
+                    <input type="password" id="loginSenha" placeholder="Digite sua senha" autocomplete="current-password">
+                </div>
+                <div id="loginError" class="auth-error"></div>
+                <button id="btnLogin" class="auth-btn">Entrar</button>
+                <p class="auth-switch">Não tem conta? <a href="#" id="showRegister">Criar conta</a></p>
+            </div>
+
+            <!-- Formulário de Registro -->
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>Criar Conta</h2>
+                <div class="form-group">
+                    <label for="registerNome">Nome de usuário</label>
+                    <input type="text" id="registerNome" placeholder="Escolha um nome" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="registerSenha">Senha</label>
+                    <input type="password" id="registerSenha" placeholder="Crie uma senha (mín. 4 caracteres)" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmarSenha">Confirmar senha</label>
+                    <input type="password" id="registerConfirmarSenha" placeholder="Confirme sua senha" autocomplete="new-password">
+                </div>
+                <div id="registerError" class="auth-error"></div>
+                <button id="btnRegister" class="auth-btn">Criar Conta</button>
+                <p class="auth-switch">Já tem conta? <a href="#" id="showLogin">Entrar</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContainer" style="display: none;">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="app-header">
@@ -31,7 +79,7 @@
                 </div>
                 <div class="app-info">
                     <h1 class="app-name">GenFins</h1>
-                    <span class="app-version">v1.6.4</span>
+                    <span class="app-version">v1.8.0</span>
                 </div>
             </div>
 
@@ -66,6 +114,26 @@
         <main class="main-content">
             <header class="page-header">
                 <h1 class="page-title">Gerenciador Financeiro</h1>
+                <div class="header-actions">
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="userMenuBtn" title="Configurações do usuário">
+                            <span class="user-name" id="headerUserName">Usuário</span>
+                            <span class="user-icon">⚙️</span>
+                        </button>
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="dropdown-header">
+                                <span class="dropdown-user-name" id="dropdownUserName">Usuário</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" id="btnAlterarSenha">
+                                <span>🔑</span> Alterar senha
+                            </button>
+                            <button class="dropdown-item logout" id="btnLogout">
+                                <span>🚪</span> Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </header>
 
             <!-- Dashboard Page -->
@@ -1382,12 +1450,42 @@
         </div>
     </div>
 
+    <!-- Modal Alterar Senha -->
+    <div class="modal" id="modalAlterarSenha">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>Alterar Senha</h3>
+                <button class="modal-close" id="closeModalAlterarSenha">&times;</button>
+            </div>
+            <form id="formAlterarSenha">
+                <div class="form-group">
+                    <label for="senhaAtual">Senha atual</label>
+                    <input type="password" id="senhaAtual" placeholder="Digite sua senha atual" required>
+                </div>
+                <div class="form-group">
+                    <label for="novaSenha">Nova senha</label>
+                    <input type="password" id="novaSenha" placeholder="Digite a nova senha (mín. 4 caracteres)" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmarNovaSenha">Confirmar nova senha</label>
+                    <input type="password" id="confirmarNovaSenha" placeholder="Confirme a nova senha" required>
+                </div>
+                <div id="alterarSenhaError" class="form-error"></div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                    <button type="button" class="btn btn-secondary" id="cancelModalAlterarSenha">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-    
+
     <!-- Scripts -->
     <script src="../../node_modules/chart.js/dist/chart.umd.min.js"></script>
     <script src="scripts/eventBus.js"></script>
+    <script src="scripts/auth.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/navigation.js"></script>
     <script src="scripts/dashboard.js"></script>

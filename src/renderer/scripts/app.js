@@ -138,19 +138,19 @@ const Utils = {
 };
 
 const UserManager = {
-  async init() {
-    const defaultEmail = 'usuario@exemplo.com';
+  /**
+   * Define o usuário atual (chamado após login)
+   */
+  setUser(usuario) {
+    AppState.currentUser = usuario;
+    console.log('Usuário definido:', AppState.currentUser);
+  },
 
-    let response = await window.api.usuario.getByEmail(defaultEmail);
-
-    if (!response.success || !response.data) {
-      response = await window.api.usuario.create('Usuário Padrão', defaultEmail);
-    }
-
-    if (response.success && response.data) {
-      AppState.currentUser = response.data;
-      console.log('Usuário carregado:', AppState.currentUser);
-    }
+  /**
+   * Obtém o usuário atual
+   */
+  getUser() {
+    return AppState.currentUser;
   },
 };
 
@@ -158,7 +158,7 @@ const DataManager = {
   async loadContas() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.conta.list();
+    const response = await window.api.conta.list(AppState.currentUser.id);
     if (response.success) {
       AppState.contas = response.data || [];
       console.log('Contas carregadas:', AppState.contas.length);
@@ -168,7 +168,7 @@ const DataManager = {
   async loadCategorias() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.categoria.list();
+    const response = await window.api.categoria.list(AppState.currentUser.id);
     if (response.success) {
       AppState.categorias = response.data || [];
       console.log('Categorias carregadas:', AppState.categorias.length);
@@ -178,7 +178,7 @@ const DataManager = {
   async loadOrcamentos() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.orcamento.list();
+    const response = await window.api.orcamento.list(AppState.currentUser.id);
     if (response.success) {
       AppState.orcamentos = response.data || [];
       console.log('Orçamentos carregados:', AppState.orcamentos.length);
@@ -188,7 +188,7 @@ const DataManager = {
   async loadTransacoes() {
     if (!AppState.currentUser) return;
 
-    const response = await window.api.transacao.list();
+    const response = await window.api.transacao.list(AppState.currentUser.id);
     if (response.success) {
       AppState.transacoes = response.data || [];
       console.log('Transações carregadas:', AppState.transacoes.length);
@@ -203,11 +203,18 @@ const DataManager = {
   },
 };
 
-async function initApp() {
-  console.log('🚀 Inicializando aplicação...');
+/**
+ * Inicializa a aplicação após autenticação bem-sucedida
+ * Esta função é chamada pelo AuthManager após login/registro
+ */
+async function initAppAfterAuth(usuario) {
+  console.log('🚀 Inicializando aplicação após autenticação...');
 
   try {
-    await UserManager.init();
+    // Definir usuário
+    UserManager.setUser(usuario);
+
+    // Carregar dados
     await DataManager.loadAll();
 
     console.log('✅ Dados carregados');
@@ -246,14 +253,14 @@ async function initApp() {
     }
 
     console.log('🎉 Aplicação inicializada com sucesso!');
+
+    // Mostrar mensagem de boas-vindas
+    Utils.showSuccess(`Bem-vindo(a), ${usuario.nome}!`);
   } catch (error) {
     console.error('❌ Erro ao inicializar aplicação:', error);
+    Utils.showError('Erro ao carregar dados. Tente novamente.');
   }
 }
 
-// Iniciar quando o DOM estiver pronto
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
+// A aplicação não inicia automaticamente
+// O AuthManager controla quando chamar initAppAfterAuth

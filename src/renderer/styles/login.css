@@ -1,0 +1,161 @@
+/* src/renderer/styles/login.css */
+
+/* Tela de Autenticação */
+.auth-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, var(--sidebar-bg) 0%, var(--primary-dark) 100%);
+}
+
+.auth-container {
+  background: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  margin: 20px;
+}
+
+/* Logo */
+.auth-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-logo img {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 15px;
+}
+
+.auth-logo h1 {
+  font-size: 28px;
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.auth-logo p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Formulário */
+.auth-form h2 {
+  text-align: center;
+  font-size: 20px;
+  color: var(--text-primary);
+  margin-bottom: 25px;
+}
+
+.auth-form .form-group {
+  margin-bottom: 20px;
+}
+
+.auth-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-light);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(44, 95, 45, 0.1);
+}
+
+.auth-form input::placeholder {
+  color: #999;
+}
+
+/* Botão de Autenticação */
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-light);
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-top: 10px;
+}
+
+.auth-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.auth-btn:active {
+  transform: scale(0.98);
+}
+
+.auth-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Mensagem de Erro */
+.auth-error {
+  display: none;
+  background-color: #ffebee;
+  color: var(--danger-color);
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #ffcdd2;
+}
+
+/* Link para alternar formulários */
+.auth-switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.auth-switch a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 30px 25px;
+    margin: 15px;
+  }
+
+  .auth-logo img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .auth-logo h1 {
+    font-size: 24px;
+  }
+}

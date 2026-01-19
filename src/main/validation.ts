@@ -11,11 +11,11 @@ export const UsuarioCreateSchema = z.object({
 
 // Conta
 export const ContaCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   saldo: z.number().optional().default(0),
   tipo: z.enum(['corrente', 'poupanca', 'investimento', 'carteira']),
   ativa: z.boolean().optional().default(true),
-  usuario_id: z.number().int().positive('ID de usuário inválido'),
 });
 
 export const ContaUpdateSchema = z
@@ -24,7 +24,6 @@ export const ContaUpdateSchema = z
     saldo: z.number().optional(),
     tipo: z.enum(['corrente', 'poupanca', 'investimento', 'carteira']).optional(),
     ativa: z.boolean().optional(),
-    usuario_id: z.number().int().positive().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser atualizado',
@@ -32,11 +31,11 @@ export const ContaUpdateSchema = z
 
 // Categoria
 export const CategoriaCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   tipo: z.enum(['receita', 'despesa']),
   cor: z.string().max(50).optional(),
   icone: z.string().max(50).optional(),
-  usuario_id: z.number().int().positive('ID de usuário inválido'),
 });
 
 export const CategoriaUpdateSchema = z
@@ -45,7 +44,6 @@ export const CategoriaUpdateSchema = z
     tipo: z.enum(['receita', 'despesa']).optional(),
     cor: z.string().max(50).optional(),
     icone: z.string().max(50).optional(),
-    usuario_id: z.number().int().positive().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser atualizado',
@@ -53,11 +51,11 @@ export const CategoriaUpdateSchema = z
 
 // Orçamento
 export const OrcamentoCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
   categoria_id: z.number().int().positive('ID de categoria inválido'),
   valor_planejado: z.number().positive('Valor deve ser positivo'),
   mes: z.number().int().min(1, 'Mês inválido').max(12, 'Mês inválido'),
   ano: z.number().int().min(2000, 'Ano inválido').max(2100, 'Ano inválido'),
-  usuario_id: z.number().int().positive('ID de usuário inválido'),
 });
 
 export const OrcamentoUpdateSchema = z
@@ -66,7 +64,6 @@ export const OrcamentoUpdateSchema = z
     valor_planejado: z.number().positive().optional(),
     mes: z.number().int().min(1).max(12).optional(),
     ano: z.number().int().min(2000).max(2100).optional(),
-    usuario_id: z.number().int().positive().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser atualizado',
@@ -74,13 +71,13 @@ export const OrcamentoUpdateSchema = z
 
 // Transação
 export const TransacaoCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
   descricao: z.string().min(1, 'Descrição é obrigatória').max(255, 'Descrição muito longa'),
   valor: z.number().positive('Valor deve ser positivo').max(999999999, 'Valor muito alto'),
   tipo: z.enum(['receita', 'despesa']),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
   conta_id: z.number().int().positive('ID de conta inválido'),
   categoria_id: z.number().int().positive('ID de categoria inválido'),
-  usuario_id: z.number().int().positive('ID de usuário inválido'),
   observacoes: z.string().max(1000, 'Observações muito longas').optional(),
 });
 
@@ -95,7 +92,6 @@ export const TransacaoUpdateSchema = z
       .optional(),
     conta_id: z.number().int().positive().optional(),
     categoria_id: z.number().int().positive().optional(),
-    usuario_id: z.number().int().positive().optional(),
     observacoes: z.string().max(1000).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

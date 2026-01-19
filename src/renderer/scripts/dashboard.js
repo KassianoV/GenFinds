@@ -30,7 +30,9 @@ const DashboardPage = {
     const dataFim = ultimoDia.toISOString().split('T')[0];
 
     try {
-      const response = await window.api.relatorio.getResumo(dataInicio,
+      const response = await window.api.relatorio.getResumo(
+        AppState.currentUser.id,
+        dataInicio,
         dataFim
       );
 
@@ -224,21 +226,23 @@ const DashboardPage = {
     // Buscar e calcular gastos por cartão de crédito
     try {
       if (AppState.currentUser) {
-        const resultCartoes = await window.api.cartao.list();
+        const resultCartoes = await window.api.cartao.list(AppState.currentUser.id);
 
         if (resultCartoes.success && resultCartoes.data) {
           const cartoes = resultCartoes.data;
 
           // Para cada cartão, buscar transações do período
           for (const cartao of cartoes) {
-            const resultTransacoes = await window.api.transacaoCartao.list(cartao.id,
+            const resultTransacoes = await window.api.transacaoCartao.list(AppState.currentUser.id, cartao.id,
               mesAtual,
               anoAtual
             );
 
             if (resultTransacoes.success && resultTransacoes.data) {
               const transacoes = resultTransacoes.data;
-              const totalCartao = transacoes.reduce((sum, t) => sum + t.valor, 0);
+              const totalTransacoes = transacoes.reduce((sum, t) => sum + t.valor, 0);
+              // Somar valor inicial do cartão com as transações do mês
+              const totalCartao = (cartao.valor || 0) + totalTransacoes;
 
               gastosPorCartao[cartao.id] = {
                 id: cartao.id,

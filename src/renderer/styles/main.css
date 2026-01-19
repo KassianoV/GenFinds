@@ -50,6 +50,9 @@ body {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background-color: var(--bg-white);
   padding: 20px 30px;
   border-bottom: 1px solid var(--border-color);
@@ -60,7 +63,270 @@ body {
   font-size: 24px;
   font-weight: 600;
   color: var(--primary-color);
-  text-align: center;
+}
+
+/* User Menu */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-menu-btn:hover {
+  background: var(--border-color);
+}
+
+.user-menu-btn .user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-btn .user-icon {
+  font-size: 16px;
+}
+
+.user-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.user-dropdown.show {
+  display: block;
+}
+
+.dropdown-header {
+  padding: 12px 15px;
+  background: var(--bg-light);
+}
+
+.dropdown-user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-light);
+}
+
+.dropdown-item.logout {
+  color: var(--danger-color);
+}
+
+.dropdown-item.logout:hover {
+  background: #ffebee;
+}
+
+/* Form Error */
+.form-error {
+  display: none;
+  background-color: #ffebee;
+  color: var(--danger-color);
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  border: 1px solid #ffcdd2;
+}
+
+/* Modal Small */
+.modal-sm {
+  max-width: 400px;
+}
+
+/* Modal Alterar Senha - Estilos específicos */
+#modalAlterarSenha {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+#modalAlterarSenha .modal-content {
+  background-color: var(--bg-white);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#modalAlterarSenha .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#modalAlterarSenha .modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+#modalAlterarSenha .modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  line-height: 1;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+#modalAlterarSenha .modal-close:hover {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+#modalAlterarSenha form {
+  padding: 25px;
+}
+
+#modalAlterarSenha .form-group {
+  margin-bottom: 20px;
+}
+
+#modalAlterarSenha .form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+#modalAlterarSenha .form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-light);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#modalAlterarSenha .form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(44, 95, 45, 0.1);
+}
+
+#modalAlterarSenha .form-group input::placeholder {
+  color: #999;
+}
+
+#modalAlterarSenha .modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+#modalAlterarSenha .modal-actions .btn {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#modalAlterarSenha .modal-actions .btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+#modalAlterarSenha .modal-actions .btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+#modalAlterarSenha .modal-actions .btn-secondary {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+#modalAlterarSenha .modal-actions .btn-secondary:hover {
+  background-color: var(--border-color);
 }
 
 .page-content {

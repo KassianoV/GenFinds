@@ -5,21 +5,19 @@
   
   <p><strong>Sistema completo de gestão financeira pessoal desenvolvido com Electron</strong></p>
   
-  [![Version](https://img.shields.io/badge/version-1.6.2-blue.svg)](CHANGELOG.md)
+  [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](CHANGELOG.md)
   [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
   [![Electron](https://img.shields.io/badge/Electron-28.1.0-47848f.svg)](https://www.electronjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178c6.svg)](https://www.typescriptlang.org/)
   [![Tests](https://img.shields.io/badge/tests-92%20passing-success.svg)](package.json)
   [![Code Quality](https://img.shields.io/badge/code%20quality-ESLint%20%2B%20Prettier-blueviolet.svg)](eslint.config.mjs)
-  
-  <img src="assets/screenshot.png" alt="GenFins Screenshot" width="800"/>
-</div>
+
 
 ---
 
 ## 📑 Índice
 
-- [Destaques da Versão](#-destaques-da-versão-162)
+- [Destaques da Versão](#-destaques-da-versão-180)
 - [Funcionalidades](#-funcionalidades)
 - [Início Rápido](#-início-rápido)
 - [Build e Distribuição](#-build-e-distribuição)
@@ -40,15 +38,16 @@
 
 ---
 
-## ✨ Destaques da Versão 1.6.2
+## ✨ Destaques da Versão 1.8.0
 
-- 💳 **Gestão Completa de Cartões de Crédito** - Controle faturas, parcelas e lançamentos
+- 👥 **Suporte Multi-Usuário Completo** - Isolamento total de dados por usuário
+- 🔧 **Correção de Resumo Financeiro** - Valores agora somam corretamente no dashboard e relatórios
+- 💳 **Exibição de Valor de Cartões** - Valor inicial + transações do mês exibidos corretamente
+- 📋 **Categorias nos Dropdowns** - Categorias agora aparecem em todas as telas (transações, fatura, parcela)
+- 🔄 **Atualização Automática de Cards** - Cards de resumo atualizam após criar/editar/excluir transações
 - 📥 **Importação OFX** - Importe extratos bancários e faturas automaticamente
 - 🤖 **Categorização Automática** - Transações categorizadas inteligentemente
-- 📊 **Paginação Eficiente** - Navegue por milhares de transações sem lentidão
-- 🧪 **92 Testes Passando** - Qualidade de código garantida
 - 🔒 **Segurança Reforçada** - CSP, validação de dados e proteção contra SQL Injection
-- ⚡ **Performance Otimizada** - Debounce, queries otimizadas e lazy loading
 
 ---
 
@@ -169,7 +168,7 @@ npm run build:dir
 npm run build:all
 ```
 
-**📁 Saída:** `release/GenFins-1.6.2-Setup.exe` (Windows)
+**📁 Saída:** `release/GenFins-1.8.0-Setup.exe` (Windows)
 
 ### Versionamento e Changelog
 ```bash
@@ -368,7 +367,7 @@ Cartão → Fatura
 <details>
 <summary>📊 Dashboard</summary>
 
-![Dashboard](assets/screenshots/dashboard.png)
+![Dashboard](assets/screenshots/Dashboard.png)
 - Cards de resumo financeiro
 - Gráfico de evolução mensal
 - Orçamentos com progresso visual
@@ -463,13 +462,14 @@ Encontrou um bug? [Abra uma issue](https://github.com/KassianoV/GenFinds/issues)
 O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/) e utiliza [Conventional Commits](https://www.conventionalcommits.org/).
 
 **Versões Principais:**
-- **v1.6.2** (atual) - Melhorias de UX em cartões e relatórios
-- **v1.6.1** - Qualidade de código e automatização
+- **v1.8.0** (atual) - Suporte multi-usuário completo e correções de exibição de valores
+- **v1.7.0** - Correções de bugs do banco de dados
+- **v1.6.4** - Correção da lógica de cartões
+- **v1.6.3** - Correção de interação com fatura e parcela
+- **v1.6.2** - Melhorias de UX em cartões e relatórios
 - **v1.6.0** - Melhorias em gráficos e cards de resumo
 - **v1.5.0** - Paginação de transações e importação OFX
 - **v1.4.0** - Correções críticas de segurança e performance
-- **v1.3.0** - Sistema de importação de extrato bancário
-- **v1.2.0** - Correções de segurança e melhorias
 - **v1.0.0** - Lançamento inicial
 
 Veja o [Changelog completo](CHANGELOG.md) para todos os detalhes.
@@ -478,15 +478,18 @@ Veja o [Changelog completo](CHANGELOG.md) para todos os detalhes.
 
 ## 📊 Status do Projeto
 ```
+✅ Suporte multi-usuário com isolamento de dados
 ✅ Dashboard completo com gastos de cartões
-✅ CRUD de todas entidades
+✅ CRUD de todas entidades com usuario_id
 ✅ Sistema de filtros avançados com debounce
 ✅ Paginação de transações
 ✅ Exportar/Importar CSV e OFX
 ✅ Gestão completa de cartões de crédito
+✅ Exibição correta de valores (inicial + transações)
 ✅ Lançamento de compras parceladas
 ✅ Importação de faturas OFX
 ✅ Categorização automática
+✅ Categorias funcionando em todos os dropdowns
 ✅ Sistema de testes (92 testes passando)
 ✅ ESLint + Prettier configurados
 ✅ Content Security Policy

@@ -198,10 +198,26 @@ const ConfigurarPage = {
       return;
     }
 
+    const nome = document.getElementById('contaNome')?.value?.trim() || '';
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome da conta');
+      return;
+    }
+
+    const tipo = document.getElementById('contaTipo')?.value || '';
+    if (!tipo) {
+      Utils.showWarning('Por favor, selecione o tipo da conta');
+      return;
+    }
+
+    const saldoValue = document.getElementById('contaSaldo')?.value || '0';
+    const saldo = parseFloat(saldoValue) || 0;
+
     const formData = {
-      nome: document.getElementById('contaNome').value,
-      saldo: parseFloat(document.getElementById('contaSaldo').value),
-      tipo: document.getElementById('contaTipo').value,
+      usuario_id: AppState.currentUser.id,
+      nome: nome,
+      saldo: isNaN(saldo) ? 0 : saldo,
+      tipo: tipo,
       ativa: true
     };
 
@@ -225,15 +241,35 @@ const ConfigurarPage = {
   async handleEditContaSubmit(e) {
     e.preventDefault();
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     const id = parseInt(document.getElementById('editContaId').value);
+    const nome = document.getElementById('editContaNome').value.trim();
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome da conta');
+      return;
+    }
+
+    const tipo = document.getElementById('editContaTipo').value;
+    if (!tipo) {
+      Utils.showWarning('Por favor, selecione o tipo da conta');
+      return;
+    }
+
+    const saldoValue = document.getElementById('editContaSaldo').value;
+    const saldo = saldoValue ? parseFloat(saldoValue) : 0;
+
     const updates = {
-      nome: document.getElementById('editContaNome').value,
-      saldo: parseFloat(document.getElementById('editContaSaldo').value),
-      tipo: document.getElementById('editContaTipo').value,
+      nome: nome,
+      saldo: isNaN(saldo) ? 0 : saldo,
+      tipo: tipo,
     };
 
     try {
-      const response = await window.api.conta.update(id, updates);
+      const response = await window.api.conta.update(id, AppState.currentUser.id, updates);
 
       if (response.success) {
         Utils.showSuccess('Conta atualizada com sucesso!');
@@ -259,8 +295,13 @@ const ConfigurarPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     try {
-      const response = await window.api.conta.delete(id);
+      const response = await window.api.conta.delete(id, AppState.currentUser.id);
 
       if (response.success) {
         Utils.showSuccess('Conta excluída com sucesso!');
@@ -353,10 +394,23 @@ const ConfigurarPage = {
       return;
     }
 
+    const nome = document.getElementById('categoriaNome').value.trim();
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome da categoria');
+      return;
+    }
+
+    const tipo = document.getElementById('categoriaTipo').value;
+    if (!tipo) {
+      Utils.showWarning('Por favor, selecione o tipo da categoria');
+      return;
+    }
+
     const formData = {
-      nome: document.getElementById('categoriaNome').value,
-      tipo: document.getElementById('categoriaTipo').value,
-      cor: document.getElementById('categoriaCor').value
+      usuario_id: AppState.currentUser.id,
+      nome: nome,
+      tipo: tipo,
+      cor: document.getElementById('categoriaCor').value || '#4CAF50'
     };
 
     try {
@@ -379,15 +433,32 @@ const ConfigurarPage = {
   async handleEditCategoriaSubmit(e) {
     e.preventDefault();
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     const id = parseInt(document.getElementById('editCategoriaId').value);
+    const nome = document.getElementById('editCategoriaNome').value.trim();
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome da categoria');
+      return;
+    }
+
+    const tipo = document.getElementById('editCategoriaTipo').value;
+    if (!tipo) {
+      Utils.showWarning('Por favor, selecione o tipo da categoria');
+      return;
+    }
+
     const updates = {
-      nome: document.getElementById('editCategoriaNome').value,
-      tipo: document.getElementById('editCategoriaTipo').value,
-      cor: document.getElementById('editCategoriaCor').value,
+      nome: nome,
+      tipo: tipo,
+      cor: document.getElementById('editCategoriaCor').value || '#4CAF50',
     };
 
     try {
-      const response = await window.api.categoria.update(id, updates);
+      const response = await window.api.categoria.update(id, AppState.currentUser.id, updates);
 
       if (response.success) {
         Utils.showSuccess('Categoria atualizada com sucesso!');
@@ -408,8 +479,13 @@ const ConfigurarPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     try {
-      const response = await window.api.categoria.delete(id);
+      const response = await window.api.categoria.delete(id, AppState.currentUser.id);
 
       if (response.success) {
         Utils.showSuccess('Categoria excluída com sucesso!');
@@ -539,6 +615,7 @@ const ConfigurarPage = {
     }
 
     const formData = {
+      usuario_id: AppState.currentUser.id,
       categoria_id: parseInt(document.getElementById('orcamentoCategoria').value),
       valor_planejado: parseFloat(document.getElementById('orcamentoValor').value),
       mes: parseInt(document.getElementById('orcamentoMes').value),
@@ -565,6 +642,11 @@ const ConfigurarPage = {
   async handleEditOrcamentoSubmit(e) {
     e.preventDefault();
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     const id = parseInt(document.getElementById('editOrcamentoId').value);
     const updates = {
       categoria_id: parseInt(document.getElementById('editOrcamentoCategoria').value),
@@ -574,7 +656,7 @@ const ConfigurarPage = {
     };
 
     try {
-      const response = await window.api.orcamento.update(id, updates);
+      const response = await window.api.orcamento.update(id, AppState.currentUser.id, updates);
 
       if (response.success) {
         Utils.showSuccess('Orçamento atualizado com sucesso!');
@@ -600,8 +682,13 @@ const ConfigurarPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     try {
-      const response = await window.api.orcamento.delete(id);
+      const response = await window.api.orcamento.delete(id, AppState.currentUser.id);
 
       if (response.success) {
         Utils.showSuccess('Orçamento excluído com sucesso!');

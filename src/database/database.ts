@@ -4,6 +4,7 @@ import initSqlJs, { Database, QueryExecResult, SqlValue } from 'sql.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
+import * as bcrypt from 'bcrypt';
 import {
   Usuario,
   Conta,
@@ -51,10 +52,6 @@ export class DatabaseManager {
     }
 
     this.initDatabase();
-
-    // Garantir que existe um usuário padrão
-    this.ensureDefaultUser();
-
     this.save();
   }
 
@@ -84,45 +81,73 @@ export class DatabaseManager {
     this.db.run(`
       CREATE TABLE IF NOT EXISTS contas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         saldo REAL DEFAULT 0,
         tipo TEXT CHECK(tipo IN ('corrente', 'poupanca', 'investimento', 'carteira')) NOT NULL,
         ativa BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em contas se não existir
+    try {
+      this.db.run(`ALTER TABLE contas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     this.db.run(`
       CREATE TABLE IF NOT EXISTS categorias (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         tipo TEXT CHECK(tipo IN ('receita', 'despesa')) NOT NULL,
         cor TEXT,
         icone TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(nome, tipo)
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        UNIQUE(usuario_id, nome, tipo)
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em categorias se não existir
+    try {
+      this.db.run(`ALTER TABLE categorias ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     this.db.run(`
       CREATE TABLE IF NOT EXISTS orcamentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         categoria_id INTEGER NOT NULL,
         valor_planejado REAL NOT NULL,
         mes INTEGER CHECK(mes BETWEEN 1 AND 12) NOT NULL,
         ano INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
         FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
-        UNIQUE(categoria_id, mes, ano)
+        UNIQUE(usuario_id, categoria_id, mes, ano)
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em orcamentos se não existir
+    try {
+      this.db.run(`ALTER TABLE orcamentos ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         descricao TEXT NOT NULL,
         valor REAL NOT NULL,
         tipo TEXT CHECK(tipo IN ('receita', 'despesa')) NOT NULL,
@@ -132,30 +157,49 @@ export class DatabaseManager {
         observacoes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
         FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE,
         FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
       )
     `);
 
+    // Migração: adicionar coluna usuario_id em transacoes se não existir
+    try {
+      this.db.run(`ALTER TABLE transacoes ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
+
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)`);
 
     // Tabela de Cartões de Crédito
     this.db.run(`
       CREATE TABLE IF NOT EXISTS cartoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         valor REAL DEFAULT 0,
         vencimento INTEGER CHECK(vencimento BETWEEN 1 AND 31) NOT NULL,
         status TEXT CHECK(status IN ('aberta', 'fechada', 'paga', 'pendente')) DEFAULT 'aberta',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em cartoes se não existir
+    try {
+      this.db.run(`ALTER TABLE cartoes ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     // Tabela de Parcelas
     this.db.run(`
       CREATE TABLE IF NOT EXISTS parcelas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         descricao TEXT NOT NULL,
         dia INTEGER CHECK(dia BETWEEN 1 AND 31) NOT NULL,
         cartao_id INTEGER NOT NULL,
@@ -164,14 +208,23 @@ export class DatabaseManager {
         total REAL NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
         FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em parcelas se não existir
+    try {
+      this.db.run(`ALTER TABLE parcelas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     // Tabela de Transações de Cartão
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transacoes_cartao (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
         descricao TEXT NOT NULL,
         valor REAL NOT NULL,
         data DATE NOT NULL,
@@ -183,10 +236,18 @@ export class DatabaseManager {
         observacoes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
         FOREIGN KEY (cartao_id) REFERENCES cartoes(id) ON DELETE CASCADE,
         FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL
       )
     `);
+
+    // Migração: adicionar coluna usuario_id em transacoes_cartao se não existir
+    try {
+      this.db.run(`ALTER TABLE transacoes_cartao ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE`);
+    } catch (error) {
+      // Coluna já existe, ignorar erro
+    }
 
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_data ON transacoes_cartao(data)`);
     this.db.run(
@@ -195,6 +256,19 @@ export class DatabaseManager {
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_grupo ON transacoes_cartao(grupo_parcelamento)`
     );
+
+    // ========== ÍNDICES ADICIONAIS PARA PERFORMANCE ==========
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_orcamentos_usuario ON orcamentos(usuario_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_orcamentos_categoria ON orcamentos(categoria_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_orcamentos_mes_ano ON orcamentos(mes, ano)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_categorias_usuario ON categorias(usuario_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_categorias_tipo ON categorias(tipo)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_contas_usuario ON contas(usuario_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_cartoes_usuario ON cartoes(usuario_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_usuario ON transacoes_cartao(usuario_id)`);
+
+    // ========== MIGRAÇÃO DE DADOS EXISTENTES ==========
+    this.runMigrations();
 
     // ========== TRIGGERS PARA GESTÃO AUTOMÁTICA DE SALDO ==========
 
@@ -368,6 +442,65 @@ export class DatabaseManager {
     this.cache.clear();
   }
 
+  // ========== MIGRAÇÃO DE DADOS ==========
+
+  /**
+   * Executa migrações para garantir que dados existentes tenham usuario_id preenchido.
+   * Preenche usuario_id NULL com o primeiro usuário do sistema.
+   */
+  private runMigrations(): void {
+    // Verificar se existe algum usuário no sistema
+    const usuarioResult = this.db.exec('SELECT id FROM usuarios LIMIT 1');
+    if (usuarioResult.length === 0 || usuarioResult[0].values.length === 0) {
+      // Não há usuários, não há o que migrar
+      return;
+    }
+
+    const usuarioPadraoId = Number(usuarioResult[0].values[0][0]);
+
+    // Migrar contas sem usuario_id
+    this.db.run(
+      'UPDATE contas SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar categorias sem usuario_id
+    this.db.run(
+      'UPDATE categorias SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar transacoes sem usuario_id
+    this.db.run(
+      'UPDATE transacoes SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar orcamentos sem usuario_id
+    this.db.run(
+      'UPDATE orcamentos SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar cartoes sem usuario_id
+    this.db.run(
+      'UPDATE cartoes SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar parcelas sem usuario_id
+    this.db.run(
+      'UPDATE parcelas SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+
+    // Migrar transacoes_cartao sem usuario_id
+    this.db.run(
+      'UPDATE transacoes_cartao SET usuario_id = ? WHERE usuario_id IS NULL',
+      [usuarioPadraoId]
+    );
+  }
+
   // ========== MÉTODOS DE TRANSAÇÃO SQL ==========
 
   /**
@@ -464,6 +597,150 @@ export class DatabaseManager {
     return this.rowToUsuario(result[0]);
   }
 
+  /**
+   * Busca usuário pelo nome
+   */
+  getUsuarioByNome(nome: string): Usuario | undefined {
+    const result = this.db.exec('SELECT * FROM usuarios WHERE nome = ?', [nome]);
+    if (result.length === 0 || result[0].values.length === 0) return undefined;
+    return this.rowToUsuario(result[0]);
+  }
+
+  /**
+   * Verifica se existe algum usuário cadastrado no sistema
+   */
+  existeUsuarioCadastrado(): boolean {
+    const result = this.db.exec('SELECT COUNT(*) as count FROM usuarios');
+    if (result.length === 0 || result[0].values.length === 0) return false;
+    const count = Number(result[0].values[0][0]);
+    return count > 0;
+  }
+
+  /**
+   * Cria um novo usuário com senha hasheada
+   */
+  createUsuarioComSenha(nome: string, senha: string): Usuario {
+    // Validações
+    if (!nome || nome.trim() === '') {
+      throw new Error('Nome é obrigatório');
+    }
+    if (!senha || senha.length < 4) {
+      throw new Error('Senha deve ter pelo menos 4 caracteres');
+    }
+
+    // Verificar se já existe usuário com esse nome
+    const existente = this.getUsuarioByNome(nome.trim());
+    if (existente) {
+      throw new Error('Já existe um usuário com esse nome');
+    }
+
+    // Hash da senha com bcrypt
+    const saltRounds = 10;
+    const passwordHash = bcrypt.hashSync(senha, saltRounds);
+
+    // Usar nome como email para simplificar (email é unique no banco)
+    const email = `${nome.trim().toLowerCase().replace(/\s+/g, '.')}@local`;
+
+    this.db.run(
+      'INSERT INTO usuarios (nome, email, password_hash) VALUES (?, ?, ?)',
+      [nome.trim(), email, passwordHash]
+    );
+    this.save();
+
+    return this.getUsuarioByNome(nome.trim())!;
+  }
+
+  /**
+   * Autentica um usuário verificando nome e senha
+   */
+  autenticarUsuario(nome: string, senha: string): Usuario | null {
+    if (!nome || !senha) {
+      return null;
+    }
+
+    const usuario = this.getUsuarioByNome(nome.trim());
+    if (!usuario) {
+      return null;
+    }
+
+    // Buscar o hash da senha do banco
+    const result = this.db.exec(
+      'SELECT password_hash FROM usuarios WHERE nome = ?',
+      [nome.trim()]
+    );
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      return null;
+    }
+
+    const passwordHash = result[0].values[0][0] as string | null;
+
+    // Se não tem senha, não pode autenticar
+    if (!passwordHash) {
+      return null;
+    }
+
+    // Verificar senha com bcrypt
+    const senhaValida = bcrypt.compareSync(senha, passwordHash);
+
+    if (!senhaValida) {
+      return null;
+    }
+
+    return usuario;
+  }
+
+  /**
+   * Altera a senha de um usuário
+   */
+  alterarSenha(usuarioId: number, senhaAtual: string, novaSenha: string): boolean {
+    // Buscar usuário
+    const usuario = this.getUsuario(usuarioId);
+    if (!usuario) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Verificar senha atual
+    const result = this.db.exec(
+      'SELECT password_hash FROM usuarios WHERE id = ?',
+      [usuarioId]
+    );
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const passwordHash = result[0].values[0][0] as string | null;
+
+    if (!passwordHash) {
+      throw new Error('Usuário sem senha cadastrada');
+    }
+
+    // Verificar se senha atual está correta
+    const senhaValida = bcrypt.compareSync(senhaAtual, passwordHash);
+    if (!senhaValida) {
+      throw new Error('Senha atual incorreta');
+    }
+
+    // Validar nova senha
+    if (!novaSenha || novaSenha.length < 4) {
+      throw new Error('Nova senha deve ter pelo menos 4 caracteres');
+    }
+
+    // Hash da nova senha
+    const saltRounds = 10;
+    const novoHash = bcrypt.hashSync(novaSenha, saltRounds);
+
+    // Atualizar no banco
+    this.db.run(
+      'UPDATE usuarios SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [novoHash, usuarioId]
+    );
+    this.save();
+
+    return true;
+  }
+
   private rowToUsuario(result: QueryExecResult): Usuario {
     const row = result.values[0];
     const cols = result.columns;
@@ -481,31 +758,34 @@ export class DatabaseManager {
 
   createConta(conta: Omit<Conta, 'id' | 'created_at' | 'updated_at'>): Conta {
     // Validações de campos obrigatórios
+    if (!conta.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
     if (!conta.nome || conta.nome.trim() === '') {
       throw new Error('Nome da conta é obrigatório');
     }
 
     this.db.run(
-      'INSERT INTO contas (nome, saldo, tipo, ativa) VALUES (?, ?, ?, ?)',
-      [conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0]
+      'INSERT INTO contas (usuario_id, nome, saldo, tipo, ativa) VALUES (?, ?, ?, ?, ?)',
+      [conta.usuario_id, conta.nome, conta.saldo, conta.tipo, conta.ativa ? 1 : 0]
     );
     this.save();
 
     // Invalidar cache de contas
-    this.invalidateCache(`contas`);
+    this.invalidateCache(`contas_${conta.usuario_id}`);
 
     const result = this.db.exec('SELECT * FROM contas ORDER BY id DESC LIMIT 1');
     return this.rowToConta(result[0]);
   }
 
-  getContas(): Conta[] {
+  getContas(usuarioId: number): Conta[] {
     // Tentar buscar do cache
-    const cacheKey = `contas`;
+    const cacheKey = `contas_${usuarioId}`;
     const cached = this.getCached<Conta[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    const result = this.db.exec('SELECT * FROM contas ORDER BY nome');
+    const result = this.db.exec('SELECT * FROM contas WHERE usuario_id = ? ORDER BY nome', [usuarioId]);
     const data =
       result.length === 0
         ? []
@@ -519,17 +799,17 @@ export class DatabaseManager {
     return data;
   }
 
-  getConta(id: number): Conta | undefined {
-    const result = this.db.exec('SELECT * FROM contas WHERE id = ?', [id]);
+  getConta(id: number, usuarioId: number): Conta | undefined {
+    const result = this.db.exec('SELECT * FROM contas WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToConta(result[0]);
   }
 
-  updateConta(id: number, updates: Partial<Conta>): boolean {
+  updateConta(id: number, usuarioId: number, updates: Partial<Conta>): boolean {
     const allowedFields = ['nome', 'saldo', 'tipo', 'ativa'];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -539,24 +819,25 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(`UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+    this.db.run(`UPDATE contas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
       ...values,
       id,
+      usuarioId,
     ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de contas
-    this.invalidateCache('contas');
+    this.invalidateCache(`contas_${usuarioId}`);
 
     return true;
   }
 
-  deleteConta(id: number): boolean {
-    this.db.run('DELETE FROM contas WHERE id = ?', [id]);
+  deleteConta(id: number, usuarioId: number): boolean {
+    this.db.run('DELETE FROM contas WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
 
     // Invalidar cache de contas
-    this.invalidateCache('contas');
+    this.invalidateCache(`contas_${usuarioId}`);
 
     return true;
   }
@@ -569,6 +850,7 @@ export class DatabaseManager {
   private rowToContaFromArray(row: SqlValue[], cols: string[]): Conta {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       nome: String(row[cols.indexOf('nome')]),
       saldo: Number(row[cols.indexOf('saldo')]),
       tipo: String(row[cols.indexOf('tipo')]) as
@@ -586,6 +868,9 @@ export class DatabaseManager {
 
   createCartao(cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>): Cartao {
     // Validações de campos obrigatórios
+    if (!cartao.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
     if (!cartao.nome || cartao.nome.trim() === '') {
       throw new Error('Nome do cartão é obrigatório');
     }
@@ -594,26 +879,26 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO cartoes (nome, valor, vencimento, status) VALUES (?, ?, ?, ?)',
-      [cartao.nome, cartao.valor, cartao.vencimento, cartao.status]
+      'INSERT INTO cartoes (usuario_id, nome, valor, vencimento, status) VALUES (?, ?, ?, ?, ?)',
+      [cartao.usuario_id, cartao.nome, cartao.valor, cartao.vencimento, cartao.status]
     );
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache(`cartoes`);
+    this.invalidateCache(`cartoes_${cartao.usuario_id}`);
 
     const result = this.db.exec('SELECT * FROM cartoes ORDER BY id DESC LIMIT 1');
     return this.rowToCartao(result[0]);
   }
 
-  getCartoes(): Cartao[] {
+  getCartoes(usuarioId: number): Cartao[] {
     // Tentar buscar do cache
-    const cacheKey = `cartoes`;
+    const cacheKey = `cartoes_${usuarioId}`;
     const cached = this.getCached<Cartao[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    const result = this.db.exec('SELECT * FROM cartoes ORDER BY nome');
+    const result = this.db.exec('SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY nome', [usuarioId]);
     const data =
       result.length === 0
         ? []
@@ -627,17 +912,17 @@ export class DatabaseManager {
     return data;
   }
 
-  getCartao(id: number): Cartao | undefined {
-    const result = this.db.exec('SELECT * FROM cartoes WHERE id = ?', [id]);
+  getCartao(id: number, usuarioId: number): Cartao | undefined {
+    const result = this.db.exec('SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToCartao(result[0]);
   }
 
-  updateCartao(id: number, updates: Partial<Cartao>): boolean {
+  updateCartao(id: number, usuarioId: number, updates: Partial<Cartao>): boolean {
     const allowedFields = ['nome', 'valor', 'vencimento', 'status'];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -647,24 +932,25 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(`UPDATE cartoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+    this.db.run(`UPDATE cartoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
       ...values,
       id,
+      usuarioId,
     ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache('cartoes');
+    this.invalidateCache(`cartoes_${usuarioId}`);
 
     return true;
   }
 
-  deleteCartao(id: number): boolean {
-    this.db.run('DELETE FROM cartoes WHERE id = ?', [id]);
+  deleteCartao(id: number, usuarioId: number): boolean {
+    this.db.run('DELETE FROM cartoes WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache('cartoes');
+    this.invalidateCache(`cartoes_${usuarioId}`);
 
     return true;
   }
@@ -677,6 +963,7 @@ export class DatabaseManager {
   private rowToCartaoFromArray(row: SqlValue[], cols: string[]): Cartao {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       nome: String(row[cols.indexOf('nome')]),
       valor: Number(row[cols.indexOf('valor')]),
       vencimento: Number(row[cols.indexOf('vencimento')]),
@@ -687,11 +974,11 @@ export class DatabaseManager {
   }
 
   // Recalcular valor total do cartão baseado em todas as suas transações
-  recalcularValorCartao(cartaoId: number): void {
+  recalcularValorCartao(cartaoId: number, usuarioId: number): void {
     // Buscar todas as transações do cartão
     const result = this.db.exec(
-      'SELECT SUM(valor) as total FROM transacoes_cartao WHERE cartao_id = ?',
-      [cartaoId]
+      'SELECT SUM(valor) as total FROM transacoes_cartao WHERE cartao_id = ? AND usuario_id = ?',
+      [cartaoId, usuarioId]
     );
 
     let valorTotal = 0;
@@ -702,19 +989,22 @@ export class DatabaseManager {
 
     // Atualizar o valor do cartão
     this.db.run(
-      'UPDATE cartoes SET valor = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [valorTotal, cartaoId]
+      'UPDATE cartoes SET valor = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?',
+      [valorTotal, cartaoId, usuarioId]
     );
     this.save();
 
     // Invalidar cache de cartões
-    this.invalidateCache('cartoes:');
+    this.invalidateCache(`cartoes_${usuarioId}`);
   }
 
   // ========== MÉTODOS DE PARCELA ==========
 
   createParcela(parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>): Parcela {
     // Validações de campos obrigatórios
+    if (!parcela.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
     if (!parcela.descricao || parcela.descricao.trim() === '') {
       throw new Error('Descrição é obrigatória');
     }
@@ -726,8 +1016,9 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO parcelas (descricao, dia, cartao_id, valor_parcela, quantidade_parcelas, total) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO parcelas (usuario_id, descricao, dia, cartao_id, valor_parcela, quantidade_parcelas, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
+        parcela.usuario_id,
         parcela.descricao,
         parcela.dia,
         parcela.cartao_id,
@@ -739,21 +1030,22 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache(`parcelas`);
+    this.invalidateCache(`parcelas_${parcela.usuario_id}`);
 
     const result = this.db.exec('SELECT * FROM parcelas ORDER BY id DESC LIMIT 1');
     return this.rowToParcela(result[0]);
   }
 
-  getParcelas(): Parcela[] {
+  getParcelas(usuarioId: number): Parcela[] {
     // Tentar buscar do cache
-    const cacheKey = `parcelas`;
+    const cacheKey = `parcelas_${usuarioId}`;
     const cached = this.getCached<Parcela[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
     const result = this.db.exec(
-      'SELECT * FROM parcelas ORDER BY created_at DESC'
+      'SELECT * FROM parcelas WHERE usuario_id = ? ORDER BY created_at DESC',
+      [usuarioId]
     );
     const data =
       result.length === 0
@@ -768,13 +1060,13 @@ export class DatabaseManager {
     return data;
   }
 
-  getParcela(id: number): Parcela | undefined {
-    const result = this.db.exec('SELECT * FROM parcelas WHERE id = ?', [id]);
+  getParcela(id: number, usuarioId: number): Parcela | undefined {
+    const result = this.db.exec('SELECT * FROM parcelas WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToParcela(result[0]);
   }
 
-  updateParcela(id: number, updates: Partial<Parcela>): boolean {
+  updateParcela(id: number, usuarioId: number, updates: Partial<Parcela>): boolean {
     const allowedFields = [
       'descricao',
       'dia',
@@ -785,7 +1077,7 @@ export class DatabaseManager {
     ];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -795,24 +1087,25 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(`UPDATE parcelas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+    this.db.run(`UPDATE parcelas SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
       ...values,
       id,
+      usuarioId,
     ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache('parcelas');
+    this.invalidateCache(`parcelas_${usuarioId}`);
 
     return true;
   }
 
-  deleteParcela(id: number): boolean {
-    this.db.run('DELETE FROM parcelas WHERE id = ?', [id]);
+  deleteParcela(id: number, usuarioId: number): boolean {
+    this.db.run('DELETE FROM parcelas WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
 
     // Invalidar cache de parcelas
-    this.invalidateCache('parcelas');
+    this.invalidateCache(`parcelas_${usuarioId}`);
 
     return true;
   }
@@ -825,6 +1118,7 @@ export class DatabaseManager {
   private rowToParcelaFromArray(row: SqlValue[], cols: string[]): Parcela {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       descricao: String(row[cols.indexOf('descricao')]),
       dia: Number(row[cols.indexOf('dia')]),
       cartao_id: Number(row[cols.indexOf('cartao_id')]),
@@ -842,6 +1136,9 @@ export class DatabaseManager {
     transacao: Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>
   ): TransacaoCartao {
     // Validações
+    if (!transacao.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
     if (!transacao.descricao || transacao.descricao.trim() === '') {
       throw new Error('Descrição é obrigatória');
     }
@@ -853,10 +1150,11 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      `INSERT INTO transacoes_cartao (descricao, valor, data, cartao_id, categoria_id,
+      `INSERT INTO transacoes_cartao (usuario_id, descricao, valor, data, cartao_id, categoria_id,
        parcelas, parcela_atual, grupo_parcelamento, observacoes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        transacao.usuario_id,
         transacao.descricao,
         transacao.valor,
         transacao.data,
@@ -872,11 +1170,11 @@ export class DatabaseManager {
     this.save();
 
     // Recalcular valor total do cartão
-    this.recalcularValorCartao(transacao.cartao_id);
+    this.recalcularValorCartao(transacao.cartao_id, transacao.usuario_id);
 
     // Invalidar cache
-    this.invalidateCache(`cartoes`);
-    this.invalidateCache(`transacoes_cartao`);
+    this.invalidateCache(`cartoes_${transacao.usuario_id}`);
+    this.invalidateCache(`transacoes_cartao_${transacao.usuario_id}`);
 
     const result = this.db.exec('SELECT * FROM transacoes_cartao ORDER BY id DESC LIMIT 1');
     return this.rowToTransacaoCartao(result[0]);
@@ -889,6 +1187,11 @@ export class DatabaseManager {
     >,
     numeroParcelas: number
   ): TransacaoCartao[] {
+    // Validação de campos obrigatórios
+    if (!transacao.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
+
     const grupoId = `parcela-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const valorParcela = transacao.valor / numeroParcelas;
 
@@ -898,7 +1201,7 @@ export class DatabaseManager {
     const transacoesCriadas: TransacaoCartao[] = [];
 
     // Buscar dados do cartão para obter o dia de vencimento
-    const cartao = this.getCartao(transacao.cartao_id);
+    const cartao = this.getCartao(transacao.cartao_id, transacao.usuario_id);
     if (!cartao) {
       throw new Error('Cartão não encontrado');
     }
@@ -1019,11 +1322,12 @@ export class DatabaseManager {
   }
 
   getTransacoesCartao(
+    usuarioId: number,
     cartaoId?: number,
     mes?: number,
     ano?: number
   ): TransacaoCartaoCompleta[] {
-    const cacheKey = `transacoes_cartao:${cartaoId || 'all'}:${mes || 'all'}:${ano || 'all'}`;
+    const cacheKey = `transacoes_cartao_${usuarioId}:${cartaoId || 'all'}:${mes || 'all'}:${ano || 'all'}`;
 
     // Tentar buscar do cache
     const cached = this.getCached<TransacaoCartaoCompleta[]>(cacheKey);
@@ -1039,10 +1343,10 @@ export class DatabaseManager {
       FROM transacoes_cartao tc
       JOIN cartoes c ON tc.cartao_id = c.id
       LEFT JOIN categorias cat ON tc.categoria_id = cat.id
-      WHERE 1=1
+      WHERE tc.usuario_id = ?
     `;
 
-    const params: SqlValue[] = [];
+    const params: SqlValue[] = [usuarioId];
 
     if (cartaoId) {
       query += ' AND tc.cartao_id = ?';
@@ -1093,13 +1397,13 @@ export class DatabaseManager {
     return data;
   }
 
-  getTransacaoCartao(id: number): TransacaoCartao | undefined {
-    const result = this.db.exec('SELECT * FROM transacoes_cartao WHERE id = ?', [id]);
+  getTransacaoCartao(id: number, usuarioId: number): TransacaoCartao | undefined {
+    const result = this.db.exec('SELECT * FROM transacoes_cartao WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToTransacaoCartao(result[0]);
   }
 
-  updateTransacaoCartao(id: number, updates: Partial<TransacaoCartao>): boolean {
+  updateTransacaoCartao(id: number, usuarioId: number, updates: Partial<TransacaoCartao>): boolean {
     const allowedFields = [
       'descricao',
       'valor',
@@ -1113,7 +1417,7 @@ export class DatabaseManager {
     ];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -1121,7 +1425,7 @@ export class DatabaseManager {
     }
 
     // Buscar cartao_id antes de atualizar
-    const transacao = this.getTransacaoCartao(id);
+    const transacao = this.getTransacaoCartao(id, usuarioId);
     if (!transacao) {
       return false;
     }
@@ -1130,41 +1434,41 @@ export class DatabaseManager {
     const values = validUpdates.map(([, value]) => value);
 
     this.db.run(
-      `UPDATE transacoes_cartao SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [...values, id] as SqlValue[]
+      `UPDATE transacoes_cartao SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`,
+      [...values, id, usuarioId] as SqlValue[]
     );
 
     this.save();
 
     // Recalcular valor total do cartão (usar o cartão original e o novo se mudou)
-    this.recalcularValorCartao(transacao.cartao_id);
+    this.recalcularValorCartao(transacao.cartao_id, usuarioId);
     if (updates.cartao_id && updates.cartao_id !== transacao.cartao_id) {
-      this.recalcularValorCartao(updates.cartao_id);
+      this.recalcularValorCartao(updates.cartao_id, usuarioId);
     }
 
     // Invalidar cache
-    this.invalidateCache('cartoes:');
-    this.invalidateCache('transacoes_cartao:');
+    this.invalidateCache(`cartoes_${usuarioId}`);
+    this.invalidateCache(`transacoes_cartao_${usuarioId}`);
 
     return true;
   }
 
-  deleteTransacaoCartao(id: number): boolean {
+  deleteTransacaoCartao(id: number, usuarioId: number): boolean {
     // Buscar cartao_id antes de deletar
-    const transacao = this.getTransacaoCartao(id);
+    const transacao = this.getTransacaoCartao(id, usuarioId);
     if (!transacao) {
       return false;
     }
 
-    this.db.run('DELETE FROM transacoes_cartao WHERE id = ?', [id]);
+    this.db.run('DELETE FROM transacoes_cartao WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
 
     // Recalcular valor total do cartão
-    this.recalcularValorCartao(transacao.cartao_id);
+    this.recalcularValorCartao(transacao.cartao_id, usuarioId);
 
     // Invalidar cache
-    this.invalidateCache('cartoes:');
-    this.invalidateCache('transacoes_cartao:');
+    this.invalidateCache(`cartoes_${usuarioId}`);
+    this.invalidateCache(`transacoes_cartao_${usuarioId}`);
 
     return true;
   }
@@ -1177,6 +1481,7 @@ export class DatabaseManager {
   private rowToTransacaoCartaoFromArray(row: SqlValue[], cols: string[]): TransacaoCartao {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       descricao: String(row[cols.indexOf('descricao')]),
       valor: Number(row[cols.indexOf('valor')]),
       data: String(row[cols.indexOf('data')]),
@@ -1214,13 +1519,17 @@ export class DatabaseManager {
 
   createCategoria(categoria: Omit<Categoria, 'id' | 'created_at' | 'updated_at'>): Categoria {
     // Validações de campos obrigatórios
+    if (!categoria.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
     if (!categoria.nome || categoria.nome.trim() === '') {
       throw new Error('Nome da categoria é obrigatório');
     }
 
     this.db.run(
-      'INSERT INTO categorias (nome, tipo, cor, icone) VALUES (?, ?, ?, ?)',
+      'INSERT INTO categorias (usuario_id, nome, tipo, cor, icone) VALUES (?, ?, ?, ?, ?)',
       [
+        categoria.usuario_id,
         categoria.nome,
         categoria.tipo,
         categoria.cor ?? null,
@@ -1230,21 +1539,21 @@ export class DatabaseManager {
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache(`categorias`);
+    this.invalidateCache(`categorias_${categoria.usuario_id}`);
 
     const result = this.db.exec('SELECT * FROM categorias ORDER BY id DESC LIMIT 1');
     return this.rowToCategoria(result[0]);
   }
 
-  getCategorias(tipo?: 'receita' | 'despesa'): Categoria[] {
+  getCategorias(usuarioId: number, tipo?: 'receita' | 'despesa'): Categoria[] {
     // Tentar buscar do cache
-    const cacheKey = `categorias:${tipo || 'all'}`;
+    const cacheKey = `categorias_${usuarioId}:${tipo || 'all'}`;
     const cached = this.getCached<Categoria[]>(cacheKey);
     if (cached) return cached;
 
     // Se não estiver em cache, buscar do banco
-    let query = 'SELECT * FROM categorias WHERE 1=1';
-    const params: SqlValue[] = [];
+    let query = 'SELECT * FROM categorias WHERE usuario_id = ?';
+    const params: SqlValue[] = [usuarioId];
 
     if (tipo) {
       query += ' AND tipo = ?';
@@ -1267,19 +1576,18 @@ export class DatabaseManager {
     return data;
   }
 
-  getCategoria(id: number): Categoria | undefined {
-    const result = this.db.exec('SELECT * FROM categorias WHERE id = ?', [id]);
+  getCategoria(id: number, usuarioId: number): Categoria | undefined {
+    const result = this.db.exec('SELECT * FROM categorias WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToCategoria(result[0]);
   }
 
-  // ✅ CORRIGIDO: Whitelist de campos permitidos
-  updateCategoria(id: number, updates: Partial<Categoria>): boolean {
+  updateCategoria(id: number, usuarioId: number, updates: Partial<Categoria>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = ['nome', 'tipo', 'cor', 'icone'];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -1289,24 +1597,25 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(`UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+    this.db.run(`UPDATE categorias SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
       ...values,
       id,
+      usuarioId,
     ] as SqlValue[]);
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache('categorias');
+    this.invalidateCache(`categorias_${usuarioId}`);
 
     return true;
   }
 
-  deleteCategoria(id: number): boolean {
-    this.db.run('DELETE FROM categorias WHERE id = ?', [id]);
+  deleteCategoria(id: number, usuarioId: number): boolean {
+    this.db.run('DELETE FROM categorias WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
 
     // Invalidar cache de categorias
-    this.invalidateCache('categorias');
+    this.invalidateCache(`categorias_${usuarioId}`);
 
     return true;
   }
@@ -1322,6 +1631,7 @@ export class DatabaseManager {
 
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       nome: String(row[cols.indexOf('nome')]),
       tipo: String(row[cols.indexOf('tipo')]) as 'receita' | 'despesa',
       cor: corValue !== null ? String(corValue) : undefined,
@@ -1334,9 +1644,15 @@ export class DatabaseManager {
   // ========== MÉTODOS DE ORÇAMENTO ==========
 
   createOrcamento(orcamento: Omit<Orcamento, 'id' | 'created_at' | 'updated_at'>): Orcamento {
+    // Validação de campos obrigatórios
+    if (!orcamento.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
+
     this.db.run(
-      'INSERT INTO orcamentos (categoria_id, valor_planejado, mes, ano) VALUES (?, ?, ?, ?)',
+      'INSERT INTO orcamentos (usuario_id, categoria_id, valor_planejado, mes, ano) VALUES (?, ?, ?, ?, ?)',
       [
+        orcamento.usuario_id,
         orcamento.categoria_id,
         orcamento.valor_planejado,
         orcamento.mes,
@@ -1345,13 +1661,21 @@ export class DatabaseManager {
     );
     this.save();
 
+    // Invalidar cache de orçamentos
+    this.invalidateCache(`orcamentos_${orcamento.usuario_id}`);
+
     const result = this.db.exec('SELECT * FROM orcamentos ORDER BY id DESC LIMIT 1');
     return this.rowToOrcamento(result[0]);
   }
 
-  getOrcamentos(mes?: number, ano?: number): Orcamento[] {
-    let query = 'SELECT * FROM orcamentos WHERE 1=1';
-    const params: SqlValue[] = [];
+  getOrcamentos(usuarioId: number, mes?: number, ano?: number): Orcamento[] {
+    // Tentar buscar do cache
+    const cacheKey = `orcamentos_${usuarioId}:${mes || 'all'}:${ano || 'all'}`;
+    const cached = this.getCached<Orcamento[]>(cacheKey);
+    if (cached) return cached;
+
+    let query = 'SELECT * FROM orcamentos WHERE usuario_id = ?';
+    const params: SqlValue[] = [usuarioId];
 
     if (mes !== undefined) {
       query += ' AND mes = ?';
@@ -1364,25 +1688,30 @@ export class DatabaseManager {
     }
 
     const result = this.db.exec(query, params);
-    if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) =>
-      this.rowToOrcamentoFromArray(row, result[0].columns)
-    );
+    const data = result.length === 0
+      ? []
+      : result[0].values.map((row: SqlValue[]) =>
+          this.rowToOrcamentoFromArray(row, result[0].columns)
+        );
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
   }
 
-  getOrcamento(id: number): Orcamento | undefined {
-    const result = this.db.exec('SELECT * FROM orcamentos WHERE id = ?', [id]);
+  getOrcamento(id: number, usuarioId: number): Orcamento | undefined {
+    const result = this.db.exec('SELECT * FROM orcamentos WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToOrcamento(result[0]);
   }
 
-  // ✅ CORRIGIDO: Whitelist de campos permitidos
-  updateOrcamento(id: number, updates: Partial<Orcamento>): boolean {
+  updateOrcamento(id: number, usuarioId: number, updates: Partial<Orcamento>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = ['categoria_id', 'valor_planejado', 'mes', 'ano'];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -1392,17 +1721,26 @@ export class DatabaseManager {
     const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ');
     const values = validUpdates.map(([, value]) => value);
 
-    this.db.run(`UPDATE orcamentos SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+    this.db.run(`UPDATE orcamentos SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
       ...values,
       id,
+      usuarioId,
     ] as SqlValue[]);
     this.save();
+
+    // Invalidar cache de orçamentos
+    this.invalidateCache(`orcamentos_${usuarioId}`);
+
     return true;
   }
 
-  deleteOrcamento(id: number): boolean {
-    this.db.run('DELETE FROM orcamentos WHERE id = ?', [id]);
+  deleteOrcamento(id: number, usuarioId: number): boolean {
+    this.db.run('DELETE FROM orcamentos WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     this.save();
+
+    // Invalidar cache de orçamentos
+    this.invalidateCache(`orcamentos_${usuarioId}`);
+
     return true;
   }
 
@@ -1414,6 +1752,7 @@ export class DatabaseManager {
   private rowToOrcamentoFromArray(row: SqlValue[], cols: string[]): Orcamento {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       categoria_id: Number(row[cols.indexOf('categoria_id')]),
       valor_planejado: Number(row[cols.indexOf('valor_planejado')]),
       mes: Number(row[cols.indexOf('mes')]),
@@ -1426,10 +1765,16 @@ export class DatabaseManager {
   // ========== MÉTODOS DE TRANSAÇÃO ==========
 
   createTransacao(transacao: Omit<Transacao, 'id' | 'created_at' | 'updated_at'>): Transacao {
+    // Validação de campos obrigatórios
+    if (!transacao.usuario_id) {
+      throw new Error('Usuário é obrigatório');
+    }
+
     return this.executeInTransaction(() => {
       this.db.run(
-        'INSERT INTO transacoes (descricao, valor, tipo, data, conta_id, categoria_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO transacoes (usuario_id, descricao, valor, tipo, data, conta_id, categoria_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
+          transacao.usuario_id,
           transacao.descricao,
           transacao.valor,
           transacao.tipo,
@@ -1442,15 +1787,20 @@ export class DatabaseManager {
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_insert
       // Invalidar cache de contas para refletir a mudança de saldo
-      this.invalidateCache('contas:');
+      this.invalidateCache(`contas_${transacao.usuario_id}`);
+      this.invalidateCache(`transacoes_${transacao.usuario_id}`);
 
       const result = this.db.exec('SELECT * FROM transacoes ORDER BY id DESC LIMIT 1');
       return this.rowToTransacao(result[0]);
     });
   }
 
-  // ✅ CORRIGIDO: LIMIT agora usa parâmetros preparados
-  getTransacoes(limit?: number): TransacaoCompleta[] {
+  getTransacoes(usuarioId: number, limit?: number): TransacaoCompleta[] {
+    // Tentar buscar do cache
+    const cacheKey = `transacoes_${usuarioId}:${limit || 'all'}`;
+    const cached = this.getCached<TransacaoCompleta[]>(cacheKey);
+    if (cached) return cached;
+
     let query = `
       SELECT
         t.*,
@@ -1460,29 +1810,33 @@ export class DatabaseManager {
       FROM transacoes t
       JOIN contas ct ON t.conta_id = ct.id
       JOIN categorias cat ON t.categoria_id = cat.id
-      WHERE 1=1
+      WHERE t.usuario_id = ?
       ORDER BY t.data DESC, t.created_at DESC
     `;
 
-    const params: SqlValue[] = [];
+    const params: SqlValue[] = [usuarioId];
 
-    // ✅ CORREÇÃO: Validar e adicionar LIMIT de forma segura
     if (limit !== undefined && limit > 0) {
-      // Validação: garantir que limit é um número inteiro positivo
       const safeLimit = Math.floor(Math.max(1, limit));
       query += ` LIMIT ?`;
       params.push(safeLimit);
     }
 
     const result = this.db.exec(query, params);
-    if (result.length === 0) return [];
-    return result[0].values.map((row: SqlValue[]) =>
-      this.rowToTransacaoCompletaFromArray(row, result[0].columns)
-    );
+    const data = result.length === 0
+      ? []
+      : result[0].values.map((row: SqlValue[]) =>
+          this.rowToTransacaoCompletaFromArray(row, result[0].columns)
+        );
+
+    // Armazenar em cache
+    this.setCache(cacheKey, data);
+
+    return data;
   }
 
-  // ✅ NOVO: Método de paginação para grandes volumes
   getTransacoesPaginated(
+    usuarioId: number,
     pagination: PaginationParams
   ): PaginatedResult<TransacaoCompleta> {
     const { page = 1, pageSize = 50 } = pagination;
@@ -1496,10 +1850,10 @@ export class DatabaseManager {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM transacoes t
-      WHERE 1=1
+      WHERE t.usuario_id = ?
     `;
 
-    const countResult = this.db.exec(countQuery);
+    const countResult = this.db.exec(countQuery, [usuarioId]);
     const total = (countResult[0]?.values[0]?.[0] as number) || 0;
     const totalPages = Math.ceil(total / safePageSize);
 
@@ -1513,12 +1867,12 @@ export class DatabaseManager {
       FROM transacoes t
       JOIN contas ct ON t.conta_id = ct.id
       JOIN categorias cat ON t.categoria_id = cat.id
-      WHERE 1=1
+      WHERE t.usuario_id = ?
       ORDER BY t.data DESC, t.created_at DESC
       LIMIT ? OFFSET ?
     `;
 
-    const dataResult = this.db.exec(dataQuery, [safePageSize, offset]);
+    const dataResult = this.db.exec(dataQuery, [usuarioId, safePageSize, offset]);
     const data =
       dataResult.length === 0
         ? []
@@ -1539,13 +1893,13 @@ export class DatabaseManager {
     };
   }
 
-  getTransacao(id: number): Transacao | undefined {
-    const result = this.db.exec('SELECT * FROM transacoes WHERE id = ?', [id]);
+  getTransacao(id: number, usuarioId: number): Transacao | undefined {
+    const result = this.db.exec('SELECT * FROM transacoes WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     if (result.length === 0 || result[0].values.length === 0) return undefined;
     return this.rowToTransacao(result[0]);
   }
 
-  updateTransacao(id: number, updates: Partial<Transacao>): boolean {
+  updateTransacao(id: number, usuarioId: number, updates: Partial<Transacao>): boolean {
     // Whitelist de campos que podem ser atualizados
     const allowedFields = [
       'descricao',
@@ -1558,7 +1912,7 @@ export class DatabaseManager {
     ];
 
     const validUpdates = Object.entries(updates).filter(
-      ([key]) => allowedFields.includes(key) && key !== 'id'
+      ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
     );
 
     if (validUpdates.length === 0) {
@@ -1570,25 +1924,28 @@ export class DatabaseManager {
       const values = validUpdates.map(([, value]) => value);
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_update
-      this.db.run(`UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
+      this.db.run(`UPDATE transacoes SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`, [
         ...values,
         id,
+        usuarioId,
       ] as SqlValue[]);
 
-      // Invalidar cache de contas para refletir a mudança de saldo
-      this.invalidateCache('contas:');
+      // Invalidar cache de contas e transações para refletir a mudança
+      this.invalidateCache(`contas_${usuarioId}`);
+      this.invalidateCache(`transacoes_${usuarioId}`);
 
       return true;
     });
   }
 
-  deleteTransacao(id: number): boolean {
+  deleteTransacao(id: number, usuarioId: number): boolean {
     return this.executeInTransaction(() => {
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_delete
-      this.db.run('DELETE FROM transacoes WHERE id = ?', [id]);
+      this.db.run('DELETE FROM transacoes WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
 
-      // Invalidar cache de contas para refletir a mudança de saldo
-      this.invalidateCache('contas:');
+      // Invalidar cache de contas e transações para refletir a mudança
+      this.invalidateCache(`contas_${usuarioId}`);
+      this.invalidateCache(`transacoes_${usuarioId}`);
 
       return true;
     });
@@ -1602,6 +1959,7 @@ export class DatabaseManager {
   private rowToTransacaoFromArray(row: SqlValue[], cols: string[]): Transacao {
     return {
       id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
       descricao: String(row[cols.indexOf('descricao')]),
       valor: Number(row[cols.indexOf('valor')]),
       tipo: String(row[cols.indexOf('tipo')]) as 'receita' | 'despesa',
@@ -1629,16 +1987,16 @@ export class DatabaseManager {
 
   // ========== MÉTODOS DE RELATÓRIO ==========
 
-  getResumoFinanceiro(dataInicio?: string, dataFim?: string): ResumoFinanceiro {
+  getResumoFinanceiro(usuarioId: number, dataInicio?: string, dataFim?: string): ResumoFinanceiro {
     let query = `
       SELECT
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesa
       FROM transacoes
-      WHERE 1=1
+      WHERE usuario_id = ?
     `;
 
-    const params: SqlValue[] = [];
+    const params: SqlValue[] = [usuarioId];
 
     if (dataInicio) {
       query += ' AND data >= ?';
@@ -1665,6 +2023,31 @@ export class DatabaseManager {
       despesa,
       saldo: receita - despesa,
     };
+  }
+
+  /**
+   * Limpa todos os dados do banco de dados, mantendo a estrutura das tabelas.
+   * Remove transações, contas, categorias, cartões, parcelas e orçamentos.
+   */
+  clearAllData(): void {
+    this.executeInTransaction(() => {
+      // Ordem importante: deletar tabelas dependentes primeiro
+      this.db.run('DELETE FROM transacoes_cartao');
+      this.db.run('DELETE FROM transacoes');
+      this.db.run('DELETE FROM parcelas');
+      this.db.run('DELETE FROM orcamentos');
+      this.db.run('DELETE FROM cartoes');
+      this.db.run('DELETE FROM categorias');
+      this.db.run('DELETE FROM contas');
+
+      // Resetar os auto-incrementos
+      this.db.run("DELETE FROM sqlite_sequence WHERE name IN ('transacoes_cartao', 'transacoes', 'parcelas', 'orcamentos', 'cartoes', 'categorias', 'contas')");
+
+      // Limpar todo o cache
+      this.clearCache();
+
+      return true;
+    });
   }
 
   close(): void {

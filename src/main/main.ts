@@ -192,7 +192,6 @@ ipcMain.handle(
         return { success: false, error: validation.error };
       }
 
-      // O Zod garante que saldo e ativa terão valores padrão (0 e true)
       const data = db.createConta(
         validation.data as Omit<Conta, 'id' | 'created_at' | 'updated_at'>
       );
@@ -204,9 +203,14 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('conta:list', async () => {
+ipcMain.handle('conta:list', async (_, usuarioId: number) => {
   try {
-    const data = db.getContas();
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getContas(validation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('conta:list failed', error);
@@ -214,23 +218,7 @@ ipcMain.handle('conta:list', async () => {
   }
 });
 
-ipcMain.handle('conta:get', async (_, id: number) => {
-  try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
-    }
-
-    const data = db.getConta(validation.data);
-    return { success: true, data };
-  } catch (error: any) {
-    logError('conta:get failed', error);
-    return { success: false, error: sanitizeError(error) };
-  }
-});
-
-ipcMain.handle('conta:update', async (_, id: number, updates: Partial<Conta>) => {
+ipcMain.handle('conta:get', async (_, id: number, usuarioId: number) => {
   try {
     // Validação de entrada
     const idValidation = validateData(IdSchema, id);
@@ -238,12 +226,38 @@ ipcMain.handle('conta:update', async (_, id: number, updates: Partial<Conta>) =>
       return { success: false, error: idValidation.error };
     }
 
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getConta(idValidation.data, usuarioValidation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('conta:get failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('conta:update', async (_, id: number, usuarioId: number, updates: Partial<Conta>) => {
+  try {
+    // Validação de entrada
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
+    }
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
     const updateValidation = validateData(ContaUpdateSchema, updates);
     if (!updateValidation.success) {
       return { success: false, error: updateValidation.error };
     }
 
-    const data = db.updateConta(idValidation.data, updateValidation.data);
+    const data = db.updateConta(idValidation.data, usuarioValidation.data, updateValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('conta:update failed', error);
@@ -251,15 +265,20 @@ ipcMain.handle('conta:update', async (_, id: number, updates: Partial<Conta>) =>
   }
 });
 
-ipcMain.handle('conta:delete', async (_, id: number) => {
+ipcMain.handle('conta:delete', async (_, id: number, usuarioId: number) => {
   try {
     // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteConta(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteConta(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('conta:delete failed', error);
@@ -279,7 +298,7 @@ ipcMain.handle(
         return { success: false, error: validation.error };
       }
 
-      const data = db.createCategoria(validation.data);
+      const data = db.createCategoria(validation.data as Omit<Categoria, 'id' | 'created_at' | 'updated_at'>);
       return { success: true, data };
     } catch (error: any) {
       logError('categoria:create failed', error);
@@ -288,14 +307,19 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('categoria:list', async (_, tipo?: 'receita' | 'despesa') => {
+ipcMain.handle('categoria:list', async (_, usuarioId: number, tipo?: 'receita' | 'despesa') => {
   try {
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
     const tipoValidation = validateData(TipoCategoriaSchema, tipo);
     if (!tipoValidation.success) {
       return { success: false, error: tipoValidation.error };
     }
 
-    const data = db.getCategorias(tipoValidation.data);
+    const data = db.getCategorias(usuarioValidation.data, tipoValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('categoria:list failed', error);
@@ -303,23 +327,7 @@ ipcMain.handle('categoria:list', async (_, tipo?: 'receita' | 'despesa') => {
   }
 });
 
-ipcMain.handle('categoria:get', async (_, id: number) => {
-  try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
-    }
-
-    const data = db.getCategoria(validation.data);
-    return { success: true, data };
-  } catch (error: any) {
-    logError('categoria:get failed', error);
-    return { success: false, error: sanitizeError(error) };
-  }
-});
-
-ipcMain.handle('categoria:update', async (_, id: number, updates: Partial<Categoria>) => {
+ipcMain.handle('categoria:get', async (_, id: number, usuarioId: number) => {
   try {
     // Validação de entrada
     const idValidation = validateData(IdSchema, id);
@@ -327,12 +335,38 @@ ipcMain.handle('categoria:update', async (_, id: number, updates: Partial<Catego
       return { success: false, error: idValidation.error };
     }
 
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getCategoria(idValidation.data, usuarioValidation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('categoria:get failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('categoria:update', async (_, id: number, usuarioId: number, updates: Partial<Categoria>) => {
+  try {
+    // Validação de entrada
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
+    }
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
     const updateValidation = validateData(CategoriaUpdateSchema, updates);
     if (!updateValidation.success) {
       return { success: false, error: updateValidation.error };
     }
 
-    const data = db.updateCategoria(idValidation.data, updateValidation.data);
+    const data = db.updateCategoria(idValidation.data, usuarioValidation.data, updateValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('categoria:update failed', error);
@@ -340,15 +374,20 @@ ipcMain.handle('categoria:update', async (_, id: number, updates: Partial<Catego
   }
 });
 
-ipcMain.handle('categoria:delete', async (_, id: number) => {
+ipcMain.handle('categoria:delete', async (_, id: number, usuarioId: number) => {
   try {
     // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteCategoria(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteCategoria(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('categoria:delete failed', error);
@@ -377,8 +416,13 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('orcamento:list', async (_, mes?: number, ano?: number) => {
+ipcMain.handle('orcamento:list', async (_, usuarioId: number, mes?: number, ano?: number) => {
   try {
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
     const mesValidation = validateData(MesSchema, mes);
     if (!mesValidation.success) {
       return { success: false, error: mesValidation.error };
@@ -389,7 +433,7 @@ ipcMain.handle('orcamento:list', async (_, mes?: number, ano?: number) => {
       return { success: false, error: anoValidation.error };
     }
 
-    const data = db.getOrcamentos(mesValidation.data, anoValidation.data);
+    const data = db.getOrcamentos(usuarioValidation.data, mesValidation.data, anoValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:list failed', error);
@@ -397,15 +441,19 @@ ipcMain.handle('orcamento:list', async (_, mes?: number, ano?: number) => {
   }
 });
 
-ipcMain.handle('orcamento:get', async (_, id: number) => {
+ipcMain.handle('orcamento:get', async (_, id: number, usuarioId: number) => {
   try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.getOrcamento(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getOrcamento(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:get failed', error);
@@ -413,12 +461,16 @@ ipcMain.handle('orcamento:get', async (_, id: number) => {
   }
 });
 
-ipcMain.handle('orcamento:update', async (_, id: number, updates: Partial<Orcamento>) => {
+ipcMain.handle('orcamento:update', async (_, id: number, usuarioId: number, updates: Partial<Orcamento>) => {
   try {
-    // Validação de entrada
     const idValidation = validateData(IdSchema, id);
     if (!idValidation.success) {
       return { success: false, error: idValidation.error };
+    }
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
     }
 
     const updateValidation = validateData(OrcamentoUpdateSchema, updates);
@@ -426,7 +478,7 @@ ipcMain.handle('orcamento:update', async (_, id: number, updates: Partial<Orcame
       return { success: false, error: updateValidation.error };
     }
 
-    const data = db.updateOrcamento(idValidation.data, updateValidation.data);
+    const data = db.updateOrcamento(idValidation.data, usuarioValidation.data, updateValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:update failed', error);
@@ -434,15 +486,19 @@ ipcMain.handle('orcamento:update', async (_, id: number, updates: Partial<Orcame
   }
 });
 
-ipcMain.handle('orcamento:delete', async (_, id: number) => {
+ipcMain.handle('orcamento:delete', async (_, id: number, usuarioId: number) => {
   try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteOrcamento(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteOrcamento(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('orcamento:delete failed', error);
@@ -465,9 +521,14 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('cartao:list', async () => {
+ipcMain.handle('cartao:list', async (_, usuarioId: number) => {
   try {
-    const data = db.getCartoes();
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getCartoes(validation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('cartao:list failed', error);
@@ -475,14 +536,19 @@ ipcMain.handle('cartao:list', async () => {
   }
 });
 
-ipcMain.handle('cartao:get', async (_, id: number) => {
+ipcMain.handle('cartao:get', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.getCartao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getCartao(idValidation.data, usuarioValidation.data);
     if (!data) {
       return { success: false, error: 'Cartão não encontrado' };
     }
@@ -493,14 +559,19 @@ ipcMain.handle('cartao:get', async (_, id: number) => {
   }
 });
 
-ipcMain.handle('cartao:update', async (_, id: number, updates: Partial<Cartao>) => {
+ipcMain.handle('cartao:update', async (_, id: number, usuarioId: number, updates: Partial<Cartao>) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.updateCartao(validation.data, updates);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.updateCartao(idValidation.data, usuarioValidation.data, updates);
     return { success: true, data };
   } catch (error: any) {
     logError('cartao:update failed', error);
@@ -508,14 +579,19 @@ ipcMain.handle('cartao:update', async (_, id: number, updates: Partial<Cartao>) 
   }
 });
 
-ipcMain.handle('cartao:delete', async (_, id: number) => {
+ipcMain.handle('cartao:delete', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteCartao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteCartao(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('cartao:delete failed', error);
@@ -538,9 +614,14 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('parcela:list', async () => {
+ipcMain.handle('parcela:list', async (_, usuarioId: number) => {
   try {
-    const data = db.getParcelas();
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+
+    const data = db.getParcelas(validation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('parcela:list failed', error);
@@ -548,14 +629,19 @@ ipcMain.handle('parcela:list', async () => {
   }
 });
 
-ipcMain.handle('parcela:get', async (_, id: number) => {
+ipcMain.handle('parcela:get', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.getParcela(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getParcela(idValidation.data, usuarioValidation.data);
     if (!data) {
       return { success: false, error: 'Parcela não encontrada' };
     }
@@ -566,14 +652,19 @@ ipcMain.handle('parcela:get', async (_, id: number) => {
   }
 });
 
-ipcMain.handle('parcela:update', async (_, id: number, updates: Partial<Parcela>) => {
+ipcMain.handle('parcela:update', async (_, id: number, usuarioId: number, updates: Partial<Parcela>) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.updateParcela(validation.data, updates);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.updateParcela(idValidation.data, usuarioValidation.data, updates);
     return { success: true, data };
   } catch (error: any) {
     logError('parcela:update failed', error);
@@ -581,14 +672,19 @@ ipcMain.handle('parcela:update', async (_, id: number, updates: Partial<Parcela>
   }
 });
 
-ipcMain.handle('parcela:delete', async (_, id: number) => {
+ipcMain.handle('parcela:delete', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteParcela(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteParcela(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('parcela:delete failed', error);
@@ -633,9 +729,14 @@ ipcMain.handle(
 
 ipcMain.handle(
   'transacao-cartao:list',
-  async (_, cartaoId?: number, mes?: number, ano?: number) => {
+  async (_, usuarioId: number, cartaoId?: number, mes?: number, ano?: number) => {
     try {
-      const data = db.getTransacoesCartao(cartaoId, mes, ano);
+      const usuarioValidation = validateData(IdSchema, usuarioId);
+      if (!usuarioValidation.success) {
+        return { success: false, error: usuarioValidation.error };
+      }
+
+      const data = db.getTransacoesCartao(usuarioValidation.data, cartaoId, mes, ano);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao-cartao:list failed', error);
@@ -644,14 +745,19 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('transacao-cartao:get', async (_, id: number) => {
+ipcMain.handle('transacao-cartao:get', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.getTransacaoCartao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getTransacaoCartao(idValidation.data, usuarioValidation.data);
     if (!data) {
       return { success: false, error: 'Transação não encontrada' };
     }
@@ -664,14 +770,19 @@ ipcMain.handle('transacao-cartao:get', async (_, id: number) => {
 
 ipcMain.handle(
   'transacao-cartao:update',
-  async (_, id: number, updates: Partial<TransacaoCartao>) => {
+  async (_, id: number, usuarioId: number, updates: Partial<TransacaoCartao>) => {
     try {
-      const validation = validateData(IdSchema, id);
-      if (!validation.success) {
-        return { success: false, error: validation.error };
+      const idValidation = validateData(IdSchema, id);
+      if (!idValidation.success) {
+        return { success: false, error: idValidation.error };
       }
 
-      const data = db.updateTransacaoCartao(validation.data, updates);
+      const usuarioValidation = validateData(IdSchema, usuarioId);
+      if (!usuarioValidation.success) {
+        return { success: false, error: usuarioValidation.error };
+      }
+
+      const data = db.updateTransacaoCartao(idValidation.data, usuarioValidation.data, updates);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao-cartao:update failed', error);
@@ -680,14 +791,19 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('transacao-cartao:delete', async (_, id: number) => {
+ipcMain.handle('transacao-cartao:delete', async (_, id: number, usuarioId: number) => {
   try {
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteTransacaoCartao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteTransacaoCartao(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao-cartao:delete failed', error);
@@ -716,14 +832,19 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('transacao:list', async (_, limit?: number) => {
+ipcMain.handle('transacao:list', async (_, usuarioId: number, limit?: number) => {
   try {
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
     const limitValidation = validateData(LimitSchema, limit);
     if (!limitValidation.success) {
       return { success: false, error: limitValidation.error };
     }
 
-    const data = db.getTransacoes(limitValidation.data);
+    const data = db.getTransacoes(usuarioValidation.data, limitValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:list failed', error);
@@ -733,8 +854,13 @@ ipcMain.handle('transacao:list', async (_, limit?: number) => {
 
 ipcMain.handle(
   'transacao:list-paginated',
-  async (_, page?: number, pageSize?: number) => {
+  async (_, usuarioId: number, page?: number, pageSize?: number) => {
     try {
+      const usuarioValidation = validateData(IdSchema, usuarioId);
+      if (!usuarioValidation.success) {
+        return { success: false, error: usuarioValidation.error };
+      }
+
       const paginationParams = {
         page: page ?? 1,
         pageSize: pageSize ?? 50,
@@ -745,7 +871,7 @@ ipcMain.handle(
         return { success: false, error: paginationValidation.error };
       }
 
-      const data = db.getTransacoesPaginated(paginationValidation.data as PaginationParams);
+      const data = db.getTransacoesPaginated(usuarioValidation.data, paginationValidation.data as PaginationParams);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao:list-paginated failed', error);
@@ -754,15 +880,19 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle('transacao:get', async (_, id: number) => {
+ipcMain.handle('transacao:get', async (_, id: number, usuarioId: number) => {
   try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.getTransacao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.getTransacao(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:get failed', error);
@@ -770,12 +900,16 @@ ipcMain.handle('transacao:get', async (_, id: number) => {
   }
 });
 
-ipcMain.handle('transacao:update', async (_, id: number, updates: Partial<Transacao>) => {
+ipcMain.handle('transacao:update', async (_, id: number, usuarioId: number, updates: Partial<Transacao>) => {
   try {
-    // Validação de entrada
     const idValidation = validateData(IdSchema, id);
     if (!idValidation.success) {
       return { success: false, error: idValidation.error };
+    }
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
     }
 
     const updateValidation = validateData(TransacaoUpdateSchema, updates);
@@ -783,7 +917,7 @@ ipcMain.handle('transacao:update', async (_, id: number, updates: Partial<Transa
       return { success: false, error: updateValidation.error };
     }
 
-    const data = db.updateTransacao(idValidation.data, updateValidation.data);
+    const data = db.updateTransacao(idValidation.data, usuarioValidation.data, updateValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:update failed', error);
@@ -791,15 +925,19 @@ ipcMain.handle('transacao:update', async (_, id: number, updates: Partial<Transa
   }
 });
 
-ipcMain.handle('transacao:delete', async (_, id: number) => {
+ipcMain.handle('transacao:delete', async (_, id: number, usuarioId: number) => {
   try {
-    // Validação de entrada
-    const validation = validateData(IdSchema, id);
-    if (!validation.success) {
-      return { success: false, error: validation.error };
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) {
+      return { success: false, error: idValidation.error };
     }
 
-    const data = db.deleteTransacao(validation.data);
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) {
+      return { success: false, error: usuarioValidation.error };
+    }
+
+    const data = db.deleteTransacao(idValidation.data, usuarioValidation.data);
     return { success: true, data };
   } catch (error: any) {
     logError('transacao:delete failed', error);
@@ -811,8 +949,13 @@ ipcMain.handle('transacao:delete', async (_, id: number) => {
 
 ipcMain.handle(
   'relatorio:resumo',
-  async (_, dataInicio?: string, dataFim?: string) => {
+  async (_, usuarioId: number, dataInicio?: string, dataFim?: string) => {
     try {
+      const usuarioValidation = validateData(IdSchema, usuarioId);
+      if (!usuarioValidation.success) {
+        return { success: false, error: usuarioValidation.error };
+      }
+
       const dataInicioValidation = validateData(DataSchema, dataInicio);
       if (!dataInicioValidation.success) {
         return { success: false, error: dataInicioValidation.error };
@@ -824,6 +967,7 @@ ipcMain.handle(
       }
 
       const data = db.getResumoFinanceiro(
+        usuarioValidation.data,
         dataInicioValidation.data,
         dataFimValidation.data
       );
@@ -831,6 +975,74 @@ ipcMain.handle(
     } catch (error: any) {
       logError('relatorio:resumo failed', error);
       return { success: false, error: sanitizeError(error) };
+    }
+  }
+);
+
+// ========== IPC HANDLERS - UTILITÁRIOS ==========
+
+ipcMain.handle('database:clear', async () => {
+  try {
+    logInfo('Clearing all database data');
+    db.clearAllData();
+    logInfo('Database cleared successfully');
+    return { success: true };
+  } catch (error: any) {
+    logError('database:clear failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+// ========== IPC HANDLERS - AUTENTICAÇÃO ==========
+
+ipcMain.handle('auth:check-user-exists', async () => {
+  try {
+    const exists = db.existeUsuarioCadastrado();
+    return { success: true, data: exists };
+  } catch (error: any) {
+    logError('auth:check-user-exists failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('auth:register', async (_, nome: string, senha: string) => {
+  try {
+    logIpcHandler('auth:register', true, undefined, { nome });
+    const usuario = db.createUsuarioComSenha(nome, senha);
+    logInfo('User registered successfully', { userId: usuario.id, nome });
+    return { success: true, data: usuario };
+  } catch (error: any) {
+    logError('auth:register failed', error);
+    return { success: false, error: error.message || sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('auth:login', async (_, nome: string, senha: string) => {
+  try {
+    const usuario = db.autenticarUsuario(nome, senha);
+    if (usuario) {
+      logInfo('User logged in successfully', { userId: usuario.id, nome });
+      return { success: true, data: usuario };
+    } else {
+      logIpcHandler('auth:login', false, undefined, { reason: 'invalid_credentials' });
+      return { success: false, error: 'Nome ou senha incorretos' };
+    }
+  } catch (error: any) {
+    logError('auth:login failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle(
+  'auth:change-password',
+  async (_, usuarioId: number, senhaAtual: string, novaSenha: string) => {
+    try {
+      db.alterarSenha(usuarioId, senhaAtual, novaSenha);
+      logInfo('Password changed successfully', { userId: usuarioId });
+      return { success: true };
+    } catch (error: any) {
+      logError('auth:change-password failed', error);
+      return { success: false, error: error.message || sanitizeError(error) };
     }
   }
 );

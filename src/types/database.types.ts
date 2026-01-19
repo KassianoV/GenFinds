@@ -12,6 +12,7 @@ export interface Usuario {
 
 export interface Conta {
   id: number;
+  usuario_id: number;
   nome: string;
   saldo: number;
   tipo: 'corrente' | 'poupanca' | 'investimento' | 'carteira';
@@ -22,6 +23,7 @@ export interface Conta {
 
 export interface Categoria {
   id: number;
+  usuario_id: number;
   nome: string;
   tipo: 'receita' | 'despesa';
   cor?: string;
@@ -32,6 +34,7 @@ export interface Categoria {
 
 export interface Orcamento {
   id: number;
+  usuario_id: number;
   categoria_id: number;
   valor_planejado: number;
   mes: number;
@@ -42,6 +45,7 @@ export interface Orcamento {
 
 export interface Cartao {
   id: number;
+  usuario_id: number;
   nome: string;
   valor: number;
   vencimento: number;
@@ -52,6 +56,7 @@ export interface Cartao {
 
 export interface Parcela {
   id: number;
+  usuario_id: number;
   descricao: string;
   dia: number;
   cartao_id: number;
@@ -64,6 +69,7 @@ export interface Parcela {
 
 export interface TransacaoCartao {
   id: number;
+  usuario_id: number;
   descricao: string;
   valor: number;
   data: string;
@@ -86,6 +92,7 @@ export interface TransacaoCartaoCompleta extends TransacaoCartao {
 
 export interface Transacao {
   id: number;
+  usuario_id: number;
   descricao: string;
   valor: number;
   tipo: 'receita' | 'despesa';

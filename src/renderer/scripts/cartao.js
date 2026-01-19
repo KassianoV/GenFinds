@@ -194,6 +194,7 @@ const CartaoPage = {
 
     try {
       const cartao = {
+        usuario_id: AppState.currentUser.id,
         nome,
         valor,
         vencimento,
@@ -253,6 +254,7 @@ const CartaoPage = {
 
     try {
       const transacao = {
+        usuario_id: AppState.currentUser.id,
         descricao,
         valor,
         data,
@@ -323,6 +325,7 @@ const CartaoPage = {
 
     try {
       const transacao = {
+        usuario_id: AppState.currentUser.id,
         descricao,
         valor,
         data,
@@ -353,7 +356,7 @@ const CartaoPage = {
     if (!AppState.currentUser) return;
 
     try {
-      const result = await window.api.cartao.list();
+      const result = await window.api.cartao.list(AppState.currentUser.id);
 
       if (result.success) {
         this.cartoes = result.data || [];
@@ -414,8 +417,10 @@ const CartaoPage = {
   },
 
   createCartaoCard(cartao) {
-    // Usar valorMesAtual se disponível, senão usar valor padrão
-    const valorExibir = cartao.valorMesAtual !== undefined ? cartao.valorMesAtual : cartao.valor;
+    // Somar valor inicial do cartão com as transações do mês
+    const valorInicial = cartao.valor || 0;
+    const valorTransacoes = cartao.valorMesAtual || 0;
+    const valorExibir = valorInicial + valorTransacoes;
     const valorFormatado = this.formatCurrency(valorExibir);
 
     // Usar statusAtualizado se disponível, senão usar status padrão
@@ -520,6 +525,11 @@ const CartaoPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     const nome = document.getElementById('editCartaoNome').value.trim();
     const valor = parseFloat(document.getElementById('editCartaoValor').value);
     const vencimento = parseInt(document.getElementById('editCartaoVencimento').value);
@@ -544,7 +554,7 @@ const CartaoPage = {
         status,
       };
 
-      const result = await window.api.cartao.update(this.currentEditId, updates);
+      const result = await window.api.cartao.update(this.currentEditId, AppState.currentUser.id, updates);
 
       if (result.success) {
         Utils.showSuccess('Cartão atualizado com sucesso!');
@@ -563,25 +573,30 @@ const CartaoPage = {
     const cartao = this.cartoes.find((c) => c.id === id);
     if (!cartao) return;
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     if (!Utils.confirm(`Tem certeza que deseja remover o cartão "${cartao.nome}"? Todas as transações deste cartão também serão removidas.`)) {
       return;
     }
 
     try {
       // Primeiro, buscar todas as transações do cartão
-      const transacoesResult = await window.api.transacaoCartao.list();
+      const transacoesResult = await window.api.transacaoCartao.list(AppState.currentUser.id);
 
       if (transacoesResult.success) {
         const transacoesDoCartao = (transacoesResult.data || []).filter(t => t.cartao_id === id);
 
         // Deletar todas as transações do cartão
         for (const transacao of transacoesDoCartao) {
-          await window.api.transacaoCartao.delete(transacao.id);
+          await window.api.transacaoCartao.delete(transacao.id, AppState.currentUser.id);
         }
       }
 
       // Depois, deletar o cartão
-      const result = await window.api.cartao.delete(id);
+      const result = await window.api.cartao.delete(id, AppState.currentUser.id);
 
       if (result.success) {
         Utils.showSuccess('Cartão e suas transações removidos com sucesso!');
@@ -671,8 +686,9 @@ const CartaoPage = {
    * @returns {Promise<number>} - Valor total da fatura
    */
   async calcularValorFaturaMes(cartaoId, mes, ano) {
+    if (!AppState.currentUser) return 0;
     try {
-      const result = await window.api.transacaoCartao.list(cartaoId,
+      const result = await window.api.transacaoCartao.list(AppState.currentUser.id, cartaoId,
         mes,
         ano
       );
@@ -751,17 +767,21 @@ const CartaoPage = {
     const mesNome = meses[mes - 1];
 
     grid.innerHTML = cartoesComValorMensal
-      .map((cartao) => `
+      .map((cartao) => {
+        // Somar valor inicial do cartão com as transações do mês
+        const valorTotal = (cartao.valor || 0) + (cartao.valorMensal || 0);
+        return `
         <div class="fatura-cartao-card" data-cartao-id="${cartao.id}" data-cartao-nome="${cartao.nome.toLowerCase()}">
           <div class="fatura-cartao-icon">💳</div>
           <div class="fatura-cartao-info">
             <h4>${cartao.nome}</h4>
             <p>Vence dia: ${cartao.vencimento}</p>
-            <span class="fatura-cartao-valor">${this.formatCurrency(cartao.valorMensal)}</span>
+            <span class="fatura-cartao-valor">${this.formatCurrency(valorTotal)}</span>
             <span style="font-size: 0.7em; color: var(--text-secondary); display: block; margin-top: 4px;">${mesNome}/${ano}</span>
           </div>
         </div>
-      `)
+      `;
+      })
       .join('');
 
     // Adicionar event listeners para selecionar cartão ao clicar e consultar fatura
@@ -870,7 +890,8 @@ const CartaoPage = {
     if (!AppState.currentUser) return;
 
     try {
-      const result = await window.api.categoria.list();
+      // Buscar apenas categorias de despesa para cartões de crédito
+      const result = await window.api.categoria.list(AppState.currentUser.id, 'despesa');
 
       if (result.success) {
         const categorias = result.data || [];
@@ -932,7 +953,7 @@ const CartaoPage = {
       // - Compras feitas ANTES do fechamento aparecem na fatura do MÊS ATUAL
       // - Compras feitas DEPOIS do fechamento aparecem na fatura do PRÓXIMO MÊS
       // - Compras parceladas já têm a data ajustada automaticamente no momento do lançamento
-      const result = await window.api.transacaoCartao.list(parseInt(cartaoId),
+      const result = await window.api.transacaoCartao.list(AppState.currentUser.id, parseInt(cartaoId),
         mes,
         ano
       );
@@ -1293,12 +1314,17 @@ const CartaoPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     if (!Utils.confirm(`Tem certeza que deseja excluir a compra "${lancamento.descricao}"?`)) {
       return;
     }
 
     try {
-      const result = await window.api.transacaoCartao.delete(id);
+      const result = await window.api.transacaoCartao.delete(id, AppState.currentUser.id);
 
       if (result.success) {
         Utils.showSuccess('Compra excluída com sucesso!');
@@ -1464,7 +1490,7 @@ const CartaoPage = {
           observacoes,
         };
 
-        const result = await window.api.transacaoCartao.update(this.currentEditCompraId, updates);
+        const result = await window.api.transacaoCartao.update(this.currentEditCompraId, AppState.currentUser.id, updates);
 
         if (result.success) {
           Utils.showSuccess('Compra atualizada com sucesso!');
@@ -1481,6 +1507,7 @@ const CartaoPage = {
       } else if (parcelas > 1) {
         // CRIAR compra parcelada - criar múltiplas transações
         const transacao = {
+          usuario_id: AppState.currentUser.id,
           descricao,
           valor,
           data,
@@ -1512,6 +1539,7 @@ const CartaoPage = {
       } else {
         // CRIAR compra à vista - criar transação única
         const transacao = {
+          usuario_id: AppState.currentUser.id,
           descricao,
           valor,
           data,
@@ -2038,6 +2066,7 @@ const CartaoPage = {
 
         // Criar transação de cartão
         const transacao = {
+          usuario_id: AppState.currentUser.id,
           descricao: item.descricao,
           valor: item.valor,
           data: item.data,
@@ -2178,7 +2207,7 @@ const CartaoPage = {
 
     try {
       // Buscar todas as transações de cartão do usuário que sejam parceladas
-      const result = await window.api.transacaoCartao.list();
+      const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
 
       if (result.success) {
         const transacoesParceladas = (result.data || []).filter((t) => t.parcelas > 1);
@@ -2452,7 +2481,7 @@ const CartaoPage = {
     }
 
     // Buscar todas as parcelas do grupo
-    const result = await window.api.transacaoCartao.list();
+    const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
 
     if (!result.success) {
       Utils.showError('Erro ao buscar parcelas');
@@ -2473,7 +2502,7 @@ const CartaoPage = {
     try {
       // Excluir todas as parcelas do grupo
       for (const parcela of parcelasDoGrupo) {
-        const deleteResult = await window.api.transacaoCartao.delete(parcela.id);
+        const deleteResult = await window.api.transacaoCartao.delete(parcela.id, AppState.currentUser.id);
         if (!deleteResult.success) {
           Utils.showError(`Erro ao excluir parcela ${parcela.parcela_atual}`);
           return;

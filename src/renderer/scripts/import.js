@@ -482,6 +482,11 @@ const ImportManager = {
   async confirmImport() {
     this.showStep(3);
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     let importados = 0;
     let categorizados = 0;
     let ignorados = 0;
@@ -499,12 +504,13 @@ const ImportManager = {
 
         // Criar transação
         const transacao = {
+          usuario_id: AppState.currentUser.id,
           descricao: item.descricao,
           valor: item.valor,
           tipo: item.tipo,
           data: item.data,
           conta_id: this.contaSelecionada.id,
-          categoria_id: item.categoria ? item.categoria.id : null
+          categoria_id: item.categoria ? item.categoria.id : null,
           observacoes: 'Importado via arquivo ' + this.currentFile.name,
         };
 

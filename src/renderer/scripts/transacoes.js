@@ -76,7 +76,9 @@ const TransacoesPage = {
     const dataFim = ultimoDia.toISOString().split('T')[0];
 
     try {
-      const response = await window.api.relatorio.getResumo(dataInicio,
+      const response = await window.api.relatorio.getResumo(
+        AppState.currentUser.id,
+        dataInicio,
         dataFim
       );
 
@@ -640,12 +642,13 @@ const TransacoesPage = {
     }
 
     const formData = {
+      usuario_id: AppState.currentUser.id,
       descricao: document.getElementById('transacaoDescricao').value,
       valor: parseFloat(document.getElementById('transacaoValor').value),
       tipo: document.getElementById('transacaoTipo').value,
       data: document.getElementById('transacaoData').value,
       conta_id: parseInt(document.getElementById('transacaoConta').value),
-      categoria_id: parseInt(document.getElementById('transacaoCategoria').value)
+      categoria_id: parseInt(document.getElementById('transacaoCategoria').value),
       observacoes: document.getElementById('transacaoObservacoes').value || undefined,
     };
 
@@ -668,6 +671,7 @@ const TransacoesPage = {
         this.closeModal();
         await DataManager.loadAll();
         this.render();
+        this.updateSummaryCards();
 
         if (typeof DashboardPage !== 'undefined') {
           DashboardPage.render();
@@ -713,13 +717,14 @@ const TransacoesPage = {
     try {
       // Os triggers SQL atualizam o saldo automaticamente
       // Não é necessário calcular manualmente
-      const response = await window.api.transacao.update(this.currentEditId, formData);
+      const response = await window.api.transacao.update(this.currentEditId, AppState.currentUser.id, formData);
 
       if (response.success) {
         Utils.showSuccess('Transação atualizada com sucesso!');
         this.closeEditModal();
         await DataManager.loadAll();
         this.render();
+        this.updateSummaryCards();
 
         if (typeof DashboardPage !== 'undefined') {
           DashboardPage.render();
@@ -738,13 +743,19 @@ const TransacoesPage = {
       return;
     }
 
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
     try {
-      const response = await window.api.transacao.delete(id);
+      const response = await window.api.transacao.delete(id, AppState.currentUser.id);
 
       if (response.success) {
         Utils.showSuccess('Transação excluída com sucesso!');
         await DataManager.loadAll();
         this.render();
+        this.updateSummaryCards();
 
         if (typeof DashboardPage !== 'undefined') {
           DashboardPage.render();
