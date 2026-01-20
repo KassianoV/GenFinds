@@ -23,7 +23,7 @@ const TransacoesPage = {
   },
   paginacao: {
     paginaAtual: 1,
-    itensPorPagina: 20,
+    itensPorPagina: 10,
     totalItens: 0,
     totalPaginas: 0,
   },
@@ -436,7 +436,8 @@ const TransacoesPage = {
 
     if (!controls || !paginationInfo || !paginationPages) return;
 
-    if (this.paginacao.totalItens === 0) {
+    // Ocultar paginação se não há itens ou se há apenas uma página (10 ou menos itens)
+    if (this.paginacao.totalItens === 0 || this.paginacao.totalPaginas <= 1) {
       controls.style.display = 'none';
       return;
     }

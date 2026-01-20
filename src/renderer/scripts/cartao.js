@@ -17,6 +17,9 @@ const CartaoPage = {
   // Paginação da fatura
   faturaPaginaAtual: 1,
   faturaItensPorPagina: 10,
+  // Paginação das parcelas
+  parcelasPaginaAtual: 1,
+  parcelasItensPorPagina: 10,
   // Filtro de parcelas por cartão
   parcelasFiltroCartao: null,
 
@@ -2271,6 +2274,9 @@ const CartaoPage = {
   async loadParcelas() {
     if (!AppState.currentUser) return;
 
+    // Resetar paginação ao carregar novos dados
+    this.parcelasPaginaAtual = 1;
+
     try {
       // Buscar todas as transações de cartão do usuário que sejam parceladas
       const result = await window.api.transacaoCartao.list(AppState.currentUser.id);
@@ -2417,11 +2423,13 @@ const CartaoPage = {
     // Se clicar no mesmo cartão, desmarcar (mostrar todos)
     if (this.parcelasFiltroCartao === cartaoId) {
       this.parcelasFiltroCartao = null;
+      this.parcelasPaginaAtual = 1; // Resetar paginação
       this.renderParcelas();
       return;
     }
 
     this.parcelasFiltroCartao = cartaoId;
+    this.parcelasPaginaAtual = 1; // Resetar paginação ao mudar filtro
     this.renderParcelas();
   },
 
@@ -2453,17 +2461,36 @@ const CartaoPage = {
     if (parcelasFiltradas.length === 0) {
       emptyState.style.display = 'block';
       tableWrapper.style.display = 'none';
+      // Limpar paginação quando não há dados
+      const paginacaoContainer = document.getElementById('parcelasPaginacao');
+      if (paginacaoContainer) paginacaoContainer.innerHTML = '';
       return;
     }
 
     emptyState.style.display = 'none';
     tableWrapper.style.display = 'block';
 
+    // Calcular paginação
+    const totalItens = parcelasFiltradas.length;
+    const totalPaginas = Math.ceil(totalItens / this.parcelasItensPorPagina);
+
+    // Garantir que a página atual é válida
+    if (this.parcelasPaginaAtual > totalPaginas) {
+      this.parcelasPaginaAtual = totalPaginas;
+    }
+    if (this.parcelasPaginaAtual < 1) {
+      this.parcelasPaginaAtual = 1;
+    }
+
+    const inicio = (this.parcelasPaginaAtual - 1) * this.parcelasItensPorPagina;
+    const fim = inicio + this.parcelasItensPorPagina;
+    const parcelasPaginadas = parcelasFiltradas.slice(inicio, fim);
+
     const hoje = new Date();
     const mesAtual = hoje.getMonth();
     const anoAtual = hoje.getFullYear();
 
-    tableBody.innerHTML = parcelasFiltradas
+    tableBody.innerHTML = parcelasPaginadas
       .map((transacao) => {
         // Formatar valores
         const valorFormatado = this.formatCurrency(transacao.valor);
@@ -2510,6 +2537,9 @@ const CartaoPage = {
       })
       .join('');
 
+    // Renderizar controles de paginação
+    this.renderParcelasPaginacao(totalItens, totalPaginas);
+
     // Adicionar event listeners aos botões
     this.attachParcelaActionListeners();
   },
@@ -2530,6 +2560,99 @@ const CartaoPage = {
         const id = parseInt(e.currentTarget.dataset.id);
         const grupo = e.currentTarget.dataset.grupo;
         this.excluirParcela(id, grupo);
+      });
+    });
+  },
+
+  renderParcelasPaginacao(totalItens, totalPaginas) {
+    const paginacaoContainer = document.getElementById('parcelasPaginacao');
+    if (!paginacaoContainer) return;
+
+    if (totalPaginas <= 1) {
+      paginacaoContainer.innerHTML = '';
+      return;
+    }
+
+    const inicio = (this.parcelasPaginaAtual - 1) * this.parcelasItensPorPagina + 1;
+    const fim = Math.min(this.parcelasPaginaAtual * this.parcelasItensPorPagina, totalItens);
+
+    let paginasHTML = '';
+
+    // Lógica para mostrar páginas (máximo 5 botões de página)
+    let inicioPagina = Math.max(1, this.parcelasPaginaAtual - 2);
+    let fimPagina = Math.min(totalPaginas, inicioPagina + 4);
+
+    if (fimPagina - inicioPagina < 4) {
+      inicioPagina = Math.max(1, fimPagina - 4);
+    }
+
+    for (let i = inicioPagina; i <= fimPagina; i++) {
+      paginasHTML += `
+        <button
+          class="pagination-btn ${i === this.parcelasPaginaAtual ? 'active' : ''}"
+          data-page="${i}"
+        >
+          ${i}
+        </button>
+      `;
+    }
+
+    paginacaoContainer.innerHTML = `
+      <div class="pagination-info">
+        Mostrando ${inicio} - ${fim} de ${totalItens} parcelas
+      </div>
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn"
+          data-action="first"
+          ${this.parcelasPaginaAtual === 1 ? 'disabled' : ''}
+        >
+          «
+        </button>
+        <button
+          class="pagination-btn"
+          data-action="prev"
+          ${this.parcelasPaginaAtual === 1 ? 'disabled' : ''}
+        >
+          ‹
+        </button>
+        ${paginasHTML}
+        <button
+          class="pagination-btn"
+          data-action="next"
+          ${this.parcelasPaginaAtual === totalPaginas ? 'disabled' : ''}
+        >
+          ›
+        </button>
+        <button
+          class="pagination-btn"
+          data-action="last"
+          ${this.parcelasPaginaAtual === totalPaginas ? 'disabled' : ''}
+        >
+          »
+        </button>
+      </div>
+    `;
+
+    // Adicionar event listeners aos botões de paginação
+    paginacaoContainer.querySelectorAll('.pagination-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        const page = e.target.dataset.page;
+
+        if (action === 'first') {
+          this.parcelasPaginaAtual = 1;
+        } else if (action === 'prev') {
+          this.parcelasPaginaAtual = Math.max(1, this.parcelasPaginaAtual - 1);
+        } else if (action === 'next') {
+          this.parcelasPaginaAtual = Math.min(totalPaginas, this.parcelasPaginaAtual + 1);
+        } else if (action === 'last') {
+          this.parcelasPaginaAtual = totalPaginas;
+        } else if (page) {
+          this.parcelasPaginaAtual = parseInt(page);
+        }
+
+        this.renderParcelas();
       });
     });
   },

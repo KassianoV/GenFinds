@@ -1108,6 +1108,24 @@
   }
 }
 
+/* ========== PAGINAÇÃO DAS PARCELAS ========== */
+.parcelas-paginacao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-white);
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .parcelas-paginacao {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
 
 /* ========== CARD DE RESUMO DE PARCELAS ========== */
 .parcelas-resumo-card {

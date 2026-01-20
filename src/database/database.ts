@@ -1383,9 +1383,18 @@ export class DatabaseManager {
             this.rowToTransacaoCartaoCompletaFromArray(row, result[0].columns)
           );
 
-    // Se mes e ano foram especificados, filtrar baseado no dia de fechamento do cartão
+    // Se mes e ano foram especificados, filtrar baseado no mês de fatura
     if (mes && ano) {
       data = data.filter((transacao) => {
+        // Para transações parceladas (parcelas > 1), a data já foi ajustada na criação
+        // para refletir o mês de fatura correto, então filtramos pela data diretamente
+        if (transacao.parcelas > 1) {
+          const [anoTrans, mesTrans] = transacao.data.split('-').map(Number);
+          return mesTrans === mes && anoTrans === ano;
+        }
+
+        // Para transações à vista (parcelas === 1), usamos calcularMesFatura
+        // pois a data é a data original da compra
         const mesFatura = this.calcularMesFatura(transacao.data, transacao.cartao_vencimento);
         return mesFatura.mes === mes && mesFatura.ano === ano;
       });
