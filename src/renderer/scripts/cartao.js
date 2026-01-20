@@ -398,11 +398,13 @@ const CartaoPage = {
 
     const cartoesComValorMensal = await Promise.all(
       this.cartoes.map(async (cartao) => {
-        const valorMesAtual = await this.calcularValorFaturaMes(cartao.id, mesAtual, anoAtual);
+        const valoresDetalhados = await this.calcularValorFaturaMesDetalhado(cartao.id, mesAtual, anoAtual);
         const statusAtualizado = this.calcularStatusAutomatico(cartao);
         return {
           ...cartao,
-          valorMesAtual,
+          valorMesAtual: valoresDetalhados.total,
+          valorAVista: valoresDetalhados.aVista,
+          valorParcelado: valoresDetalhados.parcelado,
           statusAtualizado,
         };
       })
@@ -417,11 +419,13 @@ const CartaoPage = {
   },
 
   createCartaoCard(cartao) {
-    // Somar valor inicial do cartão com as transações do mês
-    const valorInicial = cartao.valor || 0;
-    const valorTransacoes = cartao.valorMesAtual || 0;
-    const valorExibir = valorInicial + valorTransacoes;
+    // Exibir apenas o valor da fatura do mês atual (faturas à vista + parcelas do mês)
+    const valorExibir = cartao.valorMesAtual || 0;
     const valorFormatado = this.formatCurrency(valorExibir);
+
+    // Valores detalhados
+    const valorAVista = cartao.valorAVista || 0;
+    const valorParcelado = cartao.valorParcelado || 0;
 
     // Usar statusAtualizado se disponível, senão usar status padrão
     const statusClass = cartao.statusAtualizado || cartao.status || 'aberta';
@@ -432,6 +436,13 @@ const CartaoPage = {
     const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const mesAtualNome = meses[hoje.getMonth()];
 
+    // Criar detalhamento se houver valores
+    let detalhamento = '';
+    if (cartao.valorMesAtual !== undefined && (valorAVista > 0 || valorParcelado > 0)) {
+      detalhamento = `<span style="font-size: 0.75em; color: var(--text-secondary); display: block; margin-top: 4px;">Fatura de ${mesAtualNome}</span>`;
+      detalhamento += `<span style="font-size: 0.7em; color: var(--text-secondary); display: block; margin-top: 2px;">À vista: ${this.formatCurrency(valorAVista)} | Parcelado: ${this.formatCurrency(valorParcelado)}</span>`;
+    }
+
     return `
       <div class="cartao-card" data-id="${cartao.id}">
         <div class="cartao-info">
@@ -441,7 +452,7 @@ const CartaoPage = {
           </div>
           <div class="cartao-valor ${statusClass}">
             ${valorFormatado}
-            ${cartao.valorMesAtual !== undefined ? `<span style="font-size: 0.75em; color: var(--text-secondary); display: block; margin-top: 4px;">Fatura de ${mesAtualNome}</span>` : ''}
+            ${detalhamento}
           </div>
           <div class="cartao-vencimento">
             Vence dia: ${cartao.vencimento} de cada mês
@@ -704,6 +715,49 @@ const CartaoPage = {
     }
   },
 
+  /**
+   * Calcula o valor da fatura detalhado (à vista e parcelado) para um mês específico
+   * @param {number} cartaoId - ID do cartão
+   * @param {number} mes - Mês (1-12)
+   * @param {number} ano - Ano
+   * @returns {Promise<{total: number, aVista: number, parcelado: number}>} - Valores detalhados
+   */
+  async calcularValorFaturaMesDetalhado(cartaoId, mes, ano) {
+    if (!AppState.currentUser) return { total: 0, aVista: 0, parcelado: 0 };
+    try {
+      const result = await window.api.transacaoCartao.list(AppState.currentUser.id, cartaoId,
+        mes,
+        ano
+      );
+
+      if (result.success) {
+        const transacoes = result.data || [];
+        let aVista = 0;
+        let parcelado = 0;
+
+        transacoes.forEach(t => {
+          if (t.parcelas === 1) {
+            // Compra à vista
+            aVista += t.valor;
+          } else {
+            // Compra parcelada
+            parcelado += t.valor;
+          }
+        });
+
+        return {
+          total: aVista + parcelado,
+          aVista,
+          parcelado
+        };
+      }
+      return { total: 0, aVista: 0, parcelado: 0 };
+    } catch (error) {
+      console.error('Erro ao calcular valor detalhado da fatura:', error);
+      return { total: 0, aVista: 0, parcelado: 0 };
+    }
+  },
+
   // ========== FATURA TAB ==========
 
   initFaturaTab() {
@@ -754,10 +808,12 @@ const CartaoPage = {
     // Calcular valores para o mês filtrado
     const cartoesComValorMensal = await Promise.all(
       this.cartoes.map(async (cartao) => {
-        const valorMensal = await this.calcularValorFaturaMes(cartao.id, mes, ano);
+        const valoresDetalhados = await this.calcularValorFaturaMesDetalhado(cartao.id, mes, ano);
         return {
           ...cartao,
-          valorMensal,
+          valorMensal: valoresDetalhados.total,
+          valorAVista: valoresDetalhados.aVista,
+          valorParcelado: valoresDetalhados.parcelado,
         };
       })
     );
@@ -768,8 +824,17 @@ const CartaoPage = {
 
     grid.innerHTML = cartoesComValorMensal
       .map((cartao) => {
-        // Somar valor inicial do cartão com as transações do mês
-        const valorTotal = (cartao.valor || 0) + (cartao.valorMensal || 0);
+        // Usar apenas o valor da fatura do mês (faturas à vista + parcelas do mês)
+        const valorTotal = cartao.valorMensal || 0;
+        const valorAVista = cartao.valorAVista || 0;
+        const valorParcelado = cartao.valorParcelado || 0;
+
+        // Criar detalhamento
+        let detalhamento = '';
+        if (valorAVista > 0 || valorParcelado > 0) {
+          detalhamento = `<span style="font-size: 0.65em; color: var(--text-secondary); display: block; margin-top: 2px;">À vista: ${this.formatCurrency(valorAVista)} | Parcelado: ${this.formatCurrency(valorParcelado)}</span>`;
+        }
+
         return `
         <div class="fatura-cartao-card" data-cartao-id="${cartao.id}" data-cartao-nome="${cartao.nome.toLowerCase()}">
           <div class="fatura-cartao-icon">💳</div>
@@ -778,6 +843,7 @@ const CartaoPage = {
             <p>Vence dia: ${cartao.vencimento}</p>
             <span class="fatura-cartao-valor">${this.formatCurrency(valorTotal)}</span>
             <span style="font-size: 0.7em; color: var(--text-secondary); display: block; margin-top: 4px;">${mesNome}/${ano}</span>
+            ${detalhamento}
           </div>
         </div>
       `;

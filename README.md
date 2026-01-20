@@ -170,20 +170,9 @@ npm run build:all
 
 **📁 Saída:** `release/GenFins-1.8.0-Setup.exe` (Windows)
 
-### Versionamento e Changelog
-```bash
-# Gerar changelog
-npm run changelog
-
-# Atualizar versão patch (1.6.2 → 1.6.3)
-npm run version:patch
-
-# Atualizar versão minor (1.6.2 → 1.7.0)
-npm run version:minor
-
-# Atualizar versão major (1.6.2 → 2.0.0)
-npm run version:major
-```
+### Versionamento
+O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
+Todas as mudanças são documentadas manualmente no [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -459,7 +448,7 @@ Encontrou um bug? [Abra uma issue](https://github.com/KassianoV/GenFinds/issues)
 
 ### 📋 Histórico de Versões
 
-O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/) e utiliza [Conventional Commits](https://www.conventionalcommits.org/).
+O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Versões Principais:**
 - **v1.8.0** (atual) - Suporte multi-usuário completo e correções de exibição de valores
@@ -495,7 +484,6 @@ Veja o [Changelog completo](CHANGELOG.md) para todos os detalhes.
 ✅ Content Security Policy
 ✅ Sistema de logging com Winston
 ✅ Validação de dados com Zod
-✅ Changelog automatizado
 ✅ Build de produção
 ✅ Documentação completa
 ```

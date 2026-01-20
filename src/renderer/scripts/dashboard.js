@@ -240,14 +240,25 @@ const DashboardPage = {
 
             if (resultTransacoes.success && resultTransacoes.data) {
               const transacoes = resultTransacoes.data;
-              const totalTransacoes = transacoes.reduce((sum, t) => sum + t.valor, 0);
-              // Somar valor inicial do cartão com as transações do mês
-              const totalCartao = (cartao.valor || 0) + totalTransacoes;
+              const totalCartao = transacoes.reduce((sum, t) => sum + t.valor, 0);
+
+              // Separar valores à vista e parcelados
+              let aVista = 0;
+              let parcelado = 0;
+              transacoes.forEach(t => {
+                if (t.parcelas === 1) {
+                  aVista += t.valor;
+                } else {
+                  parcelado += t.valor;
+                }
+              });
 
               gastosPorCartao[cartao.id] = {
                 id: cartao.id,
                 nome: cartao.nome,
-                valor: totalCartao
+                valor: totalCartao,
+                aVista: aVista,
+                parcelado: parcelado
               };
               totalGasto += totalCartao;
             }
@@ -282,8 +293,18 @@ const DashboardPage = {
     gastosOrdenados.forEach(([cartaoId, cartao]) => {
       const item = document.createElement('div');
       item.className = 'conta-gasto-item';
+
+      // Criar detalhamento
+      let detalhamento = '';
+      if (cartao.aVista > 0 || cartao.parcelado > 0) {
+        detalhamento = `<span style="font-size: 0.75em; color: var(--text-secondary); display: block; margin-top: 2px;">À vista: ${Utils.formatCurrency(cartao.aVista)} | Parcelado: ${Utils.formatCurrency(cartao.parcelado)}</span>`;
+      }
+
       item.innerHTML = `
-        <span class="conta-gasto-nome">💳 ${cartao.nome}</span>
+        <div style="flex: 1;">
+          <span class="conta-gasto-nome">💳 ${cartao.nome}</span>
+          ${detalhamento}
+        </div>
         <span class="conta-gasto-valor">${Utils.formatCurrency(cartao.valor)}</span>
       `;
       listEl.appendChild(item);
