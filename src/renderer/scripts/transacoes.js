@@ -801,16 +801,16 @@ const TransacoesPage = {
 
       tr.innerHTML = `
                 <td>${Utils.formatDate(transacao.data)}</td>
-                <td>${transacao.descricao}</td>
+                <td>${Utils.escapeHtml(transacao.descricao)}</td>
                 <td>
                     <div class="transacao-categoria">
-                        ${transacao.categoria_cor ? `<span class="categoria-cor" style="background-color: ${transacao.categoria_cor};"></span>` : ''}
-                        <span>${transacao.categoria_nome}</span>
+                        ${transacao.categoria_cor ? `<span class="categoria-cor" style="background-color: ${Utils.escapeHtml(transacao.categoria_cor)};"></span>` : ''}
+                        <span>${Utils.escapeHtml(transacao.categoria_nome)}</span>
                     </div>
                 </td>
-                <td>${transacao.conta_nome}</td>
+                <td>${Utils.escapeHtml(transacao.conta_nome)}</td>
                 <td>
-                    <span class="tipo-badge ${transacao.tipo}">
+                    <span class="tipo-badge ${Utils.escapeHtml(transacao.tipo)}">
                         ${transacao.tipo === 'receita' ? 'Receita' : 'Despesa'}
                     </span>
                 </td>

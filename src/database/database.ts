@@ -5,6 +5,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
 import * as bcrypt from 'bcrypt';
+import Decimal from 'decimal.js';
+
+// Configuração do Decimal.js para cálculos monetários
+Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 import {
   Usuario,
   Conta,
@@ -1193,7 +1197,19 @@ export class DatabaseManager {
     }
 
     const grupoId = `parcela-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const valorParcela = transacao.valor / numeroParcelas;
+
+    // Usar Decimal.js para cálculo preciso de parcelas
+    const valorTotal = new Decimal(transacao.valor);
+    const valorParcelaBase = valorTotal.div(numeroParcelas).toDecimalPlaces(2, Decimal.ROUND_DOWN);
+    const centavosRestantes = valorTotal.minus(valorParcelaBase.times(numeroParcelas)).times(100).toNumber();
+
+    // Função para obter valor da parcela (distribui centavos restantes nas primeiras parcelas)
+    const getValorParcela = (indiceParcela: number): number => {
+      if (indiceParcela <= centavosRestantes) {
+        return valorParcelaBase.plus(0.01).toNumber();
+      }
+      return valorParcelaBase.toNumber();
+    };
 
     // Parse da data como data LOCAL para evitar problemas de timezone
     const [ano, mes, dia] = transacao.data.split('-').map(Number);
@@ -1259,7 +1275,7 @@ export class DatabaseManager {
 
       const parcelaData = {
         ...transacao,
-        valor: valorParcela,
+        valor: getValorParcela(i),
         data: dataParcelaStr,
         parcelas: numeroParcelas,
         parcela_atual: i,

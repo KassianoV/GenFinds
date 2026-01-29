@@ -9,6 +9,14 @@ const AppState = {
 };
 
 const Utils = {
+  // Função para prevenir XSS - escape de HTML
+  escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+  },
+
   formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',

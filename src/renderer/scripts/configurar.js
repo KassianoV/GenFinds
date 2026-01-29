@@ -34,6 +34,12 @@ const ConfigurarPage = {
       formConta.addEventListener('submit', (e) => this.handleContaSubmit(e));
     }
 
+    // Form Cartão
+    const formCartao = document.getElementById('formCartao');
+    if (formCartao) {
+      formCartao.addEventListener('submit', (e) => this.handleCartaoSubmit(e));
+    }
+
     // Form Categoria
     const formCategoria = document.getElementById('formCategoria');
     if (formCategoria) {
@@ -62,6 +68,22 @@ const ConfigurarPage = {
     const formEditConta = document.getElementById('formEditarConta');
     if (formEditConta) {
       formEditConta.addEventListener('submit', (e) => this.handleEditContaSubmit(e));
+    }
+
+    // Modal Editar Cartão
+    const btnCloseEditCartao = document.getElementById('closeModalEditarCartao');
+    if (btnCloseEditCartao) {
+      btnCloseEditCartao.addEventListener('click', () => this.closeEditModal('cartao'));
+    }
+
+    const btnCancelEditCartao = document.getElementById('cancelModalEditarCartao');
+    if (btnCancelEditCartao) {
+      btnCancelEditCartao.addEventListener('click', () => this.closeEditModal('cartao'));
+    }
+
+    const formEditCartao = document.getElementById('formEditarCartao');
+    if (formEditCartao) {
+      formEditCartao.addEventListener('submit', (e) => this.handleEditCartaoSubmit(e));
     }
 
     // Modal Editar Categoria
@@ -147,6 +169,9 @@ const ConfigurarPage = {
         case 'contas':
           this.renderContas();
           break;
+        case 'cartoes':
+          this.renderCartoes();
+          break;
         case 'categoria':
           this.renderCategorias();
           break;
@@ -180,6 +205,7 @@ const ConfigurarPage = {
   closeEditModal(type) {
     const modalMap = {
       conta: 'modalEditarConta',
+      cartao: 'modalEditarCartao',
       categoria: 'modalEditarCategoria',
       orcamento: 'modalEditarOrcamento',
     };
@@ -773,5 +799,240 @@ const ConfigurarPage = {
         this.handleOrcamentoDelete(id);
       });
     });
+  },
+
+  // ========== CARTÕES ==========
+
+  async handleCartaoSubmit(e) {
+    e.preventDefault();
+
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
+    const nome = document.getElementById('cartaoNome')?.value?.trim() || '';
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome do cartão');
+      return;
+    }
+
+    const valorValue = document.getElementById('cartaoValor')?.value || '0';
+    const valor = parseFloat(valorValue) || 0;
+
+    const vencimentoValue = document.getElementById('cartaoVencimento')?.value || '';
+    const vencimento = parseInt(vencimentoValue);
+
+    if (!vencimento || vencimento < 1 || vencimento > 31) {
+      Utils.showWarning('Data de vencimento deve ser entre 1 e 31');
+      return;
+    }
+
+    try {
+      const cartao = {
+        usuario_id: AppState.currentUser.id,
+        nome,
+        valor,
+        vencimento,
+        status: 'aberta',
+      };
+
+      const result = await window.api.cartao.create(cartao);
+
+      if (result.success) {
+        Utils.showSuccess('Cartão adicionado com sucesso!');
+        document.getElementById('formCartao').reset();
+        this.renderCartoes();
+        // Atualizar CartaoPage se existir
+        if (typeof CartaoPage !== 'undefined') {
+          CartaoPage.loadCartoes();
+        }
+      } else {
+        Utils.showError(result.error || 'Erro ao adicionar cartão');
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar cartão:', error);
+      Utils.showError('Erro ao adicionar cartão');
+    }
+  },
+
+  async handleEditCartaoSubmit(e) {
+    e.preventDefault();
+
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
+    const id = parseInt(document.getElementById('editCartaoId').value);
+    const nome = document.getElementById('editCartaoNome').value.trim();
+    if (!nome) {
+      Utils.showWarning('Por favor, preencha o nome do cartão');
+      return;
+    }
+
+    const valor = parseFloat(document.getElementById('editCartaoValor').value) || 0;
+    const vencimento = parseInt(document.getElementById('editCartaoVencimento').value);
+    const status = document.getElementById('editCartaoStatus').value;
+
+    if (!vencimento || vencimento < 1 || vencimento > 31) {
+      Utils.showWarning('Data de vencimento deve ser entre 1 e 31');
+      return;
+    }
+
+    const updates = {
+      nome,
+      valor,
+      vencimento,
+      status,
+    };
+
+    try {
+      const response = await window.api.cartao.update(id, AppState.currentUser.id, updates);
+
+      if (response.success) {
+        Utils.showSuccess('Cartão atualizado com sucesso!');
+        this.closeEditModal('cartao');
+        this.renderCartoes();
+        // Atualizar CartaoPage se existir
+        if (typeof CartaoPage !== 'undefined') {
+          CartaoPage.loadCartoes();
+        }
+      } else {
+        Utils.showError(response.error || 'Erro ao atualizar cartão');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar cartão:', error);
+      Utils.showError('Erro ao atualizar cartão');
+    }
+  },
+
+  async handleCartaoDelete(id) {
+    if (!Utils.confirm('Deseja realmente excluir este cartão?')) {
+      return;
+    }
+
+    if (!AppState.currentUser) {
+      Utils.showError('Usuário não identificado');
+      return;
+    }
+
+    try {
+      const response = await window.api.cartao.delete(id, AppState.currentUser.id);
+
+      if (response.success) {
+        Utils.showSuccess('Cartão excluído com sucesso!');
+        this.renderCartoes();
+        // Atualizar CartaoPage se existir
+        if (typeof CartaoPage !== 'undefined') {
+          CartaoPage.loadCartoes();
+        }
+      } else {
+        Utils.showError(response.error || 'Erro ao excluir cartão');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir cartão:', error);
+      Utils.showError('Erro ao excluir cartão');
+    }
+  },
+
+  openEditModalCartao(cartao) {
+    const modal = document.getElementById('modalEditarCartao');
+    if (!modal) return;
+
+    document.getElementById('editCartaoId').value = cartao.id;
+    document.getElementById('editCartaoNome').value = cartao.nome;
+    document.getElementById('editCartaoValor').value = cartao.valor || 0;
+    document.getElementById('editCartaoVencimento').value = cartao.vencimento;
+    document.getElementById('editCartaoStatus').value = cartao.status || 'aberta';
+
+    modal.classList.add('active');
+  },
+
+  async renderCartoes() {
+    const list = document.getElementById('cartoesList');
+    const emptyState = document.getElementById('cartoesEmpty');
+    if (!list) return;
+
+    try {
+      const result = await window.api.cartao.list(AppState.currentUser.id);
+      const cartoes = result.success ? (result.data || []) : [];
+
+      if (cartoes.length === 0) {
+        list.innerHTML = '';
+        if (emptyState) {
+          emptyState.style.display = 'block';
+        } else {
+          list.innerHTML = '<div class="empty-state"><p>Nenhum cartão cadastrado</p></div>';
+        }
+        return;
+      }
+
+      if (emptyState) {
+        emptyState.style.display = 'none';
+      }
+
+      list.innerHTML = '';
+
+      cartoes.forEach((cartao) => {
+        const statusClass = cartao.status || 'aberta';
+        const statusText = this.getCartaoStatusText(statusClass);
+
+        const item = document.createElement('div');
+        item.className = 'item-card';
+        item.style.cssText =
+          'padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;';
+
+        item.innerHTML = `
+          <div class="item-info">
+            <div class="item-name" style="font-weight: 600; margin-bottom: 5px;">
+              <span style="margin-right: 8px;">💳</span>${cartao.nome}
+            </div>
+            <div class="item-details" style="display: flex; gap: 15px; font-size: 13px; color: var(--text-secondary);">
+              <span><strong>Vencimento:</strong> Dia ${cartao.vencimento}</span>
+              <span class="status-badge status-${statusClass}">${statusText}</span>
+            </div>
+          </div>
+          <div class="item-actions" style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary btn-icon" data-id="${cartao.id}" data-action="edit">✏️</button>
+            <button class="btn btn-danger btn-icon" data-id="${cartao.id}" data-action="delete">🗑️</button>
+          </div>
+        `;
+
+        list.appendChild(item);
+      });
+
+      // Eventos de editar
+      list.querySelectorAll('button[data-action="edit"]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = parseInt(e.target.dataset.id);
+          const cartao = cartoes.find((c) => c.id === id);
+          if (cartao) {
+            this.openEditModalCartao(cartao);
+          }
+        });
+      });
+
+      // Eventos de excluir
+      list.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = parseInt(e.target.dataset.id);
+          this.handleCartaoDelete(id);
+        });
+      });
+    } catch (error) {
+      console.error('Erro ao carregar cartões:', error);
+      list.innerHTML = '<div class="empty-state"><p>Erro ao carregar cartões</p></div>';
+    }
+  },
+
+  getCartaoStatusText(status) {
+    const statusMap = {
+      aberta: 'Aberta',
+      fechada: 'Fechada',
+      paga: 'Paga',
+      pendente: 'Pendente',
+    };
+    return statusMap[status] || status;
   },
 };

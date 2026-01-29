@@ -98,6 +98,82 @@ export const TransacaoUpdateSchema = z
     message: 'Pelo menos um campo deve ser atualizado',
   });
 
+// Cartão
+export const CartaoCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
+  nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
+  valor: z.number().min(0, 'Valor não pode ser negativo').default(0),
+  vencimento: z.number().int().min(1, 'Vencimento deve ser entre 1 e 31').max(31, 'Vencimento deve ser entre 1 e 31'),
+  status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).default('aberta'),
+});
+
+export const CartaoUpdateSchema = z
+  .object({
+    nome: z.string().min(1).max(255).optional(),
+    valor: z.number().min(0).optional(),
+    vencimento: z.number().int().min(1).max(31).optional(),
+    status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Pelo menos um campo deve ser atualizado',
+  });
+
+// Parcela
+export const ParcelaCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
+  cartao_id: z.number().int().positive('ID de cartão inválido'),
+  descricao: z.string().min(1, 'Descrição é obrigatória').max(255, 'Descrição muito longa'),
+  dia: z.number().int().min(1).max(31, 'Dia deve ser entre 1 e 31'),
+  valor_parcela: z.number().positive('Valor da parcela deve ser positivo'),
+  quantidade_parcelas: z.number().int().min(1, 'Mínimo 1 parcela').max(60, 'Máximo 60 parcelas'),
+  total: z.number().positive('Valor total deve ser positivo'),
+});
+
+export const ParcelaUpdateSchema = z
+  .object({
+    descricao: z.string().min(1).max(255).optional(),
+    valor_parcela: z.number().positive().optional(),
+    quantidade_parcelas: z.number().int().min(1).max(60).optional(),
+    total: z.number().positive().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Pelo menos um campo deve ser atualizado',
+  });
+
+// Transação de Cartão
+export const TransacaoCartaoCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
+  cartao_id: z.number().int().positive('ID de cartão inválido'),
+  descricao: z.string().min(1, 'Descrição é obrigatória').max(255, 'Descrição muito longa'),
+  valor: z.number().positive('Valor deve ser positivo').max(999999999, 'Valor muito alto'),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
+  categoria_id: z.number().int().positive('ID de categoria inválido').optional(),
+  parcelas: z.number().int().min(1).max(60).default(1),
+  parcela_atual: z.number().int().min(1).default(1),
+  grupo_parcelamento: z.string().max(100).optional(),
+  observacoes: z.string().max(1000).optional(),
+});
+
+export const TransacaoCartaoUpdateSchema = z
+  .object({
+    descricao: z.string().min(1).max(255).optional(),
+    valor: z.number().positive().max(999999999).optional(),
+    data: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    categoria_id: z.number().int().positive().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Pelo menos um campo deve ser atualizado',
+  });
+
+// Schema para criação de transação parcelada
+export const TransacaoParceladaSchema = z.object({
+  transacao: TransacaoCartaoCreateSchema.omit({ parcelas: true, parcela_atual: true, grupo_parcelamento: true }),
+  numeroParcelas: z.number().int().min(2, 'Mínimo 2 parcelas').max(60, 'Máximo 60 parcelas'),
+});
+
 // Schemas simples para IDs e parâmetros
 export const IdSchema = z.number().int().positive('ID inválido');
 
@@ -114,6 +190,13 @@ export const AnoSchema = z.number().int().min(2000).max(2100).optional();
 export const DataSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
+  .refine(
+    (date) => {
+      const d = new Date(date);
+      return d instanceof Date && !isNaN(d.getTime());
+    },
+    { message: 'Data inválida' }
+  )
   .optional();
 
 // Paginação

@@ -71,47 +71,50 @@
     </div>
 
     <div class="app-container" id="appContainer" style="display: none;">
+        <!-- Skip Link para Acessibilidade -->
+        <a href="#main-content" class="skip-link">Pular para conteúdo principal</a>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" aria-label="Navegação principal">
             <div class="app-header">
                 <div class="app-logo">
                     <img src="assets/logo.ico" alt="GenFins Logo">
                 </div>
                 <div class="app-info">
                     <h1 class="app-name">GenFins</h1>
-                    <span class="app-version">v1.8.1</span>
+                    <span class="app-version">v1.8.2</span>
                 </div>
             </div>
 
-            <nav class="nav-menu">
-                <button class="nav-item" data-page="dashboard">
-                    <span class="nav-icon">📊</span>
+            <nav class="nav-menu" role="navigation" aria-label="Menu principal">
+                <button class="nav-item" data-page="dashboard" aria-label="Ir para Dashboard" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
                     <span class="nav-text">Dashboard</span>
                 </button>
-                <button class="nav-item active" data-page="transacoes">
-                    <span class="nav-icon">💳</span>
+                <button class="nav-item active" data-page="transacoes" aria-label="Ir para Transações" role="menuitem" aria-current="page">
+                    <span class="nav-icon" aria-hidden="true">💳</span>
                     <span class="nav-text">Transação</span>
                 </button>
-                <button class="nav-item" data-page="cartao">
-                    <span class="nav-icon">🏦</span>
+                <button class="nav-item" data-page="cartao" aria-label="Ir para Cartões" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">🏦</span>
                     <span class="nav-text">Cartão</span>
                 </button>
-                <button class="nav-item" data-page="relatorio">
-                    <span class="nav-icon">📈</span>
+                <button class="nav-item" data-page="relatorio" aria-label="Ir para Relatórios" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">📈</span>
                     <span class="nav-text">Relatório</span>
                 </button>
             </nav>
 
             <div class="nav-bottom">
-                <button class="nav-item" data-page="configurar">
-                    <span class="nav-icon">⚙️</span>
+                <button class="nav-item" data-page="configurar" aria-label="Ir para Configurações" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span>
                     <span class="nav-text">Configurar</span>
                 </button>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content" role="main">
             <header class="page-header">
                 <h1 class="page-title">Gerenciador Financeiro</h1>
                 <div class="header-actions">
@@ -179,9 +182,17 @@
                     <!-- Gráfico e Transações Recentes -->
                     <div class="dashboard-main">
                         <div class="dashboard-chart">
-                            <h3>Evolução Mensal</h3>
+                            <h3 id="chart-title">Evolução Mensal</h3>
                             <div class="chart-placeholder">
-                                <canvas id="dashboardChart" width="800" height="300"></canvas>
+                                <canvas id="dashboardChart"
+                                        width="800"
+                                        height="300"
+                                        role="img"
+                                        aria-labelledby="chart-title"
+                                        aria-describedby="chart-description"></canvas>
+                                <p id="chart-description" class="sr-only">
+                                    Gráfico de barras mostrando a evolução de receitas, despesas e saldo dos últimos 6 meses
+                                </p>
                             </div>
                         </div>
 
@@ -368,14 +379,15 @@
                                 </div>
 
                                 <div class="preview-table-container">
-                                    <table class="preview-table" id="previewTable">
+                                    <table class="preview-table" id="previewTable" role="grid" aria-label="Pré-visualização de transações importadas">
+                                        <caption class="sr-only">Pré-visualização das transações a serem importadas</caption>
                                         <thead>
                                             <tr>
-                                                <th>Data</th>
-                                                <th>Descrição</th>
-                                                <th>Tipo</th>
-                                                <th>Valor</th>
-                                                <th>Categoria</th>
+                                                <th scope="col">Data</th>
+                                                <th scope="col">Descrição</th>
+                                                <th scope="col">Tipo</th>
+                                                <th scope="col">Valor</th>
+                                                <th scope="col">Categoria</th>
                                             </tr>
                                         </thead>
                                         <tbody id="previewTableBody">
@@ -484,15 +496,16 @@
                 </div>
 
                 <div class="transacoes-container">
-                    <table class="transacoes-table" id="transacoesTable">
+                    <table class="transacoes-table" id="transacoesTable" role="grid" aria-label="Lista de transações financeiras">
+                        <caption class="sr-only">Transações financeiras com data, descrição, categoria, conta, tipo e valor</caption>
                         <thead>
                             <tr>
-                                <th>📅 DATA</th>
-                                <th>📝 DESCRIÇÃO</th>
-                                <th>🏷️ CATEGORIA</th>
-                                <th>🏦 CONTA</th>
-                                <th>💳 TIPO</th>
-                                <th>💰 VALOR</th>
+                                <th scope="col"><span aria-hidden="true">📅</span> DATA</th>
+                                <th scope="col"><span aria-hidden="true">📝</span> DESCRIÇÃO</th>
+                                <th scope="col"><span aria-hidden="true">🏷️</span> CATEGORIA</th>
+                                <th scope="col"><span aria-hidden="true">🏦</span> CONTA</th>
+                                <th scope="col"><span aria-hidden="true">💳</span> TIPO</th>
+                                <th scope="col"><span aria-hidden="true">💰</span> VALOR</th>
                                 <th>⚙️ AÇÕES</th>
                             </tr>
                         </thead>
@@ -592,60 +605,12 @@
                 <div class="cartao-content">
                     <!-- Sistema de Abas -->
                     <div class="cartao-tabs">
-                        <button class="cartao-tab-btn active" data-tab="contas">Cartões</button>
-                        <button class="cartao-tab-btn" data-tab="fatura">À Vista</button>
+                        <button class="cartao-tab-btn active" data-tab="fatura">À Vista</button>
                         <button class="cartao-tab-btn" data-tab="parcela">Parcela</button>
                     </div>
 
-                    <!-- Aba: Contas -->
-                    <div class="cartao-tab-content active" id="tab-cartao-contas">
-                        <!-- Formulário de Adição -->
-                        <div class="cartao-section">
-                            <div class="cartao-section-header">
-                                <h3>Adicionar novo Cartão</h3>
-                                <div class="cartao-actions-header">
-                                    <!-- Botão removido: lançamento agora é feito diretamente em cada aba -->
-                                </div>
-                            </div>
-                            <form id="formCartao" class="cartao-form">
-                                <div class="cartao-form-row">
-                                    <div class="cartao-form-group">
-                                        <label>Nome do Cartão</label>
-                                        <input type="text" id="cartaoNome" placeholder="Ex: Nubank Roxinho" required>
-                                    </div>
-                                </div>
-                                <div class="cartao-form-row">
-                                    <div class="cartao-form-group">
-                                        <label>Valor da Fatura</label>
-                                        <input type="number" id="cartaoValor" placeholder="0.00" step="0.01" value="0">
-                                    </div>
-                                    <div class="cartao-form-group">
-                                        <label>Data de Vencimento (Dia do Mês)</label>
-                                        <input type="number" id="cartaoVencimento" placeholder="1-31" min="1" max="31" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn-add-cartao">+ Adicionar Cartão</button>
-                            </form>
-                        </div>
-
-                        <!-- Lista de Cartões -->
-                        <div class="cartao-section">
-                            <h3>Cartões Cadastrados</h3>
-                            <div class="cartoes-list" id="cartoesListContainer">
-                                <div class="cartoes-empty" id="cartoesEmpty">
-                                    <div class="cartoes-empty-icon">💳</div>
-                                    <p class="cartoes-empty-text">Nenhuma cartão cadastrado</p>
-                                    <p class="cartoes-empty-hint">Adicione seu primeiro cartão de crédito acima</p>
-                                </div>
-                                <div id="cartoesList" style="display: none;">
-                                    <!-- Cartões serão inseridos aqui via JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Aba: Fatura -->
-                    <div class="cartao-tab-content" id="tab-cartao-fatura">
+                    <div class="cartao-tab-content active" id="tab-cartao-fatura">
                         <!-- Formulário de Lançamento À Vista -->
                         <div class="cartao-section">
                             <div class="cartao-section-header">
@@ -894,15 +859,16 @@
                                     <p class="parcelas-empty-hint">Lance compras parceladas usando o formulário acima</p>
                                 </div>
                                 <div id="parcelasTableWrapper" style="display: none;">
-                                    <table class="parcelas-table">
+                                    <table class="parcelas-table" role="grid" aria-label="Lista de parcelas do mês">
+                                        <caption class="sr-only">Parcelas do mês atual com descrição, data, cartão e valores</caption>
                                         <thead>
                                             <tr>
-                                                <th>Descrição</th>
-                                                <th>Data</th>
-                                                <th>Cartão</th>
-                                                <th>Valor Parcela</th>
-                                                <th>Parcela</th>
-                                                <th>Categoria</th>
+                                                <th scope="col">Descrição</th>
+                                                <th scope="col">Data</th>
+                                                <th scope="col">Cartão</th>
+                                                <th scope="col">Valor Parcela</th>
+                                                <th scope="col">Parcela</th>
+                                                <th scope="col">Categoria</th>
                                                 <th>Ações</th>
                                             </tr>
                                         </thead>
@@ -919,51 +885,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- Modal Editar Cartão -->
-            <div class="modal" id="modalEditarCartao">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Editar Cartão</h2>
-                        <button class="modal-close" id="closeModalEditarCartao">&times;</button>
-                    </div>
-                    <form id="formEditarCartao" class="modal-form">
-                        <input type="hidden" id="editCartaoId">
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Nome do Cartão</label>
-                                <input type="text" id="editCartaoNome" placeholder="Ex: Nubank Roxinho" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Valor da Fatura</label>
-                                <input type="number" id="editCartaoValor" placeholder="0.00" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Data de Vencimento (Dia do Mês)</label>
-                                <input type="number" id="editCartaoVencimento" placeholder="1-31" min="1" max="31" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select id="editCartaoStatus" required>
-                                    <option value="aberta">Aberta</option>
-                                    <option value="fechada">Fechada</option>
-                                    <option value="paga">Paga</option>
-                                    <option value="pendente">Pendente</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-actions">
-                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                            <button type="button" class="btn btn-secondary" id="cancelModalEditarCartao">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
             <!-- Modal Lançar Compra -->
             <div class="modal" id="modalLancarCompra">
@@ -1069,7 +990,8 @@
             <section class="page-content" id="configurar-page" style="display: none;">
                 <div class="config-tabs">
                     <button class="tab-btn active" data-tab="contas">Contas</button>
-                    <button class="tab-btn" data-tab="categoria">Categoria</button>
+                    <button class="tab-btn" data-tab="cartoes">Cartões</button>
+                    <button class="tab-btn" data-tab="categoria">Categorias</button>
                     <button class="tab-btn" data-tab="orcamento">Orçamento</button>
                 </div>
 
@@ -1152,7 +1074,87 @@
                     </div>
                 </div>
 
-                <!-- Tab: Categoria -->
+                <!-- Tab: Cartões -->
+                <div class="tab-content" id="tab-cartoes">
+                    <div class="config-section">
+                        <h3>Adicionar novo Cartão</h3>
+                        <form id="formCartao" class="config-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome do Cartão</label>
+                                    <input type="text" id="cartaoNome" placeholder="Ex: Nubank Roxinho" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Valor da Fatura</label>
+                                    <input type="number" id="cartaoValor" placeholder="0.00" step="0.01" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Data de Vencimento (Dia do Mês)</label>
+                                    <input type="number" id="cartaoVencimento" placeholder="1-31" min="1" max="31" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">+ Adicionar Cartão</button>
+                        </form>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Cartões Cadastrados</h3>
+                        <div class="items-list" id="cartoesList">
+                            <div class="empty-state" id="cartoesEmpty">
+                                <p>Nenhum cartão cadastrado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Editar Cartão -->
+                <div class="modal" id="modalEditarCartao">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Editar Cartão</h2>
+                            <button class="modal-close" id="closeModalEditarCartao">&times;</button>
+                        </div>
+                        <form id="formEditarCartao" class="modal-form">
+                            <input type="hidden" id="editCartaoId">
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nome do Cartão</label>
+                                    <input type="text" id="editCartaoNome" placeholder="Ex: Nubank Roxinho" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Valor da Fatura</label>
+                                    <input type="number" id="editCartaoValor" placeholder="0.00" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Data de Vencimento (Dia do Mês)</label>
+                                    <input type="number" id="editCartaoVencimento" placeholder="1-31" min="1" max="31" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="editCartaoStatus" required>
+                                        <option value="aberta">Aberta</option>
+                                        <option value="fechada">Fechada</option>
+                                        <option value="paga">Paga</option>
+                                        <option value="pendente">Pendente</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                <button type="button" class="btn btn-secondary" id="cancelModalEditarCartao">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab: Categorias -->
                 <div class="tab-content" id="tab-categoria">
                     <div class="config-section">
                         <h3>Adicionar nova Categoria</h3>
@@ -1488,6 +1490,7 @@
     <!-- Scripts -->
     <script src="../../node_modules/chart.js/dist/chart.umd.min.js"></script>
     <script src="scripts/eventBus.js"></script>
+    <script src="scripts/config.js"></script>
     <script src="scripts/auth.js"></script>
     <script src="scripts/app.js"></script>
     <script src="scripts/navigation.js"></script>

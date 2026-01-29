@@ -113,10 +113,10 @@ const DashboardPage = {
 
       item.innerHTML = `
                 <div class="recent-item-info">
-                    <div class="recent-item-desc">${transacao.descricao}</div>
-                    <div class="recent-item-cat">${transacao.categoria_nome} • ${Utils.formatDate(transacao.data)}</div>
+                    <div class="recent-item-desc">${Utils.escapeHtml(transacao.descricao)}</div>
+                    <div class="recent-item-cat">${Utils.escapeHtml(transacao.categoria_nome)} • ${Utils.formatDate(transacao.data)}</div>
                 </div>
-                <div class="recent-item-value ${transacao.tipo}">
+                <div class="recent-item-value ${Utils.escapeHtml(transacao.tipo)}">
                     ${transacao.tipo === 'receita' ? '+' : '-'} ${Utils.formatCurrency(transacao.valor)}
                 </div>
             `;
@@ -183,7 +183,7 @@ const DashboardPage = {
 
       card.innerHTML = `
                 <div class="budget-header">
-                    <div class="budget-category">${categoriaNome}</div>
+                    <div class="budget-category">${Utils.escapeHtml(categoriaNome)}</div>
                     <div class="budget-percentage" style="color: ${progressColor};">${percentualFormatado}%</div>
                 </div>
                 <div class="budget-progress">
@@ -302,7 +302,7 @@ const DashboardPage = {
 
       item.innerHTML = `
         <div style="flex: 1;">
-          <span class="conta-gasto-nome">💳 ${cartao.nome}</span>
+          <span class="conta-gasto-nome">💳 ${Utils.escapeHtml(cartao.nome)}</span>
           ${detalhamento}
         </div>
         <span class="conta-gasto-valor">${Utils.formatCurrency(cartao.valor)}</span>

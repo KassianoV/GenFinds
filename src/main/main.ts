@@ -22,6 +22,12 @@ import {
   OrcamentoUpdateSchema,
   TransacaoCreateSchema,
   TransacaoUpdateSchema,
+  CartaoCreateSchema,
+  CartaoUpdateSchema,
+  ParcelaCreateSchema,
+  ParcelaUpdateSchema,
+  TransacaoCartaoCreateSchema,
+  TransacaoCartaoUpdateSchema,
   IdSchema,
   EmailSchema,
   LimitSchema,
@@ -33,7 +39,73 @@ import {
   validateData,
   sanitizeError,
 } from './validation';
-import { logError, logInfo, logIpcHandler } from './logger';
+import { logError, logInfo, logIpcHandler, logWarning } from './logger';
+
+// Rate limiting para proteção contra brute force
+interface LoginAttempt {
+  count: number;
+  lastAttempt: number;
+  blockedUntil: number | null;
+}
+
+const loginAttempts = new Map<string, LoginAttempt>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos
+const ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
+
+function checkRateLimit(nome: string): { allowed: boolean; error?: string } {
+  const now = Date.now();
+  const attempts = loginAttempts.get(nome);
+
+  if (!attempts) {
+    return { allowed: true };
+  }
+
+  // Verificar se ainda está bloqueado
+  if (attempts.blockedUntil && now < attempts.blockedUntil) {
+    const remainingMinutes = Math.ceil((attempts.blockedUntil - now) / 60000);
+    return {
+      allowed: false,
+      error: `Muitas tentativas de login. Tente novamente em ${remainingMinutes} minuto(s).`,
+    };
+  }
+
+  // Limpar bloqueio expirado
+  if (attempts.blockedUntil && now >= attempts.blockedUntil) {
+    loginAttempts.delete(nome);
+    return { allowed: true };
+  }
+
+  // Limpar tentativas antigas (janela de 5 minutos)
+  if (now - attempts.lastAttempt > ATTEMPT_WINDOW_MS) {
+    loginAttempts.delete(nome);
+    return { allowed: true };
+  }
+
+  return { allowed: true };
+}
+
+function recordLoginAttempt(nome: string, success: boolean): void {
+  const now = Date.now();
+
+  if (success) {
+    // Login bem-sucedido, limpar tentativas
+    loginAttempts.delete(nome);
+    return;
+  }
+
+  const attempts = loginAttempts.get(nome) || { count: 0, lastAttempt: now, blockedUntil: null };
+
+  attempts.count += 1;
+  attempts.lastAttempt = now;
+
+  if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
+    attempts.blockedUntil = now + BLOCK_DURATION_MS;
+    logWarning('User blocked due to too many login attempts', { nome, attempts: attempts.count });
+  }
+
+  loginAttempts.set(nome, attempts);
+}
 
 let mainWindow: BrowserWindow | null = null;
 let db: DatabaseManager;
@@ -512,7 +584,18 @@ ipcMain.handle(
   'cartao:create',
   async (_, cartao: Omit<Cartao, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const data = db.createCartao(cartao);
+      const validation = validateData(CartaoCreateSchema, cartao);
+      if (!validation.success) {
+        return { success: false, error: validation.error };
+      }
+      // Garantir valores padrão
+      const cartaoComDefaults = {
+        ...validation.data,
+        valor: validation.data.valor ?? 0,
+        status: validation.data.status ?? 'aberta',
+      } as Omit<Cartao, 'id' | 'created_at' | 'updated_at'>;
+      const data = db.createCartao(cartaoComDefaults);
+      logIpcHandler('cartao:create', true, data.id);
       return { success: true, data };
     } catch (error: any) {
       logError('cartao:create failed', error);
@@ -605,7 +688,12 @@ ipcMain.handle(
   'parcela:create',
   async (_, parcela: Omit<Parcela, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const data = db.createParcela(parcela);
+      const validation = validateData(ParcelaCreateSchema, parcela);
+      if (!validation.success) {
+        return { success: false, error: validation.error };
+      }
+      const data = db.createParcela(validation.data);
+      logIpcHandler('parcela:create', true, data.id);
       return { success: true, data };
     } catch (error: any) {
       logError('parcela:create failed', error);
@@ -698,7 +786,18 @@ ipcMain.handle(
   'transacao-cartao:create',
   async (_, transacao: Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const data = db.createTransacaoCartao(transacao);
+      const validation = validateData(TransacaoCartaoCreateSchema, transacao);
+      if (!validation.success) {
+        return { success: false, error: validation.error };
+      }
+      // Garantir valores padrão
+      const transacaoComDefaults = {
+        ...validation.data,
+        parcelas: validation.data.parcelas ?? 1,
+        parcela_atual: validation.data.parcela_atual ?? 1,
+      } as Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at'>;
+      const data = db.createTransacaoCartao(transacaoComDefaults);
+      logIpcHandler('transacao-cartao:create', true, data.id);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao-cartao:create failed', error);
@@ -718,7 +817,29 @@ ipcMain.handle(
     numeroParcelas: number
   ) => {
     try {
-      const data = db.createTransacaoParcelada(transacao, numeroParcelas);
+      // Validar transação
+      const transacaoValidation = validateData(TransacaoCartaoCreateSchema, transacao);
+      if (!transacaoValidation.success) {
+        return { success: false, error: transacaoValidation.error };
+      }
+
+      // Validar número de parcelas
+      const parcelasValidation = validateData(
+        IdSchema.refine((n) => n >= 2 && n <= 60, 'Número de parcelas deve ser entre 2 e 60'),
+        numeroParcelas
+      );
+      if (!parcelasValidation.success) {
+        return { success: false, error: parcelasValidation.error };
+      }
+
+      // Garantir valores padrão e preparar para o DB
+      const transacaoParaDB = {
+        ...transacaoValidation.data,
+        parcelas: transacaoValidation.data.parcelas ?? 1,
+      } as Omit<TransacaoCartao, 'id' | 'created_at' | 'updated_at' | 'parcela_atual' | 'grupo_parcelamento'>;
+
+      const data = db.createTransacaoParcelada(transacaoParaDB, parcelasValidation.data);
+      logIpcHandler('transacao-cartao:create-parcelada', true, data.length);
       return { success: true, data };
     } catch (error: any) {
       logError('transacao-cartao:create-parcelada failed', error);
@@ -1019,15 +1140,25 @@ ipcMain.handle('auth:register', async (_, nome: string, senha: string) => {
 
 ipcMain.handle('auth:login', async (_, nome: string, senha: string) => {
   try {
+    // Verificar rate limiting
+    const rateLimit = checkRateLimit(nome);
+    if (!rateLimit.allowed) {
+      logWarning('Login attempt blocked by rate limiter', { nome });
+      return { success: false, error: rateLimit.error };
+    }
+
     const usuario = db.autenticarUsuario(nome, senha);
     if (usuario) {
+      recordLoginAttempt(nome, true);
       logInfo('User logged in successfully', { userId: usuario.id, nome });
       return { success: true, data: usuario };
     } else {
+      recordLoginAttempt(nome, false);
       logIpcHandler('auth:login', false, undefined, { reason: 'invalid_credentials' });
       return { success: false, error: 'Nome ou senha incorretos' };
     }
   } catch (error: any) {
+    recordLoginAttempt(nome, false);
     logError('auth:login failed', error);
     return { success: false, error: sanitizeError(error) };
   }

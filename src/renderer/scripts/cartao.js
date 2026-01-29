@@ -1,7 +1,7 @@
 // src/renderer/scripts/cartao.js
 
 const CartaoPage = {
-  currentTab: 'contas',
+  currentTab: 'fatura',
   cartoes: [],
   currentEditId: null,
   currentEditCompraId: null,
@@ -50,38 +50,6 @@ const CartaoPage = {
         this.switchTab(tab);
       });
     });
-
-    // Form de Adicionar Cartão
-    const formCartao = document.getElementById('formCartao');
-    if (formCartao) {
-      formCartao.addEventListener('submit', (e) => this.handleCartaoSubmit(e));
-    }
-
-    // Modal de Editar - Event Listeners
-    const btnCloseEditCartao = document.getElementById('closeModalEditarCartao');
-    if (btnCloseEditCartao) {
-      btnCloseEditCartao.addEventListener('click', () => this.closeEditModal());
-    }
-
-    const btnCancelEditCartao = document.getElementById('cancelModalEditarCartao');
-    if (btnCancelEditCartao) {
-      btnCancelEditCartao.addEventListener('click', () => this.closeEditModal());
-    }
-
-    const formEditCartao = document.getElementById('formEditarCartao');
-    if (formEditCartao) {
-      formEditCartao.addEventListener('submit', (e) => this.handleEditSubmit(e));
-    }
-
-    // Fechar modal ao clicar fora
-    const modalEditCartao = document.getElementById('modalEditarCartao');
-    if (modalEditCartao) {
-      modalEditCartao.addEventListener('click', (e) => {
-        if (e.target === modalEditCartao) {
-          this.closeEditModal();
-        }
-      });
-    }
 
     // Formulário de Lançamento À Vista (Fatura)
     const formFaturaCompra = document.getElementById('formFaturaCompra');
@@ -382,8 +350,20 @@ const CartaoPage = {
   },
 
   async renderCartoes() {
+    // A lista de cartões cadastrados agora é renderizada em ConfigurarPage
+    // Esta função agora apenas dispara um evento para atualizar a lista em Configurar
+    if (typeof ConfigurarPage !== 'undefined' && ConfigurarPage.renderCartoes) {
+      ConfigurarPage.renderCartoes();
+    }
+  },
+
+  // Função legada mantida para compatibilidade interna
+  async renderCartoesInterno() {
     const emptyState = document.getElementById('cartoesEmpty');
     const cartoesList = document.getElementById('cartoesList');
+
+    // Verificar se os elementos existem (podem estar em Configurar agora)
+    if (!emptyState || !cartoesList) return;
 
     if (this.cartoes.length === 0) {
       emptyState.style.display = 'block';
