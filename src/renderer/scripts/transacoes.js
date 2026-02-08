@@ -111,21 +111,7 @@ const TransacoesPage = {
         }
 
         // Atualizar labels com mês/ano selecionado
-        const meses = [
-          'Janeiro',
-          'Fevereiro',
-          'Março',
-          'Abril',
-          'Maio',
-          'Junho',
-          'Julho',
-          'Agosto',
-          'Setembro',
-          'Outubro',
-          'Novembro',
-          'Dezembro',
-        ];
-        const mesAtual = meses[this.filtros.mes - 1];
+        const mesAtual = CONFIG.MESES[this.filtros.mes - 1];
         const anoAtual = this.filtros.ano;
 
         const receitaLabel = document.getElementById('transacoesReceitaLabel');
@@ -518,6 +504,7 @@ const TransacoesPage = {
     const modal = document.getElementById('modalNovaTransacao');
     if (modal) {
       modal.classList.add('active');
+      ModalAccessibility.open(modal);
 
       const form = document.getElementById('formNovaTransacao');
       if (form) {
@@ -538,6 +525,7 @@ const TransacoesPage = {
     const modal = document.getElementById('modalNovaTransacao');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
   },
 
@@ -558,12 +546,14 @@ const TransacoesPage = {
     this.updateEditCategoriasSelect(transacao.tipo, transacao.categoria_id);
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   closeEditModal() {
     const modal = document.getElementById('modalEditarTransacao');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
     this.currentEditId = null;
   },

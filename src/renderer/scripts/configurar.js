@@ -200,6 +200,7 @@ const ConfigurarPage = {
     document.getElementById('editContaTipo').value = conta.tipo;
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   closeEditModal(type) {
@@ -213,6 +214,7 @@ const ConfigurarPage = {
     const modal = document.getElementById(modalMap[type]);
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
   },
 
@@ -410,6 +412,7 @@ const ConfigurarPage = {
     document.getElementById('editCategoriaCor').value = categoria.cor || '#4CAF50';
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   async handleCategoriaSubmit(e) {
@@ -598,6 +601,7 @@ const ConfigurarPage = {
     this.updateEditOrcamentoCategorias();
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   updateOrcamentoCategorias() {
@@ -947,6 +951,7 @@ const ConfigurarPage = {
     document.getElementById('editCartaoStatus').value = cartao.status || 'aberta';
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   async renderCartoes() {

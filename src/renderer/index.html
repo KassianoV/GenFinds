@@ -82,7 +82,7 @@
                 </div>
                 <div class="app-info">
                     <h1 class="app-name">GenFins</h1>
-                    <span class="app-version">v1.8.2</span>
+                    <span class="app-version">v1.8.3</span>
                 </div>
             </div>
 
@@ -292,10 +292,10 @@
                 </div>
 
                 <!-- Modal Importar Extrato Bancário -->
-                <div class="modal" id="modalImportarExtrato">
+                <div class="modal" id="modalImportarExtrato" role="dialog" aria-modal="true" aria-labelledby="modalImportarExtratoTitle">
                     <div class="modal-content modal-import">
                         <div class="modal-header">
-                            <h2>📄 Importar Extrato Bancário</h2>
+                            <h2 id="modalImportarExtratoTitle">📄 Importar Extrato Bancário</h2>
                             <button class="modal-close" id="closeModalImportar">&times;</button>
                         </div>
                         <div class="modal-form">
@@ -887,10 +887,10 @@
             </section>
 
             <!-- Modal Lançar Compra -->
-            <div class="modal" id="modalLancarCompra">
+            <div class="modal" id="modalLancarCompra" role="dialog" aria-modal="true" aria-labelledby="modalLancarCompraTitle">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2>💳 Lançar Compra no Cartão</h2>
+                        <h2 id="modalLancarCompraTitle">💳 Lançar Compra no Cartão</h2>
                         <button class="modal-close" id="closeModalLancarCompra">&times;</button>
                     </div>
                     <div class="modal-form">
@@ -1036,10 +1036,10 @@
                 </div>
 
                 <!-- Modal Editar Conta -->
-                <div class="modal" id="modalEditarConta">
+                <div class="modal" id="modalEditarConta" role="dialog" aria-modal="true" aria-labelledby="modalEditarContaTitle">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2>Editar Conta</h2>
+                            <h2 id="modalEditarContaTitle">Editar Conta</h2>
                             <button class="modal-close" id="closeModalEditarConta">&times;</button>
                         </div>
                         <form id="formEditarConta" class="modal-form">
@@ -1110,10 +1110,10 @@
                 </div>
 
                 <!-- Modal Editar Cartão -->
-                <div class="modal" id="modalEditarCartao">
+                <div class="modal" id="modalEditarCartao" role="dialog" aria-modal="true" aria-labelledby="modalEditarCartaoTitle">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2>Editar Cartão</h2>
+                            <h2 id="modalEditarCartaoTitle">Editar Cartão</h2>
                             <button class="modal-close" id="closeModalEditarCartao">&times;</button>
                         </div>
                         <form id="formEditarCartao" class="modal-form">
@@ -1196,10 +1196,10 @@
                 </div>
                 
                  <!-- Modal Editar Categoria -->
-                <div class="modal" id="modalEditarCategoria">
+                <div class="modal" id="modalEditarCategoria" role="dialog" aria-modal="true" aria-labelledby="modalEditarCategoriaTitle">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2>Editar Categoria</h2>
+                            <h2 id="modalEditarCategoriaTitle">Editar Categoria</h2>
                             <button class="modal-close" id="closeModalEditarCategoria">&times;</button>
                         </div>
                         <form id="formEditarCategoria" class="modal-form">
@@ -1287,10 +1287,10 @@
                 </div>
 
                  <!-- Modal Editar Orçamento -->
-                <div class="modal" id="modalEditarOrcamento">
+                <div class="modal" id="modalEditarOrcamento" role="dialog" aria-modal="true" aria-labelledby="modalEditarOrcamentoTitle">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2>Editar Orçamento</h2>
+                            <h2 id="modalEditarOrcamentoTitle">Editar Orçamento</h2>
                             <button class="modal-close" id="closeModalEditarOrcamento">&times;</button>
                         </div>
                         <form id="formEditarOrcamento" class="modal-form">
@@ -1344,10 +1344,10 @@
     </div>
 
     <!-- Modal Nova Transação -->
-    <div class="modal" id="modalNovaTransacao">
+    <div class="modal" id="modalNovaTransacao" role="dialog" aria-modal="true" aria-labelledby="modalNovaTransacaoTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Nova Transação</h2>
+                <h2 id="modalNovaTransacaoTitle">Nova Transação</h2>
                 <button class="modal-close" id="closeModalTransacao">&times;</button>
             </div>
             <form id="formNovaTransacao" class="modal-form">
@@ -1399,10 +1399,10 @@
     </div>
 
     <!-- Modal Editar Transação -->
-    <div class="modal" id="modalEditarTransacao">
+    <div class="modal" id="modalEditarTransacao" role="dialog" aria-modal="true" aria-labelledby="modalEditarTransacaoTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Editar Transação</h2>
+                <h2 id="modalEditarTransacaoTitle">Editar Transação</h2>
                 <button class="modal-close" id="closeModalEditarTransacao">&times;</button>
             </div>
             <form id="formEditarTransacao" class="modal-form">
@@ -1456,10 +1456,10 @@
     </div>
 
     <!-- Modal Alterar Senha -->
-    <div class="modal" id="modalAlterarSenha">
+    <div class="modal" id="modalAlterarSenha" role="dialog" aria-modal="true" aria-labelledby="modalAlterarSenhaTitle">
         <div class="modal-content modal-sm">
             <div class="modal-header">
-                <h3>Alterar Senha</h3>
+                <h3 id="modalAlterarSenhaTitle">Alterar Senha</h3>
                 <button class="modal-close" id="closeModalAlterarSenha">&times;</button>
             </div>
             <form id="formAlterarSenha">

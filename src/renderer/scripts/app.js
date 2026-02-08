@@ -270,5 +270,114 @@ async function initAppAfterAuth(usuario) {
   }
 }
 
+// ========== ACESSIBILIDADE DE MODAIS (Focus Trap) ==========
+
+const ModalAccessibility = {
+  _previouslyFocused: null,
+  _activeModal: null,
+  _boundKeyHandler: null,
+
+  /**
+   * Abre um modal com focus trap e acessibilidade completa
+   */
+  open(modalElement) {
+    if (!modalElement) return;
+
+    // Salvar elemento com foco antes de abrir o modal
+    this._previouslyFocused = document.activeElement;
+    this._activeModal = modalElement;
+
+    // Mover foco para o primeiro elemento focável dentro do modal
+    requestAnimationFrame(() => {
+      const firstFocusable = this._getFocusableElements(modalElement)[0];
+      if (firstFocusable) {
+        firstFocusable.focus();
+      } else {
+        modalElement.setAttribute('tabindex', '-1');
+        modalElement.focus();
+      }
+    });
+
+    // Adicionar handler de teclado para trap de foco
+    this._boundKeyHandler = (e) => this._handleKeyDown(e, modalElement);
+    document.addEventListener('keydown', this._boundKeyHandler);
+  },
+
+  /**
+   * Fecha o modal e restaura o foco ao elemento anterior
+   */
+  close(modalElement) {
+    if (!modalElement) return;
+
+    // Remover handler de teclado
+    if (this._boundKeyHandler) {
+      document.removeEventListener('keydown', this._boundKeyHandler);
+      this._boundKeyHandler = null;
+    }
+
+    this._activeModal = null;
+
+    // Restaurar foco ao elemento que tinha foco antes de abrir o modal
+    if (this._previouslyFocused && this._previouslyFocused.focus) {
+      this._previouslyFocused.focus();
+      this._previouslyFocused = null;
+    }
+  },
+
+  /**
+   * Handler de teclado para trap de foco e fechamento com Escape
+   */
+  _handleKeyDown(e, modalElement) {
+    if (e.key === 'Escape') {
+      // Fechar modal ao pressionar Escape
+      const closeBtn = modalElement.querySelector('.modal-close');
+      if (closeBtn) {
+        closeBtn.click();
+      }
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      const focusableElements = this._getFocusableElements(modalElement);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift+Tab: se foco está no primeiro elemento, ir para o último
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        // Tab: se foco está no último elemento, ir para o primeiro
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    }
+  },
+
+  /**
+   * Retorna todos os elementos focáveis dentro de um container
+   */
+  _getFocusableElements(container) {
+    const selector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled]):not([type="hidden"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(', ');
+
+    return Array.from(container.querySelectorAll(selector)).filter(
+      (el) => el.offsetParent !== null // Apenas elementos visíveis
+    );
+  },
+};
+
 // A aplicação não inicia automaticamente
 // O AuthManager controla quando chamar initAppAfterAuth

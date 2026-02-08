@@ -203,12 +203,14 @@ const ImportManager = {
     this.updateContasSelect();
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   closeModal() {
     const modal = document.getElementById('modalImportarExtrato');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
   },
 

@@ -283,10 +283,7 @@ const AuthManager = {
       document.getElementById('novaSenha').value = '';
       document.getElementById('confirmarNovaSenha').value = '';
       document.getElementById('alterarSenhaError').style.display = 'none';
-      // Focar no primeiro campo
-      setTimeout(() => {
-        document.getElementById('senhaAtual').focus();
-      }, 100);
+      ModalAccessibility.open(modal);
     }
   },
 
@@ -297,6 +294,7 @@ const AuthManager = {
     const modal = document.getElementById('modalAlterarSenha');
     if (modal) {
       modal.style.display = 'none';
+      ModalAccessibility.close(modal);
     }
   },
 

@@ -499,6 +499,7 @@ const CartaoPage = {
     const modal = document.getElementById('modalEditarCartao');
     if (modal) {
       modal.classList.add('active');
+      ModalAccessibility.open(modal);
     }
   },
 
@@ -506,6 +507,7 @@ const CartaoPage = {
     const modal = document.getElementById('modalEditarCartao');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
     this.currentEditId = null;
     document.getElementById('formEditarCartao').reset();
@@ -614,10 +616,7 @@ const CartaoPage = {
   },
 
   formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
+    return Utils.formatCurrency(value);
   },
 
   getStatusText(status) {
@@ -1414,12 +1413,14 @@ const CartaoPage = {
     this.updateParcelaInfo();
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   closeLancarCompraModal() {
     const modal = document.getElementById('modalLancarCompra');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
     document.getElementById('formLancarCompra').reset();
     this.currentEditCompraId = null;
@@ -1639,6 +1640,7 @@ const CartaoPage = {
     this.updateCartoesSelectFatura();
 
     modal.classList.add('active');
+    ModalAccessibility.open(modal);
   },
 
   attachImportFaturaEventListeners() {
@@ -1750,6 +1752,7 @@ const CartaoPage = {
     const modal = document.getElementById('modalImportarFatura');
     if (modal) {
       modal.classList.remove('active');
+      ModalAccessibility.close(modal);
     }
   },
 
@@ -2217,11 +2220,7 @@ const CartaoPage = {
   },
 
   getMonthName(month) {
-    const months = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    return months[month - 1] || '';
+    return CONFIG.MESES[month - 1] || '';
   },
 
   formatDate(dateString) {

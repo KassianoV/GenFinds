@@ -8,11 +8,14 @@ const DashboardPage = {
   },
 
   async render() {
-    await this.updateSummaryCards();
+    // Executar operações independentes em paralelo para melhor performance
     this.updateRecentTransactions();
     this.updateBudgets();
-    this.updateContaGastos();
     this.renderChart();
+    await Promise.all([
+      this.updateSummaryCards(),
+      this.updateContaGastos(),
+    ]);
   },
 
   async updateSummaryCards() {
@@ -65,21 +68,7 @@ const DashboardPage = {
         }
 
         // Atualizar labels de mês
-        const meses = [
-          'Janeiro',
-          'Fevereiro',
-          'Março',
-          'Abril',
-          'Maio',
-          'Junho',
-          'Julho',
-          'Agosto',
-          'Setembro',
-          'Outubro',
-          'Novembro',
-          'Dezembro',
-        ];
-        const mesAtual = meses[hoje.getMonth()];
+        const mesAtual = CONFIG.MESES[hoje.getMonth()];
         const anoAtual = hoje.getFullYear();
 
         const receitaLabel = document.getElementById('dashReceitaLabel');
@@ -273,11 +262,7 @@ const DashboardPage = {
     valorEl.textContent = Utils.formatCurrency(totalGasto);
 
     // Atualizar label do mês
-    const meses = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    labelEl.textContent = `${meses[mesAtual - 1]} ${anoAtual}`;
+    labelEl.textContent = `${CONFIG.MESES[mesAtual - 1]} ${anoAtual}`;
 
     // Renderizar lista de cartões
     listEl.innerHTML = '';

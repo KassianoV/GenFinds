@@ -1250,44 +1250,73 @@ export class DatabaseManager {
       }
     }
 
-    for (let i = 1; i <= numeroParcelas; i++) {
-      // Calcular data de cada parcela
-      // A primeira parcela começa no mês determinado pelo offset
-      // As demais parcelas seguem mês a mês
-      const dataParcela = new Date(dataCompra);
-      dataParcela.setMonth(dataParcela.getMonth() + mesesOffset + (i - 1));
+    // Batch insert: todas as parcelas em uma única transação SQL
+    return this.executeInTransaction(() => {
+      for (let i = 1; i <= numeroParcelas; i++) {
+        // Calcular data de cada parcela
+        // A primeira parcela começa no mês determinado pelo offset
+        // As demais parcelas seguem mês a mês
+        const dataParcela = new Date(dataCompra);
+        dataParcela.setMonth(dataParcela.getMonth() + mesesOffset + (i - 1));
 
-      // IMPORTANTE: Mantém o dia ORIGINAL da compra
-      // NÃO ajustamos para o dia de vencimento do cartão
-      // A lógica de fechamento determinará em qual fatura a parcela aparece
+        // IMPORTANTE: Mantém o dia ORIGINAL da compra
+        // NÃO ajustamos para o dia de vencimento do cartão
+        // A lógica de fechamento determinará em qual fatura a parcela aparece
 
-      // Garantir que o dia não ultrapasse o último dia do mês
-      // (exemplo: compra dia 31, mas o mês seguinte só tem 30 dias)
-      const ultimoDiaDoMes = new Date(dataParcela.getFullYear(), dataParcela.getMonth() + 1, 0).getDate();
-      const diaFinal = Math.min(diaCompra, ultimoDiaDoMes);
-      dataParcela.setDate(diaFinal);
+        // Garantir que o dia não ultrapasse o último dia do mês
+        // (exemplo: compra dia 31, mas o mês seguinte só tem 30 dias)
+        const ultimoDiaDoMes = new Date(dataParcela.getFullYear(), dataParcela.getMonth() + 1, 0).getDate();
+        const diaFinal = Math.min(diaCompra, ultimoDiaDoMes);
+        dataParcela.setDate(diaFinal);
 
-      // Formatar data como YYYY-MM-DD usando componentes locais (não UTC)
-      const anoFinal = dataParcela.getFullYear();
-      const mesFinal = String(dataParcela.getMonth() + 1).padStart(2, '0');
-      const diaFinalStr = String(dataParcela.getDate()).padStart(2, '0');
-      const dataParcelaStr = `${anoFinal}-${mesFinal}-${diaFinalStr}`;
+        // Formatar data como YYYY-MM-DD usando componentes locais (não UTC)
+        const anoFinal = dataParcela.getFullYear();
+        const mesFinal = String(dataParcela.getMonth() + 1).padStart(2, '0');
+        const diaFinalStr = String(dataParcela.getDate()).padStart(2, '0');
+        const dataParcelaStr = `${anoFinal}-${mesFinal}-${diaFinalStr}`;
 
-      const parcelaData = {
-        ...transacao,
-        valor: getValorParcela(i),
-        data: dataParcelaStr,
-        parcelas: numeroParcelas,
-        parcela_atual: i,
-        grupo_parcelamento: grupoId,
-        descricao: `${transacao.descricao} (${i}/${numeroParcelas})`,
-      };
+        // INSERT direto sem recalcular valor do cartão a cada iteração
+        this.db.run(
+          `INSERT INTO transacoes_cartao (usuario_id, descricao, valor, data, cartao_id, categoria_id,
+           parcelas, parcela_atual, grupo_parcelamento, observacoes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            transacao.usuario_id,
+            `${transacao.descricao} (${i}/${numeroParcelas})`,
+            getValorParcela(i),
+            dataParcelaStr,
+            transacao.cartao_id,
+            transacao.categoria_id || null,
+            numeroParcelas,
+            i,
+            grupoId,
+            transacao.observacoes || null,
+          ] as SqlValue[]
+        );
+      }
 
-      const created = this.createTransacaoCartao(parcelaData);
-      transacoesCriadas.push(created);
-    }
+      // Recalcular valor do cartão uma única vez após todas as inserções
+      this.recalcularValorCartao(transacao.cartao_id, transacao.usuario_id);
 
-    return transacoesCriadas;
+      // Invalidar cache uma única vez
+      this.invalidateCache(`cartoes_${transacao.usuario_id}`);
+      this.invalidateCache(`transacoes_cartao_${transacao.usuario_id}`);
+
+      // Buscar todas as transações criadas pelo grupo de parcelamento
+      const result = this.db.exec(
+        'SELECT * FROM transacoes_cartao WHERE grupo_parcelamento = ? ORDER BY parcela_atual',
+        [grupoId]
+      );
+
+      if (result.length > 0) {
+        const cols = result[0].columns;
+        for (const row of result[0].values) {
+          transacoesCriadas.push(this.rowToTransacaoCartaoFromArray(row, cols));
+        }
+      }
+
+      return transacoesCriadas;
+    });
   }
 
   /**
