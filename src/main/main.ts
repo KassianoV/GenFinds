@@ -145,8 +145,8 @@ function createWindow(): void {
 
   mainWindow.loadFile(path.join(__dirname, '../../src/renderer/index.html'));
 
-  // DevTools APENAS em desenvolvimento
-  if (process.env.NODE_ENV !== 'production') {
+  // DevTools APENAS em desenvolvimento (não abre em builds empacotados)
+  if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
 

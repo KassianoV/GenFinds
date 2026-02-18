@@ -200,7 +200,8 @@ const CartaoPage = {
     const valor = parseFloat(document.getElementById('faturaCompraValor').value);
     const data = document.getElementById('faturaCompraData').value;
     const cartaoId = parseInt(document.getElementById('faturaCompraCartao').value);
-    const categoriaId = document.getElementById('faturaCompraCategoria').value;
+    const categoriaIdValue = document.getElementById('faturaCompraCategoria').value;
+    const categoriaId = categoriaIdValue ? parseInt(categoriaIdValue, 10) : undefined;
 
     // Validações
     if (!descricao) {
@@ -230,11 +231,11 @@ const CartaoPage = {
         valor,
         data,
         cartao_id: cartaoId,
-        categoria_id: categoriaId || null,
+        categoria_id: categoriaId,
         parcelas: 1, // À VISTA
         parcela_atual: 1,
-        grupo_parcelamento: null,
-        observacoes: null
+        grupo_parcelamento: undefined,
+        observacoes: undefined
       };
 
       const result = await window.api.transacaoCartao.create(transacao);
@@ -265,7 +266,8 @@ const CartaoPage = {
     const valor = parseFloat(document.getElementById('parcelaCompraValor').value);
     const data = document.getElementById('parcelaCompraData').value;
     const cartaoId = parseInt(document.getElementById('parcelaCompraCartao').value);
-    const categoriaId = document.getElementById('parcelaCompraCategoria').value;
+    const categoriaIdValue = document.getElementById('parcelaCompraCategoria').value;
+    const categoriaId = categoriaIdValue ? parseInt(categoriaIdValue, 10) : undefined;
     const parcelas = parseInt(document.getElementById('parcelaCompraParcelas').value);
 
     // Validações
@@ -301,9 +303,9 @@ const CartaoPage = {
         valor,
         data,
         cartao_id: cartaoId,
-        categoria_id: categoriaId || null,
+        categoria_id: categoriaId,
         parcelas: 1, // Vai ser sobrescrito pela API
-        observacoes: null
+        observacoes: undefined
       };
 
       const result = await window.api.transacaoCartao.createParcelada(transacao, parcelas);

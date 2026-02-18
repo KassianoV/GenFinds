@@ -142,27 +142,33 @@ export const ParcelaUpdateSchema = z
 
 // Transação de Cartão
 export const TransacaoCartaoCreateSchema = z.object({
-  usuario_id: z.number().int().positive('ID de usuário inválido'),
-  cartao_id: z.number().int().positive('ID de cartão inválido'),
+  usuario_id: z.coerce.number().int().positive('ID de usuário inválido'),
+  cartao_id: z.coerce.number().int().positive('ID de cartão inválido'),
   descricao: z.string().min(1, 'Descrição é obrigatória').max(255, 'Descrição muito longa'),
-  valor: z.number().positive('Valor deve ser positivo').max(999999999, 'Valor muito alto'),
+  valor: z.coerce.number().positive('Valor deve ser positivo').max(999999999, 'Valor muito alto'),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
-  categoria_id: z.number().int().positive('ID de categoria inválido').optional(),
-  parcelas: z.number().int().min(1).max(60).default(1),
-  parcela_atual: z.number().int().min(1).default(1),
-  grupo_parcelamento: z.string().max(100).optional(),
-  observacoes: z.string().max(1000).optional(),
+  categoria_id: z.preprocess(
+    (val) => (val === null || val === undefined || val === '') ? undefined : Number(val),
+    z.number().int().positive('ID de categoria inválido').optional()
+  ),
+  parcelas: z.coerce.number().int().min(1).max(60).default(1),
+  parcela_atual: z.coerce.number().int().min(1).default(1),
+  grupo_parcelamento: z.string().max(100).nullish(),
+  observacoes: z.string().max(1000).nullish(),
 });
 
 export const TransacaoCartaoUpdateSchema = z
   .object({
     descricao: z.string().min(1).max(255).optional(),
-    valor: z.number().positive().max(999999999).optional(),
+    valor: z.coerce.number().positive().max(999999999).optional(),
     data: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
-    categoria_id: z.number().int().positive().optional(),
+    categoria_id: z.preprocess(
+      (val) => (val === null || val === undefined || val === '') ? undefined : Number(val),
+      z.number().int().positive().optional()
+    ),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser atualizado',
