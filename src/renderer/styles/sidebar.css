@@ -1,6 +1,9 @@
 /* src/renderer/styles/sidebar.css */
 
-/* Skip Link para Acessibilidade */
+/* ============================================================
+   ACESSIBILIDADE: Skip Link & Screen Reader Only
+   ============================================================ */
+
 .skip-link {
   position: absolute;
   top: -40px;
@@ -21,7 +24,7 @@
   outline-offset: 2px;
 }
 
-/* Screen Reader Only - texto visível apenas para leitores de tela */
+/* Texto visível apenas para leitores de tela */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -34,37 +37,79 @@
   border: 0;
 }
 
+/* ============================================================
+   SIDEBAR — SHELL PRINCIPAL
+   Inicia compacta (64px) e expande suavemente no hover/foco.
+   ============================================================ */
+
 .sidebar {
-  width: 250px;
+  /* Estado compacto: apenas ícones visíveis */
+  width: 64px;
+
   background-color: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   z-index: 100;
+
+  /* Essencial: corta o conteúdo que ultrapassa a largura compacta */
+  overflow: hidden;
+
+  /* Animação de expansão — cubic-bezier Material Design padrão */
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Dica ao browser para criar layer GPU — evita repaints no main-content */
+  will-change: width;
+
+  /* Impede que o flexbox encolha a sidebar abaixo da largura mínima */
+  flex-shrink: 0;
 }
 
-/* App Header */
+/* Expansão ao hover do mouse */
+.sidebar:hover {
+  width: 220px;
+}
+
+/* Expansão ao navegar por teclado (Tab dentro da sidebar)
+   :focus-within substitui totalmente qualquer JS de hover */
+.sidebar:focus-within {
+  width: 220px;
+}
+
+/* ============================================================
+   APP HEADER — Logo + Nome do app
+   ============================================================ */
+
 .app-header {
-  padding: 25px 20px;
+  padding: 12px 7px;
   background: linear-gradient(135deg, #1f5121ff 0%, #001d01ff 100%);
-  border-bottom: 1px solid rgba(23, 27rgba (1, 1, 1, 1) 1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
+
+  /* Altura fixa evita "pulo" durante a animação */
+  min-height: 70px;
+  overflow: hidden;
 }
 
+/* Ícone/logo sempre visível no estado compacto */
 .app-logo {
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.21);
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+
+  /* min-width impede que o flexbox esmague o ícone durante a transição */
+  min-width: 40px;
+
+  background: rgba(215, 221, 218, 0.69);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  padding: 6px;
+  padding: 5px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .app-logo img {
@@ -74,15 +119,34 @@
   filter: brightness(1.1);
 }
 
+/* Nome + versão: ocultos no estado compacto, surgem ao expandir */
 .app-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
+
+  /* Estado inicial: invisível e levemente deslocado à esquerda */
+  opacity: 0;
+  transform: translateX(-10px);
+
+  /* Delay de 0.05s: texto começa a aparecer APÓS a largura já ter iniciado a expansão */
+  transition:
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.05s,
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.05s;
+
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sidebar:hover .app-info,
+.sidebar:focus-within .app-info {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .app-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-light);
   margin: 0;
@@ -90,51 +154,122 @@
 }
 
 .app-version {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
-  background: rgba(0, 0, 0, 0.1);
-  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 2px 7px;
   border-radius: 10px;
   display: inline-block;
   width: fit-content;
 }
 
-/* Navigation Menu */
+/* ============================================================
+   MENU DE NAVEGAÇÃO
+   ============================================================ */
+
 .nav-menu {
   flex: 1;
-  padding: 20px 0;
+  padding: 16px 0;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 15px 25px;
+
+  /* padding-left = (64px sidebar - 24px ícone) / 2 = 20px → ícone centralizado no estado compacto */
+  padding: 14px 0 14px 20px;
+
   width: 100%;
   background: none;
   border: none;
+
+  /* Borda esquerda: transparente por padrão, colorida no estado ativo */
   border-left: 3px solid transparent;
+
   color: var(--text-light);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
   text-align: left;
+
+  /* Impede quebra de linha durante a animação */
+  white-space: nowrap;
+  overflow: hidden;
+
+  transition:
+    background-color 0.2s ease,
+    border-left-color 0.2s ease;
 }
 
 .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
+/* Foco visível por teclado — :focus-visible = apenas para navegação por Tab, não clique */
+.nav-item:focus-visible {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: -2px;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Estado ativo: página atual */
 .nav-item.active {
   background-color: var(--sidebar-active);
-  border-left-color: var(--secondary-color);
+  border-left-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
+/* ============================================================
+   ÍCONE DO MENU — sempre visível
+   ============================================================ */
+
 .nav-icon {
-  font-size: 20px;
-  margin-right: 15px;
+  font-size: 22px;
+
+  /* Largura fixa: mantém o ícone estável durante a animação da sidebar */
+  min-width: 24px;
+  width: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+  line-height: 1;
 }
+
+/* ============================================================
+   TEXTO DO MENU — oculto por padrão, revelado no hover/foco
+   ============================================================ */
+
+.nav-text {
+  /* Estado compacto: invisível e levemente deslocado */
+  opacity: 0;
+  transform: translateX(-8px);
+
+  /* Delay de 0.08s: surge APÓS a sidebar já ter começado a abrir */
+  transition:
+    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1) 0.08s,
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) 0.08s;
+
+  margin-left: 14px;
+  white-space: nowrap;
+
+  /* Invisível = não deve capturar eventos de mouse */
+  pointer-events: none;
+}
+
+.sidebar:hover .nav-text,
+.sidebar:focus-within .nav-text {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* ============================================================
+   ÁREA INFERIOR — botão de Configurar
+   ============================================================ */
 
 .nav-bottom {
   padding: 10px 0;
