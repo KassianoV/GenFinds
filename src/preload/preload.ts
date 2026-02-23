@@ -1,7 +1,7 @@
 // src/preload/preload.ts
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { Conta, Categoria, Orcamento, Cartao, Parcela, TransacaoCartao, Transacao } from '../types/database.types';
+import { Conta, Categoria, Orcamento, Cartao, Parcela, TransacaoCartao, Transacao, Nota } from '../types/database.types';
 
 const api = {
   usuario: {
@@ -91,6 +91,15 @@ const api = {
     update: (id: number, usuarioId: number, updates: Partial<Transacao>) =>
       ipcRenderer.invoke('transacao:update', id, usuarioId, updates),
     delete: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao:delete', id, usuarioId),
+  },
+
+  nota: {
+    create: (nota: Omit<Nota, 'id' | 'created_at' | 'updated_at'>) =>
+      ipcRenderer.invoke('nota:create', nota),
+    list: (usuarioId: number) => ipcRenderer.invoke('nota:list', usuarioId),
+    update: (id: number, usuarioId: number, updates: Partial<Pick<Nota, 'titulo' | 'conteudo' | 'data' | 'tipo'>>) =>
+      ipcRenderer.invoke('nota:update', id, usuarioId, updates),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('nota:delete', id, usuarioId),
   },
 
   relatorio: {

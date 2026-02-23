@@ -234,6 +234,34 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Anotações -->
+                    <div class="dashboard-notas">
+                        <div class="notas-header">
+                            <h3>Anotações</h3>
+                            <button id="btnAddNota" class="btn-link" aria-label="Adicionar nova anotação">+ Nova</button>
+                        </div>
+
+                        <div id="dashNotasForm" class="nota-form" style="display:none" aria-label="Formulário de nova anotação">
+                            <input type="text" id="notaTitulo" placeholder="Título da anotação" maxlength="255" aria-label="Título da anotação">
+                            <div class="nota-form-row">
+                                <input type="date" id="notaData" aria-label="Data da anotação">
+                                <select id="notaTipo" aria-label="Tipo da anotação">
+                                    <option value="lembrete">🔔 Lembrete</option>
+                                    <option value="vencimento">📅 Vencimento</option>
+                                    <option value="outro">📝 Outro</option>
+                                </select>
+                            </div>
+                            <textarea id="notaConteudo" placeholder="Detalhes (opcional)" maxlength="1000" rows="2" aria-label="Conteúdo da anotação"></textarea>
+                            <div class="nota-form-actions">
+                                <button id="btnSalvarNota" class="btn btn-primary btn-sm">Salvar</button>
+                                <button id="btnCancelarNota" class="btn btn-secondary btn-sm">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <div id="dashNotasList" class="notas-list">
+                            <div class="empty-state"><p>Nenhuma anotação ainda</p></div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

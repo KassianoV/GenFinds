@@ -81,12 +81,12 @@
    ============================================================ */
 
 .app-header {
-  padding: 12px 7px;
+  padding: 14px 9px;
   background: linear-gradient(135deg, #1f5121ff 0%, #001d01ff 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 
   /* Altura fixa evita "pulo" durante a animação */
   min-height: 70px;
@@ -95,13 +95,13 @@
 
 /* Ícone/logo sempre visível no estado compacto */
 .app-logo {
-  width: 40px;
+  width: 45px;
   height: 40px;
 
   /* min-width impede que o flexbox esmague o ícone durante a transição */
   min-width: 40px;
 
-  background: rgba(215, 221, 218, 0.69);
+  background: rgba(175, 222, 223, 0.37);
   border-radius: 10px;
   display: flex;
   align-items: center;

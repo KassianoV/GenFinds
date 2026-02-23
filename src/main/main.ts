@@ -28,6 +28,8 @@ import {
   ParcelaUpdateSchema,
   TransacaoCartaoCreateSchema,
   TransacaoCartaoUpdateSchema,
+  NotaCreateSchema,
+  NotaUpdateSchema,
   IdSchema,
   EmailSchema,
   LimitSchema,
@@ -1099,6 +1101,71 @@ ipcMain.handle(
     }
   }
 );
+
+// ========== IPC HANDLERS - NOTAS ==========
+
+ipcMain.handle('nota:create', async (_, notaData: unknown) => {
+  try {
+    const validation = validateData(NotaCreateSchema, notaData);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+    const data = db.createNota(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('nota:create failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('nota:list', async (_, usuarioId: number) => {
+  try {
+    const validation = validateData(IdSchema, usuarioId);
+    if (!validation.success) {
+      return { success: false, error: validation.error };
+    }
+    const data = db.getNotas(validation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('nota:list failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('nota:update', async (_, id: number, usuarioId: number, updates: unknown) => {
+  try {
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) return { success: false, error: idValidation.error };
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) return { success: false, error: usuarioValidation.error };
+
+    const updatesValidation = validateData(NotaUpdateSchema, updates);
+    if (!updatesValidation.success) return { success: false, error: updatesValidation.error };
+
+    const data = db.updateNota(idValidation.data, usuarioValidation.data, updatesValidation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('nota:update failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
+
+ipcMain.handle('nota:delete', async (_, id: number, usuarioId: number) => {
+  try {
+    const idValidation = validateData(IdSchema, id);
+    if (!idValidation.success) return { success: false, error: idValidation.error };
+
+    const usuarioValidation = validateData(IdSchema, usuarioId);
+    if (!usuarioValidation.success) return { success: false, error: usuarioValidation.error };
+
+    const data = db.deleteNota(idValidation.data, usuarioValidation.data);
+    return { success: true, data };
+  } catch (error: any) {
+    logError('nota:delete failed', error);
+    return { success: false, error: sanitizeError(error) };
+  }
+});
 
 // ========== IPC HANDLERS - UTILITÁRIOS ==========
 

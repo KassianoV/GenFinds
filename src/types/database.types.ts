@@ -116,6 +116,17 @@ export interface TransacaoCompleta extends Transacao {
   categoria_cor?: string;
 }
 
+export interface Nota {
+  id: number;
+  usuario_id: number;
+  titulo: string;
+  conteudo?: string;
+  data?: string;
+  tipo: 'lembrete' | 'vencimento' | 'outro';
+  created_at: string;
+  updated_at: string;
+}
+
 // Interfaces de Paginação
 export interface PaginationParams {
   page: number;

@@ -4,6 +4,7 @@ const DashboardPage = {
   chart: null, // Armazenar instância do gráfico
 
   init() {
+    this._bindNotasEvents();
     this.render();
   },
 
@@ -15,6 +16,7 @@ const DashboardPage = {
     await Promise.all([
       this.updateSummaryCards(),
       this.updateContaGastos(),
+      this.updateNotas(),
     ]);
   },
 
@@ -294,6 +296,158 @@ const DashboardPage = {
       `;
       listEl.appendChild(item);
     });
+  },
+
+  // ========== ANOTAÇÕES ==========
+
+  _bindNotasEvents() {
+    const btnAdd = document.getElementById('btnAddNota');
+    const btnSalvar = document.getElementById('btnSalvarNota');
+    const btnCancelar = document.getElementById('btnCancelarNota');
+    const form = document.getElementById('dashNotasForm');
+
+    btnAdd?.addEventListener('click', () => {
+      const isVisible = form.style.display !== 'none';
+      form.style.display = isVisible ? 'none' : 'flex';
+      if (!isVisible) {
+        document.getElementById('notaTitulo')?.focus();
+      }
+    });
+
+    btnCancelar?.addEventListener('click', () => {
+      form.style.display = 'none';
+      this._limparFormNota();
+    });
+
+    btnSalvar?.addEventListener('click', () => this._salvarNota());
+
+    // Salvar com Enter no campo título
+    document.getElementById('notaTitulo')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._salvarNota();
+    });
+  },
+
+  _limparFormNota() {
+    const titulo = document.getElementById('notaTitulo');
+    const data = document.getElementById('notaData');
+    const tipo = document.getElementById('notaTipo');
+    const conteudo = document.getElementById('notaConteudo');
+    if (titulo) titulo.value = '';
+    if (data) data.value = '';
+    if (tipo) tipo.value = 'lembrete';
+    if (conteudo) conteudo.value = '';
+  },
+
+  async _salvarNota() {
+    if (!AppState.currentUser) return;
+
+    const titulo = document.getElementById('notaTitulo')?.value.trim();
+    if (!titulo) {
+      Utils.showWarning('Informe um título para a anotação.');
+      document.getElementById('notaTitulo')?.focus();
+      return;
+    }
+
+    const data = document.getElementById('notaData')?.value || undefined;
+    const tipo = document.getElementById('notaTipo')?.value || 'outro';
+    const conteudo = document.getElementById('notaConteudo')?.value.trim() || undefined;
+
+    try {
+      const response = await window.api.nota.create({
+        usuario_id: AppState.currentUser.id,
+        titulo,
+        conteudo,
+        data,
+        tipo,
+      });
+
+      if (response.success) {
+        document.getElementById('dashNotasForm').style.display = 'none';
+        this._limparFormNota();
+        await this.updateNotas();
+        Utils.showSuccess('Anotação salva!');
+      } else {
+        Utils.showError(response.error || 'Erro ao salvar anotação.');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar nota:', error);
+      Utils.showError('Erro ao salvar anotação.');
+    }
+  },
+
+  async updateNotas() {
+    if (!AppState.currentUser) return;
+
+    const container = document.getElementById('dashNotasList');
+    if (!container) return;
+
+    try {
+      const response = await window.api.nota.list(AppState.currentUser.id);
+
+      if (!response.success) {
+        container.innerHTML = '<div class="empty-state"><p>Erro ao carregar anotações</p></div>';
+        return;
+      }
+
+      const notas = response.data || [];
+
+      if (notas.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Nenhuma anotação ainda</p></div>';
+        return;
+      }
+
+      const tipoIcone = { lembrete: '🔔', vencimento: '📅', outro: '📝' };
+
+      container.innerHTML = '';
+      notas.forEach((nota) => {
+        const item = document.createElement('div');
+        item.className = `nota-item ${Utils.escapeHtml(nota.tipo)}`;
+
+        const dataFormatada = nota.data ? Utils.formatDate(nota.data) : '';
+
+        const conteudoHtml = nota.conteudo
+          ? `<p class="nota-conteudo">${Utils.escapeHtml(nota.conteudo)}</p>`
+          : '';
+
+        const dataHtml = dataFormatada
+          ? `<span class="nota-data">📅 ${dataFormatada}</span>`
+          : '';
+
+        item.innerHTML = `
+          <span class="nota-item-icon" aria-hidden="true">${tipoIcone[nota.tipo] || '📝'}</span>
+          <div class="nota-item-info">
+            <div class="nota-titulo">${Utils.escapeHtml(nota.titulo)}</div>
+            ${conteudoHtml}
+            <div class="nota-meta">
+              <span class="nota-badge ${Utils.escapeHtml(nota.tipo)}">${Utils.escapeHtml(nota.tipo)}</span>
+              ${dataHtml}
+            </div>
+          </div>
+          <button class="nota-delete" aria-label="Excluir anotação" title="Excluir">×</button>
+        `;
+
+        const btnDelete = item.querySelector('.nota-delete');
+        btnDelete?.addEventListener('click', async () => {
+          if (!Utils.confirm(`Excluir "${nota.titulo}"?`)) return;
+          try {
+            const res = await window.api.nota.delete(nota.id, AppState.currentUser.id);
+            if (res.success) {
+              await this.updateNotas();
+            } else {
+              Utils.showError(res.error || 'Erro ao excluir anotação.');
+            }
+          } catch (err) {
+            console.error('Erro ao excluir nota:', err);
+            Utils.showError('Erro ao excluir anotação.');
+          }
+        });
+
+        container.appendChild(item);
+      });
+    } catch (error) {
+      console.error('Erro ao carregar notas:', error);
+      container.innerHTML = '<div class="empty-state"><p>Erro ao carregar anotações</p></div>';
+    }
   },
 
   renderChart() {

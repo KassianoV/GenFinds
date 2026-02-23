@@ -473,3 +473,194 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =============================================
+   CARD DE ANOTAÇÕES
+   ============================================= */
+
+.dashboard-notas {
+  background: var(--bg-white);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-top: 30px;
+}
+
+.notas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.notas-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Formulário de nova nota */
+.nota-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-light);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.nota-form input[type="text"],
+.nota-form textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.nota-form input[type="text"]:focus,
+.nota-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.nota-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.nota-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.nota-form-row input[type="date"],
+.nota-form-row select {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.nota-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+
+/* Lista de notas */
+.notas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.nota-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-light);
+  border-radius: 10px;
+  border-left: 4px solid var(--border-color);
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.nota-item:hover {
+  background-color: #efefef;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.nota-item.lembrete  { border-left-color: #1976d2; }
+.nota-item.vencimento{ border-left-color: var(--danger-color); }
+.nota-item.outro     { border-left-color: var(--text-secondary); }
+
+.nota-item-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.nota-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nota-titulo {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nota-conteudo {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.nota-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nota-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: capitalize;
+}
+
+.nota-badge.lembrete   { background: #e3f2fd; color: #1565c0; }
+.nota-badge.vencimento { background: #fce4ec; color: #b71c1c; }
+.nota-badge.outro      { background: #f3e5f5; color: #6a1b9a; }
+
+.nota-data {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.nota-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 18px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nota-delete:hover {
+  background-color: #fce4ec;
+  color: var(--danger-color);
+}

@@ -180,6 +180,26 @@ export const TransacaoParceladaSchema = z.object({
   numeroParcelas: z.number().int().min(2, 'Mínimo 2 parcelas').max(60, 'Máximo 60 parcelas'),
 });
 
+// Nota
+export const NotaCreateSchema = z.object({
+  usuario_id: z.number().int().positive('ID de usuário inválido'),
+  titulo: z.string().min(1, 'Título é obrigatório').max(255, 'Título muito longo'),
+  conteudo: z.string().max(1000, 'Conteúdo muito longo').optional(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD').optional(),
+  tipo: z.enum(['lembrete', 'vencimento', 'outro']).default('outro'),
+});
+
+export const NotaUpdateSchema = z
+  .object({
+    titulo: z.string().min(1).max(255).optional(),
+    conteudo: z.string().max(1000).optional(),
+    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    tipo: z.enum(['lembrete', 'vencimento', 'outro']).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Pelo menos um campo deve ser atualizado',
+  });
+
 // Schemas simples para IDs e parâmetros
 export const IdSchema = z.number().int().positive('ID inválido');
 

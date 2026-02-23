@@ -23,6 +23,7 @@ import {
   TransacaoCompleta,
   PaginationParams,
   PaginatedResult,
+  Nota,
 } from '../types/database.types';
 
 // Interface para cache
@@ -270,6 +271,23 @@ export class DatabaseManager {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_contas_usuario ON contas(usuario_id)`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_cartoes_usuario ON cartoes(usuario_id)`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_transacoes_cartao_usuario ON transacoes_cartao(usuario_id)`);
+
+    // ========== TABELA DE NOTAS/LEMBRETES ==========
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS notas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
+        titulo TEXT NOT NULL,
+        conteudo TEXT,
+        data DATE,
+        tipo TEXT CHECK(tipo IN ('lembrete', 'vencimento', 'outro')) DEFAULT 'outro',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      )
+    `);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_notas_usuario ON notas(usuario_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_notas_data ON notas(data)`);
 
     // ========== MIGRAÇÃO DE DADOS EXISTENTES ==========
     this.runMigrations();
@@ -2036,6 +2054,94 @@ export class DatabaseManager {
       categoria_cor: row[cols.indexOf('categoria_cor')]
         ? String(row[cols.indexOf('categoria_cor')])
         : undefined,
+    };
+  }
+
+  // ========== MÉTODOS DE NOTAS ==========
+
+  createNota(data: { usuario_id: number; titulo: string; conteudo?: string; data?: string; tipo?: 'lembrete' | 'vencimento' | 'outro' }): Nota {
+    const tipo = data.tipo ?? 'outro';
+    const result = this.db.exec(
+      `INSERT INTO notas (usuario_id, titulo, conteudo, data, tipo)
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING *`,
+      [data.usuario_id, data.titulo, data.conteudo ?? null, data.data ?? null, tipo]
+    );
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      throw new Error('Erro ao criar nota');
+    }
+
+    this.invalidateCache(`notas_${data.usuario_id}`);
+    this.save();
+    return this.rowToNotaFromArray(result[0].values[0], result[0].columns);
+  }
+
+  getNotas(usuarioId: number): Nota[] {
+    const cacheKey = `notas_${usuarioId}`;
+    const cached = this.getCached<Nota[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = this.db.exec(
+      `SELECT * FROM notas WHERE usuario_id = ? ORDER BY
+        CASE WHEN data IS NULL THEN 1 ELSE 0 END,
+        data ASC,
+        created_at DESC`,
+      [usuarioId]
+    );
+
+    if (result.length === 0) return [];
+
+    const cols = result[0].columns;
+    const notas = result[0].values.map((row) => this.rowToNotaFromArray(row, cols));
+    this.setCache(cacheKey, notas);
+    return notas;
+  }
+
+  updateNota(id: number, usuarioId: number, updates: Partial<Pick<Nota, 'titulo' | 'conteudo' | 'data' | 'tipo'>>): boolean {
+    const fields: string[] = [];
+    const params: (string | number | null)[] = [];
+
+    if (updates.titulo !== undefined) { fields.push('titulo = ?'); params.push(updates.titulo); }
+    if (updates.conteudo !== undefined) { fields.push('conteudo = ?'); params.push(updates.conteudo ?? null); }
+    if (updates.data !== undefined) { fields.push('data = ?'); params.push(updates.data ?? null); }
+    if (updates.tipo !== undefined) { fields.push('tipo = ?'); params.push(updates.tipo); }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(id, usuarioId);
+
+    this.db.run(
+      `UPDATE notas SET ${fields.join(', ')} WHERE id = ? AND usuario_id = ?`,
+      params
+    );
+
+    this.invalidateCache(`notas_${usuarioId}`);
+    this.save();
+    return true;
+  }
+
+  deleteNota(id: number, usuarioId: number): boolean {
+    this.db.run(
+      `DELETE FROM notas WHERE id = ? AND usuario_id = ?`,
+      [id, usuarioId]
+    );
+    this.invalidateCache(`notas_${usuarioId}`);
+    this.save();
+    return true;
+  }
+
+  private rowToNotaFromArray(row: SqlValue[], cols: string[]): Nota {
+    return {
+      id: Number(row[cols.indexOf('id')]),
+      usuario_id: Number(row[cols.indexOf('usuario_id')]),
+      titulo: String(row[cols.indexOf('titulo')]),
+      conteudo: row[cols.indexOf('conteudo')] ? String(row[cols.indexOf('conteudo')]) : undefined,
+      data: row[cols.indexOf('data')] ? String(row[cols.indexOf('data')]) : undefined,
+      tipo: String(row[cols.indexOf('tipo')]) as 'lembrete' | 'vencimento' | 'outro',
+      created_at: String(row[cols.indexOf('created_at')]),
+      updated_at: String(row[cols.indexOf('updated_at')]),
     };
   }
 
