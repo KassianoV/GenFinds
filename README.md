@@ -5,12 +5,13 @@
   
   <p><strong>Sistema completo de gestão financeira pessoal desenvolvido com Electron</strong></p>
   
-  [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](CHANGELOG.md)
+  [![Version](https://img.shields.io/badge/version-1.8.3-blue.svg)](CHANGELOG.md)
   [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
   [![Electron](https://img.shields.io/badge/Electron-28.1.0-47848f.svg)](https://www.electronjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178c6.svg)](https://www.typescriptlang.org/)
   [![Tests](https://img.shields.io/badge/tests-92%20passing-success.svg)](package.json)
-  [![Code Quality](https://img.shields.io/badge/code%20quality-ESLint%20%2B%20Prettier-blueviolet.svg)](eslint.config.mjs)
+  [![Code Quality](https://img.shields.io/badge/code%20quality-ESLint%20%2B%20Prettier-blueviolet.svg)](eslint.config.js)
+  [![Playwright](https://img.shields.io/badge/Playwright-1.57.0-2EAD33.svg)](https://playwright.dev/)
 
 
 ---
@@ -38,16 +39,28 @@
 
 ---
 
-## ✨ Destaques da Versão 1.8.0
+## ✨ Destaques da Versão 1.8.x
 
-- 👥 **Suporte Multi-Usuário Completo** - Isolamento total de dados por usuário
-- 🔧 **Correção de Resumo Financeiro** - Valores agora somam corretamente no dashboard e relatórios
+### v1.8.3 (atual)
+- ♿ **Acessibilidade Aprimorada** - Atributos ARIA, navegação por teclado e foco correto em modais
+- 🎨 **Barra Lateral e Login** - Atualização visual e de comportamento
+- 💳 **Lançamento de Parcelas** - Correção no fluxo de criação de transações parceladas no cartão
+
+### v1.8.2
+- 🔢 **Cálculo de Cartão** - Correção na soma de transações à vista e parceladas por cartão
+
+### v1.8.1
+- 📄 **Paginação no Módulo de Cartão** - Visualização paginada com separação por tipo (à vista vs parceladas)
+
+### v1.8.0
+- 👥 **Suporte Multi-Usuário Completo** - Isolamento total de dados por `usuario_id`
+- 🔧 **Correção de Resumo Financeiro** - Valores somam corretamente no dashboard e relatórios
 - 💳 **Exibição de Valor de Cartões** - Valor inicial + transações do mês exibidos corretamente
-- 📋 **Categorias nos Dropdowns** - Categorias agora aparecem em todas as telas (transações, fatura, parcela)
-- 🔄 **Atualização Automática de Cards** - Cards de resumo atualizam após criar/editar/excluir transações
+- 📋 **Categorias nos Dropdowns** - Categorias aparecem em todas as telas (transações, fatura, parcela)
+- 🔄 **Atualização Automática de Cards** - Cards de resumo atualizam após CRUD de transações
 - 📥 **Importação OFX** - Importe extratos bancários e faturas automaticamente
 - 🤖 **Categorização Automática** - Transações categorizadas inteligentemente
-- 🔒 **Segurança Reforçada** - CSP, validação de dados e proteção contra SQL Injection
+- 🔒 **Segurança Reforçada** - CSP, validação Zod e proteção contra SQL Injection
 
 ---
 
@@ -57,7 +70,7 @@
 
 | Módulo | Recursos |
 |--------|----------|
-| **Dashboard** | Cards de resumo, gráfico de evolução mensal, orçamentos, últimas transações, gastos nos cartões |
+| **Dashboard** | Cards de resumo, gráfico de evolução mensal, orçamentos, últimas transações, gastos nos cartões, card de anotações/lembretes |
 | **Transações** | CRUD completo, filtros avançados, paginação, exportar/importar CSV e OFX |
 | **Cartões de Crédito** | Gestão de cartões, faturas mensais, lançamento de compras, parcelamento, importação OFX |
 | **Contas** | Múltiplas contas, tipos variados, edição com saldo automático |
@@ -91,6 +104,8 @@
 - ✅ Sistema de testes automatizados (92 testes)
 - ✅ Lint e formatação de código (ESLint + Prettier)
 - ✅ Sistema de changelog automatizado (Conventional Commits)
+- ✅ Anotações e lembretes financeiros no dashboard
+- ✅ Navegação por teclado e suporte a acessibilidade (ARIA)
 
 ---
 
@@ -168,7 +183,7 @@ npm run build:dir
 npm run build:all
 ```
 
-**📁 Saída:** `release/GenFins-1.8.0-Setup.exe` (Windows)
+**📁 Saída:** `release/GenFins-1.8.3-Setup.exe` (Windows)
 
 ### Versionamento
 O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
@@ -250,12 +265,36 @@ GenFins/
 | **SQLite** (sql.js) | 1.10.3 | Banco de dados local |
 | **Chart.js** | 4.4.0 | Biblioteca de gráficos |
 | **Electron Builder** | 24.9.1 | Build e distribuição |
-| **Jest** | 29.7.0 | Framework de testes |
-| **ESLint** | 9.39.2 | Linter de código |
+| **Jest** | 29.7.0 | Framework de testes unitários e integração |
+| **Playwright** | 1.57.0 | Testes E2E multiplataforma |
+| **ESLint** | 9.39.2 | Linter de código (flat config) |
 | **Prettier** | 3.7.4 | Formatador de código |
-| **Zod** | 3.22.4 | Validação de schemas |
-| **Winston** | 3.19.0 | Sistema de logging |
+| **Zod** | 3.22.4 | Validação de schemas em runtime |
+| **Winston** | 3.19.0 | Sistema de logging estruturado |
+| **Decimal.js** | 10.6.0 | Aritmética decimal precisa |
+| **Bcrypt** | 5.1.1 | Hash seguro de senhas |
 | **Conventional Changelog** | 4.1.0 | Geração automática de changelog |
+
+---
+
+## 📝 Anotações e Lembretes no Dashboard
+
+O GenFins possui um card dedicado no dashboard para criar e gerenciar anotações financeiras:
+
+### Tipos de Anotação
+| Tipo | Descrição |
+|------|-----------|
+| **Lembrete** | Lembretes gerais financeiros |
+| **Vencimento** | Contas a pagar com data de vencimento |
+| **Outro** | Notas livres |
+
+### Recursos
+- ✅ Campo de data opcional para anotações com prazo
+- ✅ Ordenação automática por data (mais próximas primeiro)
+- ✅ Badge colorido por tipo de anotação
+- ✅ Formulário inline com abertura/fechamento dinâmico
+- ✅ Exclusão individual com confirmação
+- ✅ Persistência via tabela `notas` no banco SQLite
 
 ---
 
@@ -405,6 +444,7 @@ Cartão → Fatura
 
 - [📝 Changelog](CHANGELOG.md) - Histórico de versões
 - [🤝 Contribuindo](CONTRIBUTING.md) - Guia de contribuição
+- [🔍 Reviewer](REVIEWER.md) - Guia de revisão de código
 - [📄 Licença](LICENSE.txt) - Licença MIT
 
 ---
@@ -437,6 +477,7 @@ Encontrou um bug? [Abra uma issue](https://github.com/KassianoV/GenFinds/issues)
 
 ### 🔜 Próximas Versões
 
+- [x] Card de Anotações/Lembretes no Dashboard (em desenvolvimento)
 - [ ] Suporte a múltiplas moedas
 - [ ] Gráficos de análise preditiva
 - [ ] Sincronização em nuvem
@@ -451,14 +492,20 @@ Encontrou um bug? [Abra uma issue](https://github.com/KassianoV/GenFinds/issues)
 O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Versões Principais:**
-- **v1.8.0** (atual) - Suporte multi-usuário completo e correções de exibição de valores
+- **v1.8.3** (atual) - Acessibilidade, correção de parcelas no cartão e melhorias visuais
+- **v1.8.2** - Correção na soma de transações à vista e parceladas por cartão
+- **v1.8.1** - Paginação e separação por tipo no módulo de cartão
+- **v1.8.0** - Suporte multi-usuário completo e correções de exibição de valores
 - **v1.7.0** - Correções de bugs do banco de dados
 - **v1.6.4** - Correção da lógica de cartões
 - **v1.6.3** - Correção de interação com fatura e parcela
 - **v1.6.2** - Melhorias de UX em cartões e relatórios
-- **v1.6.0** - Melhorias em gráficos e cards de resumo
+- **v1.6.1** - ESLint v9 flat config, Prettier, debounce e paginação no backend
+- **v1.6.0** - Gráfico de evolução mensal e card de gastos de cartões no dashboard
 - **v1.5.0** - Paginação de transações e importação OFX
-- **v1.4.0** - Correções críticas de segurança e performance
+- **v1.4.0** - Validação Zod, logging Winston e segurança reforçada
+- **v1.3.0** - Importação OFX com categorização automática e detecção de duplicatas
+- **v1.1.0** - Gestão de cartões de crédito e lançamentos parcelados
 - **v1.0.0** - Lançamento inicial
 
 Veja o [Changelog completo](CHANGELOG.md) para todos os detalhes.
@@ -467,24 +514,27 @@ Veja o [Changelog completo](CHANGELOG.md) para todos os detalhes.
 
 ## 📊 Status do Projeto
 ```
-✅ Suporte multi-usuário com isolamento de dados
-✅ Dashboard completo com gastos de cartões
+✅ Suporte multi-usuário com isolamento de dados (usuario_id)
+✅ Dashboard completo: resumo, gráfico mensal, gastos de cartões, anotações
 ✅ CRUD de todas entidades com usuario_id
 ✅ Sistema de filtros avançados com debounce
-✅ Paginação de transações
+✅ Paginação de transações (backend)
+✅ Paginação no módulo de cartão (à vista e parceladas)
 ✅ Exportar/Importar CSV e OFX
 ✅ Gestão completa de cartões de crédito
 ✅ Exibição correta de valores (inicial + transações)
-✅ Lançamento de compras parceladas
+✅ Lançamento de compras parceladas corrigido
 ✅ Importação de faturas OFX
 ✅ Categorização automática
 ✅ Categorias funcionando em todos os dropdowns
 ✅ Sistema de testes (92 testes passando)
-✅ ESLint + Prettier configurados
-✅ Content Security Policy
+✅ ESLint v9 flat config + Prettier
+✅ Content Security Policy (CSP)
 ✅ Sistema de logging com Winston
 ✅ Validação de dados com Zod
-✅ Build de produção
+✅ Acessibilidade: ARIA, navegação por teclado, foco em modais
+✅ Barra lateral e tela de login atualizadas
+✅ Build de produção multiplataforma
 ✅ Documentação completa
 ```
 
@@ -617,10 +667,13 @@ Ainda com problemas? [Abra uma issue](https://github.com/KassianoV/GenFinds/issu
 
 ## 🙏 Agradecimentos
 
-- [Electron](https://www.electronjs.org/) - Framework desktop incrível
+- [Electron](https://www.electronjs.org/) - Framework desktop multiplataforma
 - [Chart.js](https://www.chartjs.org/) - Biblioteca de gráficos
 - [sql.js](https://sql.js.org/) - SQLite em JavaScript
-- Comunidade open source 💚
+- [Zod](https://zod.dev/) - Validação de schemas TypeScript-first
+- [Winston](https://github.com/winstonjs/winston) - Logger estruturado
+- [Playwright](https://playwright.dev/) - Testes E2E
+- Comunidade open source
 
 ---
 
