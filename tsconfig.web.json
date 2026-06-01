@@ -7,6 +7,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"],
       "@renderer/*": ["./src/*"]
