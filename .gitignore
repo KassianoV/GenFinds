@@ -34,6 +34,9 @@ android/
 *.keystore
 google-services.json
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Sistema operacional
 .DS_Store
 Thumbs.db
