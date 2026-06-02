@@ -1,8 +1,9 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron/**/*", "electron-builder.config.ts", "capacitor.config.ts"],
+  "include": ["electron/**/*", "src/main/**/*", "src/preload/**/*", "electron-builder.config.ts", "capacitor.config.ts"],
   "compilerOptions": {
     "composite": true,
+    "moduleResolution": "bundler",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

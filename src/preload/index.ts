@@ -13,8 +13,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore
+  // @ts-ignore (fallback sem contextIsolation — window não tem tipagem para essas props)
   window.electron = electronAPI
-  // @ts-ignore
+  // @ts-ignore (fallback sem contextIsolation — window não tem tipagem para essas props)
   window.api = api
 }

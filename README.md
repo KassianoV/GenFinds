@@ -35,26 +35,26 @@ O **GenFinds** é um aplicativo de finanças pessoais com foco em privacidade: o
 
 ## Stack tecnológica
 
-| Camada | Tecnologia |
-|--------|-----------|
-| Framework UI | React 19 + TypeScript 5 |
-| Build & Dev | Vite 6 + electron-vite |
-| Desktop shell | Electron 36 + electron-builder |
-| Mobile shell | Capacitor 7 + Android |
-| Estilo | Tailwind CSS 4 + shadcn/ui |
-| Componentes | Lucide React + Recharts |
-| Estado global | Zustand |
-| Dados assíncronos | TanStack Query v5 |
-| Banco (desktop) | sql.js (SQLite em memória → arquivo) |
-| Banco (mobile) | @capacitor-community/sqlite |
-| Validação | Zod |
-| Precisão monetária | Decimal.js |
-| Hash de senha (desktop) | bcrypt |
-| Hash de senha (mobile) | @noble/argon2 (WASM) |
-| Testes unitários | Vitest |
-| Testes E2E desktop | Playwright |
-| Testes E2E mobile | Maestro |
-| Logs (desktop) | Winston |
+| Camada                  | Tecnologia                           |
+| ----------------------- | ------------------------------------ |
+| Framework UI            | React 19 + TypeScript 5              |
+| Build & Dev             | Vite 6 + electron-vite               |
+| Desktop shell           | Electron 36 + electron-builder       |
+| Mobile shell            | Capacitor 7 + Android                |
+| Estilo                  | Tailwind CSS 4 + shadcn/ui           |
+| Componentes             | Lucide React + Recharts              |
+| Estado global           | Zustand                              |
+| Dados assíncronos       | TanStack Query v5                    |
+| Banco (desktop)         | sql.js (SQLite em memória → arquivo) |
+| Banco (mobile)          | @capacitor-community/sqlite          |
+| Validação               | Zod                                  |
+| Precisão monetária      | Decimal.js                           |
+| Hash de senha (desktop) | bcrypt                               |
+| Hash de senha (mobile)  | @noble/argon2 (WASM)                 |
+| Testes unitários        | Vitest                               |
+| Testes E2E desktop      | Playwright                           |
+| Testes E2E mobile       | Maestro                              |
+| Logs (desktop)          | Winston                              |
 
 ---
 

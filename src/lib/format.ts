@@ -3,7 +3,10 @@ import Decimal from 'decimal.js'
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
 export function formatCurrency(value: string | number): string {
-  return new Decimal(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return new Decimal(value)
+    .toFixed(2)
+    .replace('.', ',')
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
 export function formatCurrencyBRL(value: string | number): string {

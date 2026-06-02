@@ -1,8 +1,6 @@
-export const isCapacitor = (): boolean =>
-  typeof (window as any).Capacitor !== 'undefined'
+export const isCapacitor = (): boolean => 'Capacitor' in window
 
-export const isElectron = (): boolean =>
-  typeof (window as any).electron !== 'undefined'
+export const isElectron = (): boolean => 'electron' in window
 
 export const isMobile = (): boolean => isCapacitor()
 

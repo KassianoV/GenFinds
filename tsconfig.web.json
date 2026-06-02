@@ -1,6 +1,7 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": ["src/**/*", "src/**/*.d.ts"],
+  "exclude": ["src/main", "src/preload"],
   "compilerOptions": {
     "composite": true,
     "strict": true,

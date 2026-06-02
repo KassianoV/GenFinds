@@ -4,8 +4,8 @@ import eslintConfigPrettier from '@electron-toolkit/eslint-config-prettier'
 import reactHooks from 'eslint-plugin-react-hooks'
 
 export default defineConfig([
-  { ignores: ['dist', 'dist-electron', 'out', 'node_modules', 'android'] },
-  ...tsEslint,
+  { ignores: ['dist', 'dist-electron', 'out', 'node_modules', 'android', 'src/components/ui'] },
+  ...tsEslint.configs.recommended,
   eslintConfigPrettier,
   {
     plugins: { 'react-hooks': reactHooks },
