@@ -3,6 +3,8 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const r = (p: string): string => resolve(p).replace(/\\/g, '/')
+
 export default defineConfig({
   main: {
     build: {
@@ -11,7 +13,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@electron': resolve('src/main')
+        '@electron': r('src/main')
       }
     }
   },
@@ -23,18 +25,12 @@ export default defineConfig({
   },
   renderer: {
     build: {
-      outDir: 'dist',
-      rollupOptions: {
-        input: resolve('src/renderer/index.html')
-      }
-    },
-    server: {
-      fs: { allow: ['..'] }
+      outDir: 'dist'
     },
     resolve: {
       alias: {
-        '@': resolve('src'),
-        '@renderer': resolve('src')
+        '@': r('src/renderer'),
+        '@renderer': r('src/renderer')
       }
     },
     plugins: [react(), tailwindcss()]
