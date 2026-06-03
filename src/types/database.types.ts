@@ -1,83 +1,148 @@
 export interface Usuario {
-  id: number
-  nome: string
-  email: string
-  senha_hash: string
-  criado_em: string
+  id: number;
+  nome: string;
+  email: string;
+  avatar?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Conta {
-  id: number
-  usuario_id: number
-  nome: string
-  tipo: 'corrente' | 'poupanca' | 'carteira'
-  saldo_inicial: string
-  criado_em: string
+  id: number;
+  usuario_id: number;
+  nome: string;
+  saldo: number;
+  tipo: 'corrente' | 'poupanca' | 'investimento' | 'carteira';
+  ativa: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Categoria {
-  id: number
-  usuario_id: number
-  nome: string
-  tipo: 'receita' | 'despesa'
-  icone: string
-  cor: string
-}
-
-export interface Transacao {
-  id: number
-  usuario_id: number
-  conta_id: number
-  categoria_id: number
-  tipo: 'receita' | 'despesa'
-  descricao: string
-  valor: string
-  data: string
-  observacao?: string
-  criado_em: string
-}
-
-export interface Cartao {
-  id: number
-  usuario_id: number
-  nome: string
-  limite: string
-  dia_fechamento: number
-  dia_vencimento: number
-  bandeira?: string
-}
-
-export interface TransacaoCartao {
-  id: number
-  cartao_id: number
-  usuario_id: number
-  descricao: string
-  valor: string
-  data: string
-  categoria_id: number
-  parcela_atual?: number
-  total_parcelas?: number
-  grupo_parcela_id?: string
+  id: number;
+  usuario_id: number;
+  nome: string;
+  tipo: 'receita' | 'despesa';
+  cor?: string;
+  icone?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Orcamento {
-  id: number
-  usuario_id: number
-  categoria_id: number
-  valor: string
-  mes: number
-  ano: number
+  id: number;
+  usuario_id: number;
+  categoria_id: number;
+  valor_planejado: number;
+  mes: number;
+  ano: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Transacao {
+  id: number;
+  usuario_id: number;
+  descricao: string;
+  valor: number;
+  tipo: 'receita' | 'despesa';
+  data: string;
+  conta_id: number;
+  categoria_id: number;
+  observacoes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransacaoCompleta extends Transacao {
+  conta_nome: string;
+  categoria_nome: string;
+  categoria_cor?: string;
+}
+
+export interface Cartao {
+  id: number;
+  usuario_id: number;
+  nome: string;
+  valor: number;
+  vencimento: number;
+  status: 'aberta' | 'fechada' | 'paga' | 'pendente';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Parcela {
+  id: number;
+  usuario_id: number;
+  descricao: string;
+  dia: number;
+  cartao_id: number;
+  valor_parcela: number;
+  quantidade_parcelas: number;
+  total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransacaoCartao {
+  id: number;
+  usuario_id: number;
+  descricao: string;
+  valor: number;
+  data: string;
+  cartao_id: number;
+  categoria_id?: number;
+  parcelas: number;
+  parcela_atual: number;
+  grupo_parcelamento?: string;
+  observacoes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransacaoCartaoCompleta extends TransacaoCartao {
+  cartao_nome: string;
+  cartao_vencimento: number;
+  categoria_nome?: string;
+  categoria_cor?: string;
+}
+
+export interface ResumoFinanceiro {
+  receita: number;
+  despesa: number;
+  saldo: number;
+}
+
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 export interface Nota {
-  id: number
-  usuario_id: number
-  texto: string
-  criado_em: string
+  id: number;
+  usuario_id: number;
+  titulo: string;
+  conteudo?: string;
+  data?: string;
+  tipo: 'lembrete' | 'vencimento' | 'outro';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ServiceResult<T> {
-  success: boolean
-  data?: T
-  error?: string
+  success: boolean;
+  data?: T;
+  error?: string;
 }

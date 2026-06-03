@@ -8,24 +8,36 @@ const r = (p: string): string => resolve(p).replace(/\\/g, '/')
 export default defineConfig({
   main: {
     build: {
-      outDir: 'dist-electron/main'
+      outDir: 'dist-electron/main',
+      rollupOptions: {
+        input: r('electron/main.ts'),
+        output: { entryFileNames: 'index.js' }
+      }
     },
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@electron': r('src/main')
+        '@electron': r('electron')
       }
     }
   },
   preload: {
     build: {
-      outDir: 'dist-electron/preload'
+      outDir: 'dist-electron/preload',
+      rollupOptions: {
+        input: r('electron/preload.ts'),
+        output: { entryFileNames: 'index.js' }
+      }
     },
     plugins: [externalizeDepsPlugin()]
   },
   renderer: {
+    root: r('src/renderer'),
     build: {
-      outDir: 'dist'
+      outDir: r('dist'),
+      rollupOptions: {
+        input: r('src/renderer/index.html')
+      }
     },
     resolve: {
       alias: {
