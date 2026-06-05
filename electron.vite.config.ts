@@ -14,7 +14,7 @@ export default defineConfig({
         output: { entryFileNames: 'index.js' }
       }
     },
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['zod'] })],
     resolve: {
       alias: {
         '@electron': r('electron')

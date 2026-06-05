@@ -1,13 +1,13 @@
 // electron/validation.ts
-import { z } from 'zod';
+import { z } from 'zod'
 
 // ========== SCHEMAS DE VALIDAÇÃO ==========
 
 // Usuário
 export const UsuarioCreateSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
-  email: z.string().email('Email inválido').max(255, 'Email muito longo'),
-});
+  email: z.string().email('Email inválido').max(255, 'Email muito longo')
+})
 
 // Conta
 export const ContaCreateSchema = z.object({
@@ -15,19 +15,19 @@ export const ContaCreateSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   saldo: z.number().optional().default(0),
   tipo: z.enum(['corrente', 'poupanca', 'investimento', 'carteira']),
-  ativa: z.boolean().optional().default(true),
-});
+  ativa: z.boolean().optional().default(true)
+})
 
 export const ContaUpdateSchema = z
   .object({
     nome: z.string().min(1).max(255).optional(),
     saldo: z.number().optional(),
     tipo: z.enum(['corrente', 'poupanca', 'investimento', 'carteira']).optional(),
-    ativa: z.boolean().optional(),
+    ativa: z.boolean().optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Categoria
 export const CategoriaCreateSchema = z.object({
@@ -35,19 +35,19 @@ export const CategoriaCreateSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   tipo: z.enum(['receita', 'despesa']),
   cor: z.string().max(50).optional(),
-  icone: z.string().max(50).optional(),
-});
+  icone: z.string().max(50).optional()
+})
 
 export const CategoriaUpdateSchema = z
   .object({
     nome: z.string().min(1).max(255).optional(),
     tipo: z.enum(['receita', 'despesa']).optional(),
     cor: z.string().max(50).optional(),
-    icone: z.string().max(50).optional(),
+    icone: z.string().max(50).optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Orçamento
 export const OrcamentoCreateSchema = z.object({
@@ -55,19 +55,19 @@ export const OrcamentoCreateSchema = z.object({
   categoria_id: z.number().int().positive('ID de categoria inválido'),
   valor_planejado: z.number().positive('Valor deve ser positivo'),
   mes: z.number().int().min(1, 'Mês inválido').max(12, 'Mês inválido'),
-  ano: z.number().int().min(2000, 'Ano inválido').max(2100, 'Ano inválido'),
-});
+  ano: z.number().int().min(2000, 'Ano inválido').max(2100, 'Ano inválido')
+})
 
 export const OrcamentoUpdateSchema = z
   .object({
     categoria_id: z.number().int().positive().optional(),
     valor_planejado: z.number().positive().optional(),
     mes: z.number().int().min(1).max(12).optional(),
-    ano: z.number().int().min(2000).max(2100).optional(),
+    ano: z.number().int().min(2000).max(2100).optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Transação
 export const TransacaoCreateSchema = z.object({
@@ -78,8 +78,8 @@ export const TransacaoCreateSchema = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
   conta_id: z.number().int().positive('ID de conta inválido'),
   categoria_id: z.number().int().positive('ID de categoria inválido'),
-  observacoes: z.string().max(1000, 'Observações muito longas').optional(),
-});
+  observacoes: z.string().max(1000, 'Observações muito longas').optional()
+})
 
 export const TransacaoUpdateSchema = z
   .object({
@@ -92,31 +92,35 @@ export const TransacaoUpdateSchema = z
       .optional(),
     conta_id: z.number().int().positive().optional(),
     categoria_id: z.number().int().positive().optional(),
-    observacoes: z.string().max(1000).optional(),
+    observacoes: z.string().max(1000).optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Cartão
 export const CartaoCreateSchema = z.object({
   usuario_id: z.number().int().positive('ID de usuário inválido'),
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   valor: z.number().min(0, 'Valor não pode ser negativo').default(0),
-  vencimento: z.number().int().min(1, 'Vencimento deve ser entre 1 e 31').max(31, 'Vencimento deve ser entre 1 e 31'),
-  status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).default('aberta'),
-});
+  vencimento: z
+    .number()
+    .int()
+    .min(1, 'Vencimento deve ser entre 1 e 31')
+    .max(31, 'Vencimento deve ser entre 1 e 31'),
+  status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).default('aberta')
+})
 
 export const CartaoUpdateSchema = z
   .object({
     nome: z.string().min(1).max(255).optional(),
     valor: z.number().min(0).optional(),
     vencimento: z.number().int().min(1).max(31).optional(),
-    status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).optional(),
+    status: z.enum(['aberta', 'fechada', 'paga', 'pendente']).optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Parcela
 export const ParcelaCreateSchema = z.object({
@@ -126,19 +130,19 @@ export const ParcelaCreateSchema = z.object({
   dia: z.number().int().min(1).max(31, 'Dia deve ser entre 1 e 31'),
   valor_parcela: z.number().positive('Valor da parcela deve ser positivo'),
   quantidade_parcelas: z.number().int().min(1, 'Mínimo 1 parcela').max(60, 'Máximo 60 parcelas'),
-  total: z.number().positive('Valor total deve ser positivo'),
-});
+  total: z.number().positive('Valor total deve ser positivo')
+})
 
 export const ParcelaUpdateSchema = z
   .object({
     descricao: z.string().min(1).max(255).optional(),
     valor_parcela: z.number().positive().optional(),
     quantidade_parcelas: z.number().int().min(1).max(60).optional(),
-    total: z.number().positive().optional(),
+    total: z.number().positive().optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Transação de Cartão
 export const TransacaoCartaoCreateSchema = z.object({
@@ -148,14 +152,14 @@ export const TransacaoCartaoCreateSchema = z.object({
   valor: z.coerce.number().positive('Valor deve ser positivo').max(999999999, 'Valor muito alto'),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
   categoria_id: z.preprocess(
-    (val) => (val === null || val === undefined || val === '') ? undefined : Number(val),
+    (val) => (val === null || val === undefined || val === '' ? undefined : Number(val)),
     z.number().int().positive('ID de categoria inválido').optional()
   ),
   parcelas: z.coerce.number().int().min(1).max(60).default(1),
   parcela_atual: z.coerce.number().int().min(1).default(1),
   grupo_parcelamento: z.string().max(100).nullish(),
-  observacoes: z.string().max(1000).nullish(),
-});
+  observacoes: z.string().max(1000).nullish()
+})
 
 export const TransacaoCartaoUpdateSchema = z
   .object({
@@ -166,70 +170,80 @@ export const TransacaoCartaoUpdateSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
     categoria_id: z.preprocess(
-      (val) => (val === null || val === undefined || val === '') ? undefined : Number(val),
+      (val) => (val === null || val === undefined || val === '' ? undefined : Number(val)),
       z.number().int().positive().optional()
-    ),
+    )
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Schema para criação de transação parcelada
 export const TransacaoParceladaSchema = z.object({
-  transacao: TransacaoCartaoCreateSchema.omit({ parcelas: true, parcela_atual: true, grupo_parcelamento: true }),
-  numeroParcelas: z.number().int().min(2, 'Mínimo 2 parcelas').max(60, 'Máximo 60 parcelas'),
-});
+  transacao: TransacaoCartaoCreateSchema.omit({
+    parcelas: true,
+    parcela_atual: true,
+    grupo_parcelamento: true
+  }),
+  numeroParcelas: z.number().int().min(2, 'Mínimo 2 parcelas').max(60, 'Máximo 60 parcelas')
+})
 
 // Nota
 export const NotaCreateSchema = z.object({
   usuario_id: z.number().int().positive('ID de usuário inválido'),
   titulo: z.string().min(1, 'Título é obrigatório').max(255, 'Título muito longo'),
   conteudo: z.string().max(1000, 'Conteúdo muito longo').optional(),
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD').optional(),
-  tipo: z.enum(['lembrete', 'vencimento', 'outro']).default('outro'),
-});
+  data: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
+    .optional(),
+  tipo: z.enum(['lembrete', 'vencimento', 'outro']).default('outro')
+})
 
 export const NotaUpdateSchema = z
   .object({
     titulo: z.string().min(1).max(255).optional(),
     conteudo: z.string().max(1000).optional(),
-    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    tipo: z.enum(['lembrete', 'vencimento', 'outro']).optional(),
+    data: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    tipo: z.enum(['lembrete', 'vencimento', 'outro']).optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Pelo menos um campo deve ser atualizado',
-  });
+    message: 'Pelo menos um campo deve ser atualizado'
+  })
 
 // Schemas simples para IDs e parâmetros
-export const IdSchema = z.number().int().positive('ID inválido');
+export const IdSchema = z.number().int().positive('ID inválido')
 
-export const EmailSchema = z.string().email('Email inválido').max(255);
+export const EmailSchema = z.string().email('Email inválido').max(255)
 
-export const LimitSchema = z.number().int().positive().max(1000).optional();
+export const LimitSchema = z.number().int().positive().max(1000).optional()
 
-export const TipoCategoriaSchema = z.enum(['receita', 'despesa']).optional();
+export const TipoCategoriaSchema = z.enum(['receita', 'despesa']).optional()
 
-export const MesSchema = z.number().int().min(1).max(12).optional();
+export const MesSchema = z.number().int().min(1).max(12).optional()
 
-export const AnoSchema = z.number().int().min(2000).max(2100).optional();
+export const AnoSchema = z.number().int().min(2000).max(2100).optional()
 
 export const DataSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
   .refine(
     (date) => {
-      const d = new Date(date);
-      return d instanceof Date && !isNaN(d.getTime());
+      const d = new Date(date)
+      return d instanceof Date && !isNaN(d.getTime())
     },
     { message: 'Data inválida' }
   )
-  .optional();
+  .optional()
 
 // Paginação
 export const PaginationSchema = z.object({
   page: z.number().int().positive().optional().default(1),
-  pageSize: z.number().int().positive().max(100).optional().default(50),
-});
+  pageSize: z.number().int().positive().max(100).optional().default(50)
+})
 
 // ========== FUNÇÃO DE SANITIZAÇÃO DE ERROS ==========
 
@@ -237,8 +251,8 @@ export const PaginationSchema = z.object({
  * Mapeia erros internos para mensagens amigáveis ao usuário
  * Evita vazamento de informações sensíveis
  */
-export function sanitizeError(error: Error): string {
-  const errorMessage = error.message.toLowerCase();
+export function sanitizeError(error: unknown): string {
+  const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
 
   // Mapeamento de erros SQL para mensagens amigáveis
   const errorMappings: Record<string, string> = {
@@ -249,18 +263,18 @@ export function sanitizeError(error: Error): string {
     'no such table': 'Erro de configuração do banco de dados',
     'syntax error': 'Erro ao processar a solicitação',
     'database is locked': 'Sistema temporariamente indisponível. Tente novamente.',
-    'out of memory': 'Memória insuficiente. Tente reduzir a quantidade de dados.',
-  };
+    'out of memory': 'Memória insuficiente. Tente reduzir a quantidade de dados.'
+  }
 
   // Verificar se o erro corresponde a algum padrão conhecido
   for (const [pattern, friendlyMessage] of Object.entries(errorMappings)) {
     if (errorMessage.includes(pattern)) {
-      return friendlyMessage;
+      return friendlyMessage
     }
   }
 
   // Mensagem genérica para erros não mapeados
-  return 'Ocorreu um erro ao processar sua solicitação. Tente novamente.';
+  return 'Ocorreu um erro ao processar sua solicitação. Tente novamente.'
 }
 
 // ========== FUNÇÕES AUXILIARES DE VALIDAÇÃO ==========
@@ -273,18 +287,18 @@ export function validateData<T>(
   data: unknown
 ): { success: true; data: T } | { success: false; error: string } {
   try {
-    const validated = schema.parse(data);
-    return { success: true, data: validated };
+    const validated = schema.parse(data)
+    return { success: true, data: validated }
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Retorna a primeira mensagem de erro
-      const firstError = error.issues[0];
+      const firstError = error.issues[0]
       return {
         success: false,
-        error: firstError.message || 'Dados inválidos',
-      };
+        error: firstError.message || 'Dados inválidos'
+      }
     }
-    return { success: false, error: 'Dados inválidos' };
+    return { success: false, error: 'Dados inválidos' }
   }
 }
 
@@ -295,10 +309,10 @@ export function validateParams(
   validations: Array<{ schema: z.ZodSchema; data: unknown }>
 ): { success: true } | { success: false; error: string } {
   for (const { schema, data } of validations) {
-    const result = validateData(schema, data);
+    const result = validateData(schema, data)
     if (!result.success) {
-      return result;
+      return result
     }
   }
-  return { success: true };
+  return { success: true }
 }

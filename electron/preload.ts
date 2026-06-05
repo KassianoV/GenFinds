@@ -1,13 +1,22 @@
 // electron/preload.ts
 
-import { contextBridge, ipcRenderer } from 'electron';
-import { Conta, Categoria, Orcamento, Cartao, Parcela, TransacaoCartao, Transacao, Nota } from '../src/types/database.types';
+import { contextBridge, ipcRenderer } from 'electron'
+import {
+  Conta,
+  Categoria,
+  Orcamento,
+  Cartao,
+  Parcela,
+  TransacaoCartao,
+  Transacao,
+  Nota
+} from '../src/types/database.types'
 
 const api = {
   usuario: {
     create: (nome: string, email: string) => ipcRenderer.invoke('usuario:create', nome, email),
     get: (id: number) => ipcRenderer.invoke('usuario:get', id),
-    getByEmail: (email: string) => ipcRenderer.invoke('usuario:getByEmail', email),
+    getByEmail: (email: string) => ipcRenderer.invoke('usuario:getByEmail', email)
   },
 
   conta: {
@@ -17,7 +26,7 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('conta:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Conta>) =>
       ipcRenderer.invoke('conta:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('conta:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('conta:delete', id, usuarioId)
   },
 
   categoria: {
@@ -28,7 +37,7 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('categoria:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Categoria>) =>
       ipcRenderer.invoke('categoria:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('categoria:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('categoria:delete', id, usuarioId)
   },
 
   orcamento: {
@@ -39,7 +48,7 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('orcamento:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Orcamento>) =>
       ipcRenderer.invoke('orcamento:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('orcamento:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('orcamento:delete', id, usuarioId)
   },
 
   cartao: {
@@ -49,7 +58,7 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('cartao:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Cartao>) =>
       ipcRenderer.invoke('cartao:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('cartao:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('cartao:delete', id, usuarioId)
   },
 
   parcela: {
@@ -59,7 +68,7 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('parcela:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Parcela>) =>
       ipcRenderer.invoke('parcela:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('parcela:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('parcela:delete', id, usuarioId)
   },
 
   transacaoCartao: {
@@ -74,10 +83,12 @@ const api = {
     ) => ipcRenderer.invoke('transacao-cartao:create-parcelada', transacao, numeroParcelas),
     list: (usuarioId: number, cartaoId?: number, mes?: number, ano?: number) =>
       ipcRenderer.invoke('transacao-cartao:list', usuarioId, cartaoId, mes, ano),
-    get: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao-cartao:get', id, usuarioId),
+    get: (id: number, usuarioId: number) =>
+      ipcRenderer.invoke('transacao-cartao:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<TransacaoCartao>) =>
       ipcRenderer.invoke('transacao-cartao:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao-cartao:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) =>
+      ipcRenderer.invoke('transacao-cartao:delete', id, usuarioId)
   },
 
   transacao: {
@@ -90,25 +101,28 @@ const api = {
     get: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao:get', id, usuarioId),
     update: (id: number, usuarioId: number, updates: Partial<Transacao>) =>
       ipcRenderer.invoke('transacao:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao:delete', id, usuarioId),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('transacao:delete', id, usuarioId)
   },
 
   nota: {
     create: (nota: Omit<Nota, 'id' | 'created_at' | 'updated_at'>) =>
       ipcRenderer.invoke('nota:create', nota),
     list: (usuarioId: number) => ipcRenderer.invoke('nota:list', usuarioId),
-    update: (id: number, usuarioId: number, updates: Partial<Pick<Nota, 'titulo' | 'conteudo' | 'data' | 'tipo'>>) =>
-      ipcRenderer.invoke('nota:update', id, usuarioId, updates),
-    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('nota:delete', id, usuarioId),
+    update: (
+      id: number,
+      usuarioId: number,
+      updates: Partial<Pick<Nota, 'titulo' | 'conteudo' | 'data' | 'tipo'>>
+    ) => ipcRenderer.invoke('nota:update', id, usuarioId, updates),
+    delete: (id: number, usuarioId: number) => ipcRenderer.invoke('nota:delete', id, usuarioId)
   },
 
   relatorio: {
     getResumo: (usuarioId: number, dataInicio?: string, dataFim?: string) =>
-      ipcRenderer.invoke('relatorio:resumo', usuarioId, dataInicio, dataFim),
+      ipcRenderer.invoke('relatorio:resumo', usuarioId, dataInicio, dataFim)
   },
 
   database: {
-    clear: () => ipcRenderer.invoke('database:clear'),
+    clear: () => ipcRenderer.invoke('database:clear')
   },
 
   auth: {
@@ -116,14 +130,14 @@ const api = {
     register: (nome: string, senha: string) => ipcRenderer.invoke('auth:register', nome, senha),
     login: (nome: string, senha: string) => ipcRenderer.invoke('auth:login', nome, senha),
     changePassword: (usuarioId: number, senhaAtual: string, novaSenha: string) =>
-      ipcRenderer.invoke('auth:change-password', usuarioId, senhaAtual, novaSenha),
-  },
-};
+      ipcRenderer.invoke('auth:change-password', usuarioId, senhaAtual, novaSenha)
+  }
+}
 
-contextBridge.exposeInMainWorld('api', api);
+contextBridge.exposeInMainWorld('api', api)
 
 declare global {
   interface Window {
-    api: typeof api;
+    api: typeof api
   }
 }
