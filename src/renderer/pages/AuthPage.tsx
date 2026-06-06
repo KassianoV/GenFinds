@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Moon, Sun } from 'lucide-react'
+import { Loader2, Moon, Sun, Eye, EyeOff } from 'lucide-react'
 import appIcon from '../assets/icon.png'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
@@ -40,6 +40,9 @@ export function AuthPage(): React.JSX.Element {
   const { theme, setTheme } = useTheme()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [checkingUser, setCheckingUser] = useState(true)
+  const [showLoginSenha, setShowLoginSenha] = useState(false)
+  const [showSenha, setShowSenha] = useState(false)
+  const [showConfirmarSenha, setShowConfirmarSenha] = useState(false)
 
   useEffect(() => {
     if (currentUser) {
@@ -115,12 +118,22 @@ export function AuthPage(): React.JSX.Element {
 
             <div className="space-y-2">
               <Label htmlFor="login-senha">Senha</Label>
-              <Input
-                id="login-senha"
-                type="password"
-                placeholder="Sua senha"
-                {...loginForm.register('senha')}
-              />
+              <div className="relative">
+                <Input
+                  id="login-senha"
+                  type={showLoginSenha ? 'text' : 'password'}
+                  placeholder="Sua senha"
+                  className="pr-10"
+                  {...loginForm.register('senha')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showLoginSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {loginForm.formState.errors.senha && (
                 <p className="text-xs text-destructive">
                   {loginForm.formState.errors.senha.message}
@@ -160,12 +173,22 @@ export function AuthPage(): React.JSX.Element {
 
             <div className="space-y-2">
               <Label htmlFor="reg-senha">Senha</Label>
-              <Input
-                id="reg-senha"
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                {...registerForm.register('senha')}
-              />
+              <div className="relative">
+                <Input
+                  id="reg-senha"
+                  type={showSenha ? 'text' : 'password'}
+                  placeholder="Mínimo 8 caracteres"
+                  className="pr-10"
+                  {...registerForm.register('senha')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {registerForm.formState.errors.senha && (
                 <p className="text-xs text-destructive">
                   {registerForm.formState.errors.senha.message}
@@ -175,12 +198,22 @@ export function AuthPage(): React.JSX.Element {
 
             <div className="space-y-2">
               <Label htmlFor="reg-confirmar">Confirmar senha</Label>
-              <Input
-                id="reg-confirmar"
-                type="password"
-                placeholder="Repita a senha"
-                {...registerForm.register('confirmarSenha')}
-              />
+              <div className="relative">
+                <Input
+                  id="reg-confirmar"
+                  type={showConfirmarSenha ? 'text' : 'password'}
+                  placeholder="Repita a senha"
+                  className="pr-10"
+                  {...registerForm.register('confirmarSenha')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmarSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmarSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {registerForm.formState.errors.confirmarSenha && (
                 <p className="text-xs text-destructive">
                   {registerForm.formState.errors.confirmarSenha.message}

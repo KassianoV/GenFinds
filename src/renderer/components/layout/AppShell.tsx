@@ -21,7 +21,7 @@ export function AppShell(): React.JSX.Element {
       className="flex flex-col h-screen bg-background"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-28">
         <Outlet />
       </main>
       <BottomTabBar />

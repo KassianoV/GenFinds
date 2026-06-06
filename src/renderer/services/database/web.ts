@@ -67,37 +67,45 @@ export const webDatabaseService: DatabaseService = {
     },
 
     register: async (nome: string, senha: string): Promise<ServiceResult<Usuario>> => {
-      if (!nome?.trim()) return { success: false, error: 'Nome é obrigatório' }
-      if (!senha || senha.length < 4)
-        return { success: false, error: 'Senha deve ter pelo menos 4 caracteres' }
-      const db = loadDb()
-      if (db.usuarios.find((u) => u.nome.toLowerCase() === nome.trim().toLowerCase())) {
-        return { success: false, error: 'Já existe um usuário com esse nome' }
+      try {
+        if (!nome?.trim()) return { success: false, error: 'Nome é obrigatório' }
+        if (!senha || senha.length < 4)
+          return { success: false, error: 'Senha deve ter pelo menos 4 caracteres' }
+        const db = loadDb()
+        if (db.usuarios.find((u) => u.nome.toLowerCase() === nome.trim().toLowerCase())) {
+          return { success: false, error: 'Já existe um usuário com esse nome' }
+        }
+        const now = new Date().toISOString()
+        const password_hash = await hashPassword(senha)
+        const user = {
+          id: db.nextId++,
+          nome: nome.trim(),
+          email: `${nome.trim().toLowerCase().replace(/\s+/g, '.')}@local`,
+          password_hash,
+          created_at: now,
+          updated_at: now,
+        }
+        db.usuarios.push(user)
+        saveDb(db)
+        return ok(toUsuario(user))
+      } catch {
+        return { success: false, error: 'Erro ao criar conta. Recarregue a página.' }
       }
-      const now = new Date().toISOString()
-      const password_hash = await hashPassword(senha)
-      const user = {
-        id: db.nextId++,
-        nome: nome.trim(),
-        email: `${nome.trim().toLowerCase().replace(/\s+/g, '.')}@local`,
-        password_hash,
-        created_at: now,
-        updated_at: now,
-      }
-      db.usuarios.push(user)
-      saveDb(db)
-      return ok(toUsuario(user))
     },
 
     login: async (nome: string, senha: string): Promise<ServiceResult<Usuario>> => {
-      const db = loadDb()
-      const user = db.usuarios.find(
-        (u) => u.nome.toLowerCase() === (nome?.trim() ?? '').toLowerCase(),
-      )
-      if (!user) return { success: false, error: 'Nome ou senha incorretos' }
-      const valid = await verifyPassword(senha, user.password_hash)
-      if (!valid) return { success: false, error: 'Nome ou senha incorretos' }
-      return ok(toUsuario(user))
+      try {
+        const db = loadDb()
+        const user = db.usuarios.find(
+          (u) => u.nome.toLowerCase() === (nome?.trim() ?? '').toLowerCase(),
+        )
+        if (!user) return { success: false, error: 'Nome ou senha incorretos' }
+        const valid = await verifyPassword(senha, user.password_hash)
+        if (!valid) return { success: false, error: 'Nome ou senha incorretos' }
+        return ok(toUsuario(user))
+      } catch {
+        return { success: false, error: 'Erro ao verificar senha. Recarregue a página.' }
+      }
     },
 
     changePassword: async (

@@ -1,8 +1,8 @@
 import React, { type ReactNode, Suspense, lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { AppShell } from '../components/layout/AppShell'
+import { CylonLoader } from '../components/ui/CylonLoader'
 
 const AuthPage = lazy(() => import('../pages/AuthPage').then((m) => ({ default: m.AuthPage })))
 const DashboardPage = lazy(() =>
@@ -22,11 +22,7 @@ const ConfigurarPage = lazy(() =>
 )
 
 function PageLoader(): React.JSX.Element {
-  return (
-    <div className="flex h-full min-h-64 items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  )
+  return <CylonLoader />
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }): React.JSX.Element {

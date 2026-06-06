@@ -1,8 +1,9 @@
 import React from 'react'
-import { Moon, Sun, LogOut } from 'lucide-react'
+import { Moon, Sun, LogOut, Smartphone } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '../stores/authStore'
+import { toggleDevMobile, isDevMobileActive } from '../services/platform'
 
 export function ConfigurarPage(): React.JSX.Element {
   const { theme, setTheme } = useTheme()
@@ -29,6 +30,20 @@ export function ConfigurarPage(): React.JSX.Element {
           <LogOut size={18} />
           Sair da conta
         </Button>
+
+        {import.meta.env.DEV && (
+          <div className="pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-2">Ferramentas de desenvolvimento</p>
+            <Button
+              variant="outline"
+              onClick={toggleDevMobile}
+              className="w-full justify-start gap-3"
+            >
+              <Smartphone size={18} />
+              {isDevMobileActive() ? 'Desativar mock mobile' : 'Ativar mock mobile'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
