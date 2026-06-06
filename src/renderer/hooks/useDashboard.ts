@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db } from '../services/database'
 import { useAuthStore } from '../stores/authStore'
 
@@ -100,6 +100,33 @@ export function useGrafico6Meses() {
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
+  })
+}
+
+export function useCreateNota() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (titulo: string) => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.nota.create({ usuario_id: userId, titulo, tipo: 'outro' })
+      if (!result.success) throw new Error(result.error)
+      return result.data!
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notas', userId] }),
+  })
+}
+
+export function useDeleteNota() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.nota.delete(id, userId)
+      if (!result.success) throw new Error(result.error)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notas', userId] }),
   })
 }
 
