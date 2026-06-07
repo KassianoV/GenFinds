@@ -9,7 +9,9 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
+import { useTheme } from 'next-themes'
 import { formatCurrencyBRL } from '../../../lib/format'
+import { SkeletonChart } from '../ui/Skeleton'
 
 interface GraficoData {
   mes: string
@@ -22,13 +24,6 @@ interface GraficoMesesProps {
   loading: boolean
 }
 
-function SkeletonGrafico(): React.JSX.Element {
-  return (
-    <div className="animate-pulse">
-      <div className="h-52 bg-muted rounded-lg" />
-    </div>
-  )
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label }: any): React.JSX.Element | null {
@@ -53,25 +48,32 @@ function yTickFormatter(v: number): string {
 }
 
 export function GraficoMeses({ data, loading }: GraficoMesesProps): React.JSX.Element {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
+  const gridColor = isDark ? '#e5e7eb' : '#9ca3af'
+  const tickColor = isDark ? '#9ca3af' : '#374151'
+  const legendColor = isDark ? '#e5e7eb' : '#374151'
+
   return (
     <div className="rounded-xl bg-card border border-border p-4 space-y-3">
       <h3 className="text-base font-semibold text-foreground">Evolução Mensal</h3>
 
       {loading ? (
-        <SkeletonGrafico />
+        <SkeletonChart height={220} />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey="mes"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: tickColor }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={yTickFormatter}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: tickColor }}
               axisLine={false}
               tickLine={false}
               width={48}
@@ -80,7 +82,7 @@ export function GraficoMeses({ data, loading }: GraficoMesesProps): React.JSX.El
             <Legend
               iconType="rect"
               iconSize={10}
-              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+              wrapperStyle={{ fontSize: 12, paddingTop: 8, color: legendColor }}
               formatter={(v) => (v === 'receita' ? 'Receitas' : 'Despesas')}
             />
             <Line

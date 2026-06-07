@@ -25,6 +25,7 @@ export interface DatabaseService {
       senhaAtual: string,
       novaSenha: string
     ): Promise<ServiceResult<void>>
+    updateNome(id: number, novoNome: string): Promise<ServiceResult<Usuario>>
   }
 
   usuario: {

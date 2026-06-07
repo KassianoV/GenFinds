@@ -237,6 +237,12 @@ export class DatabaseManager {
       // Coluna já existe, ignorar erro
     }
 
+    try {
+      this.db.run('ALTER TABLE cartoes ADD COLUMN cor TEXT')
+    } catch {
+      // Coluna já existe, ignorar erro
+    }
+
     // Tabela de Transações de Cartão
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transacoes_cartao (
@@ -752,6 +758,18 @@ export class DatabaseManager {
     return true
   }
 
+  atualizarNomeUsuario(id: number, novoNome: string): Usuario {
+    if (!novoNome.trim()) throw new Error('Nome não pode ser vazio')
+    this.db.run(
+      'UPDATE usuarios SET nome = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [novoNome.trim(), id]
+    )
+    this.save()
+    const result = this.db.exec('SELECT * FROM usuarios WHERE id = ?', [id])
+    if (result.length === 0 || result[0].values.length === 0) throw new Error('Usuário não encontrado')
+    return this.rowToUsuario(result[0])
+  }
+
   private rowToUsuario(result: QueryExecResult): Usuario {
     const row = result.values[0]
     const cols = result.columns
@@ -894,8 +912,8 @@ export class DatabaseManager {
     }
 
     this.db.run(
-      'INSERT INTO cartoes (usuario_id, nome, valor, vencimento, status) VALUES (?, ?, ?, ?, ?)',
-      [cartao.usuario_id, cartao.nome, cartao.valor, cartao.vencimento, cartao.status]
+      'INSERT INTO cartoes (usuario_id, nome, valor, vencimento, status, cor) VALUES (?, ?, ?, ?, ?, ?)',
+      [cartao.usuario_id, cartao.nome, cartao.valor, cartao.vencimento, cartao.status, cartao.cor ?? null]
     )
     this.save()
 
@@ -906,13 +924,45 @@ export class DatabaseManager {
     return this.rowToCartao(result[0])
   }
 
-  getCartoes(usuarioId: number): Cartao[] {
-    // Tentar buscar do cache
-    const cacheKey = `cartoes_${usuarioId}`
-    const cached = this.getCached<Cartao[]>(cacheKey)
-    if (cached) return cached
+  private calcularStatusEsperado(cartao: Cartao, hoje: Date): Cartao['status'] {
+    const diaHoje = hoje.getDate()
+    const { vencimento, status, updated_at } = cartao
 
-    // Se não estiver em cache, buscar do banco
+    if (status === 'paga') {
+      const pago = new Date(updated_at)
+      const virouperiodo =
+        pago.getFullYear() < hoje.getFullYear() ||
+        (pago.getFullYear() === hoje.getFullYear() && pago.getMonth() < hoje.getMonth())
+      if (!virouperiodo) return 'paga'
+    }
+
+    const diaFechamento = Math.max(vencimento - 6, 1)
+    if (diaHoje >= vencimento) return 'pendente'
+    if (diaHoje >= diaFechamento) return 'fechada'
+    return 'aberta'
+  }
+
+  private sincronizarStatusCartoes(usuarioId: number, cartoes: Cartao[]): void {
+    const hoje = new Date()
+    let houveMudanca = false
+
+    for (const cartao of cartoes) {
+      const esperado = this.calcularStatusEsperado(cartao, hoje)
+      if (esperado !== cartao.status) {
+        // Não atualiza updated_at: preserva a data de pagamento para detecção do ciclo
+        this.db.run('UPDATE cartoes SET status = ? WHERE id = ?', [esperado, cartao.id])
+        cartao.status = esperado
+        houveMudanca = true
+      }
+    }
+
+    if (houveMudanca) {
+      this.save()
+      this.invalidateCache(`cartoes_${usuarioId}`)
+    }
+  }
+
+  getCartoes(usuarioId: number): Cartao[] {
     const result = this.db.exec('SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY nome', [
       usuarioId
     ])
@@ -923,8 +973,8 @@ export class DatabaseManager {
             this.rowToCartaoFromArray(row, result[0].columns)
           )
 
-    // Armazenar em cache
-    this.setCache(cacheKey, data)
+    // Auto-atualiza status com base na data atual (ciclo de fatura)
+    this.sincronizarStatusCartoes(usuarioId, data)
 
     return data
   }
@@ -939,7 +989,7 @@ export class DatabaseManager {
   }
 
   updateCartao(id: number, usuarioId: number, updates: Partial<Cartao>): boolean {
-    const allowedFields = ['nome', 'valor', 'vencimento', 'status']
+    const allowedFields = ['nome', 'valor', 'vencimento', 'status', 'cor']
 
     const validUpdates = Object.entries(updates).filter(
       ([key]) => allowedFields.includes(key) && key !== 'id' && key !== 'usuario_id'
@@ -988,7 +1038,8 @@ export class DatabaseManager {
       vencimento: Number(row[cols.indexOf('vencimento')]),
       status: String(row[cols.indexOf('status')]) as 'aberta' | 'fechada' | 'paga' | 'pendente',
       created_at: String(row[cols.indexOf('created_at')]),
-      updated_at: String(row[cols.indexOf('updated_at')])
+      updated_at: String(row[cols.indexOf('updated_at')]),
+      cor: cols.includes('cor') ? (row[cols.indexOf('cor')] as string | null) ?? undefined : undefined
     }
   }
 

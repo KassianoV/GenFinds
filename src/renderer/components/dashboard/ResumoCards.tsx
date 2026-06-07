@@ -1,6 +1,7 @@
 import React from 'react'
 import { TrendingUp, TrendingDown, Wallet, Scale } from 'lucide-react'
 import { formatCurrencyBRL } from '../../../lib/format'
+import { SkeletonResumoCard } from '../ui/Skeleton'
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -34,18 +35,6 @@ function ResumoCard({ label, value, icon, iconBg, valueColor, borderColor, showP
   )
 }
 
-function ResumoCardSkeleton(): React.JSX.Element {
-  return (
-    <div className="bg-card rounded-xl border border-border border-l-4 border-l-muted p-4 flex items-center gap-4 animate-pulse">
-      <div className="h-12 w-12 rounded-xl bg-muted shrink-0" />
-      <div className="space-y-2">
-        <div className="h-3 w-24 bg-muted rounded" />
-        <div className="h-5 w-28 bg-muted rounded" />
-        <div className="h-3 w-16 bg-muted rounded" />
-      </div>
-    </div>
-  )
-}
 
 interface ResumoCardsProps {
   receita: number
@@ -61,7 +50,7 @@ export function ResumoCards({ receita, despesa, saldo, saldoContas, mes, ano, lo
   if (loading) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => <ResumoCardSkeleton key={i} />)}
+        {Array.from({ length: 4 }).map((_, i) => <SkeletonResumoCard key={i} />)}
       </div>
     )
   }

@@ -16,7 +16,8 @@ export const desktopDatabaseService: DatabaseService = {
     register: (nome, senha) => ipc(() => window.api.auth.register(nome, senha)),
     login: (nome, senha) => ipc(() => window.api.auth.login(nome, senha)),
     changePassword: (usuarioId, senhaAtual, novaSenha) =>
-      ipc(() => window.api.auth.changePassword(usuarioId, senhaAtual, novaSenha))
+      ipc(() => window.api.auth.changePassword(usuarioId, senhaAtual, novaSenha)),
+    updateNome: (id, novoNome) => ipc(() => window.api.auth.updateNome(id, novoNome))
   },
 
   usuario: {

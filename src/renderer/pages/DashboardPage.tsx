@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import {
   useResumoMes,
@@ -12,6 +12,7 @@ import { GraficoMeses } from '../components/dashboard/GraficoMeses'
 import { TransacoesRecentes } from '../components/dashboard/TransacoesRecentes'
 import { NotasWidget } from '../components/dashboard/NotasWidget'
 import { isDesktop } from '../services/platform'
+import { PullToRefresh } from '../components/layout/PullToRefresh'
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -58,21 +59,10 @@ export function DashboardPage(): React.JSX.Element {
 
   const eMesAtual = mes === hoje.getMonth() + 1 && ano === hoje.getFullYear()
 
-  // Pull-to-refresh (mobile)
-  const touchStartY = useRef(0)
-  function onTouchStart(e: React.TouchEvent): void { touchStartY.current = e.touches[0].clientY }
-  function onTouchEnd(e: React.TouchEvent): void {
-    if (e.changedTouches[0].clientY - touchStartY.current > 80) refetchAll()
-  }
-
   const carregando = resumo.isLoading || saldoContas.isLoading
 
   return (
-    <div
-      className="flex flex-col h-full overflow-auto"
-      onTouchStart={isDesktop() ? undefined : onTouchStart}
-      onTouchEnd={isDesktop() ? undefined : onTouchEnd}
-    >
+    <PullToRefresh onRefresh={refetchAll} refreshing={refetching} className="flex flex-col h-full">
       <div className="p-4 pb-8 space-y-4 w-full">
         {/* Seletor de mês + refresh */}
         <div className="flex items-center justify-between">
@@ -128,6 +118,6 @@ export function DashboardPage(): React.JSX.Element {
         {/* Notas */}
         <NotasWidget notas={notas.data ?? []} loading={notas.isLoading} />
       </div>
-    </div>
+    </PullToRefresh>
   )
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import { Bell, Calendar, StickyNote } from 'lucide-react'
 import { formatDate } from '../../../lib/format'
 import type { Nota } from '../../../types/database.types'
+import { Skeleton } from '../ui/Skeleton'
 
 const tipoIcon: Record<Nota['tipo'], React.ReactNode> = {
   lembrete: <Bell size={14} />,
@@ -20,27 +21,21 @@ interface NotasWidgetProps {
   loading: boolean
 }
 
-function SkeletonNota(): React.JSX.Element {
-  return (
-    <div className="flex items-start gap-3 py-2 animate-pulse">
-      <div className="h-6 w-6 rounded-md bg-muted shrink-0 mt-0.5" />
-      <div className="flex-1 space-y-1">
-        <div className="h-3.5 w-36 bg-muted rounded" />
-        <div className="h-3 w-24 bg-muted rounded" />
-      </div>
-    </div>
-  )
-}
-
 export function NotasWidget({ notas, loading }: NotasWidgetProps): React.JSX.Element {
   return (
     <div className="rounded-xl bg-card border border-border p-4">
       <h3 className="text-sm font-medium text-foreground mb-3">Lembretes e notas</h3>
 
       {loading ? (
-        <div className="divide-y divide-border">
+        <div className="space-y-2 py-1">
           {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonNota key={i} />
+            <div key={i} className="flex items-start gap-3 animate-pulse">
+              <Skeleton className="h-7 w-7 rounded-md shrink-0" />
+              <div className="flex-1 space-y-1.5 pt-0.5">
+                <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-2.5 w-24" />
+              </div>
+            </div>
           ))}
         </div>
       ) : notas.length === 0 ? (

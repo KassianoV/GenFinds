@@ -69,6 +69,7 @@ export function useCreateTransacao() {
       qc.invalidateQueries({ queryKey: ['resumo'] })
       qc.invalidateQueries({ queryKey: ['saldo-contas'] })
       qc.invalidateQueries({ queryKey: ['transacoes-recentes'] })
+      qc.invalidateQueries({ queryKey: ['grafico-6meses'] })
     },
   })
 }
@@ -87,6 +88,7 @@ export function useUpdateTransacao() {
       qc.invalidateQueries({ queryKey: ['resumo'] })
       qc.invalidateQueries({ queryKey: ['saldo-contas'] })
       qc.invalidateQueries({ queryKey: ['transacoes-recentes'] })
+      qc.invalidateQueries({ queryKey: ['grafico-6meses'] })
     },
   })
 }
@@ -105,6 +107,7 @@ export function useDeleteTransacao() {
       qc.invalidateQueries({ queryKey: ['resumo'] })
       qc.invalidateQueries({ queryKey: ['saldo-contas'] })
       qc.invalidateQueries({ queryKey: ['transacoes-recentes'] })
+      qc.invalidateQueries({ queryKey: ['grafico-6meses'] })
     },
   })
 }

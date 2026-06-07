@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import {
   Dialog,
@@ -7,6 +10,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '../ui/sheet'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
@@ -19,26 +28,34 @@ import {
 } from '../ui/select'
 import { useContas, useCategorias, useCreateTransacao, useUpdateTransacao } from '../../hooks/useTransacoes'
 import { useAuthStore } from '../../stores/authStore'
+import { isDesktop } from '../../services/platform'
 import type { TransacaoCompleta } from '../../../types/database.types'
 import { toast } from 'sonner'
 
-interface TransacaoModalProps {
-  open: boolean
-  onClose: () => void
-  editingTransacao?: TransacaoCompleta | null
-}
+// ─── Schema Zod ───────────────────────────────────────────────────────────────
 
-interface FormState {
-  tipo: 'receita' | 'despesa'
-  descricao: string
-  valor: string
-  data: string
-  conta_id: string
-  categoria_id: string
-  observacoes: string
-}
+const schema = z.object({
+  tipo: z.enum(['receita', 'despesa']),
+  descricao: z
+    .string()
+    .min(1, 'Descrição obrigatória')
+    .max(100, 'Máximo 100 caracteres'),
+  valor: z
+    .string()
+    .min(1, 'Valor obrigatório')
+    .refine(
+      (v) => { const n = parseFloat(v.replace(',', '.')); return !isNaN(n) && n > 0 },
+      'Informe um valor maior que zero'
+    ),
+  data: z.string().min(1, 'Data obrigatória'),
+  conta_id: z.string().min(1, 'Selecione uma conta'),
+  categoria_id: z.string().min(1, 'Selecione uma categoria'),
+  observacoes: z.string().optional(),
+})
 
-const DEFAULT_FORM: FormState = {
+type FormValues = z.infer<typeof schema>
+
+const DEFAULT_FORM: FormValues = {
   tipo: 'despesa',
   descricao: '',
   valor: '',
@@ -48,19 +65,54 @@ const DEFAULT_FORM: FormState = {
   observacoes: '',
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface TransacaoModalProps {
+  open: boolean
+  onClose: () => void
+  editingTransacao?: TransacaoCompleta | null
+}
+
+// ─── Erro inline ──────────────────────────────────────────────────────────────
+
+function FieldError({ message }: { message?: string }): React.JSX.Element | null {
+  if (!message) return null
+  return <p className="text-xs text-red-500 mt-1">{message}</p>
+}
+
+// ─── TransacaoModal ───────────────────────────────────────────────────────────
+
 export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoModalProps): React.JSX.Element {
   const userId = useAuthStore((s) => s.currentUser?.id)
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: DEFAULT_FORM,
+    mode: 'onChange',
+  })
+
+  const tipoValue = watch('tipo')
 
   const { data: contas = [] } = useContas()
-  const { data: categorias = [] } = useCategorias(form.tipo)
+  const { data: categorias = [] } = useCategorias(tipoValue)
   const createTransacao = useCreateTransacao()
   const updateTransacao = useUpdateTransacao()
+
+  const isEdicao = !!editingTransacao
+  const isLoading = isSubmitting || createTransacao.isPending || updateTransacao.isPending
 
   useEffect(() => {
     if (!open) return
     if (editingTransacao) {
-      setForm({
+      reset({
         tipo: editingTransacao.tipo,
         descricao: editingTransacao.descricao,
         valor: String(editingTransacao.valor),
@@ -70,46 +122,30 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
         observacoes: editingTransacao.observacoes ?? '',
       })
     } else {
-      setForm(DEFAULT_FORM)
+      reset(DEFAULT_FORM)
     }
-  }, [open, editingTransacao])
+  }, [open, editingTransacao, reset])
 
-  function setField<K extends keyof FormState>(key: K, value: FormState[K]): void {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-      ...(key === 'tipo' ? { categoria_id: '' } : {}),
-    }))
-  }
-
-  async function handleSubmit(e: React.FormEvent): Promise<void> {
-    e.preventDefault()
+  async function onSubmit(values: FormValues): Promise<void> {
     if (!userId) return
-
-    const valor = parseFloat(form.valor.replace(',', '.'))
-    if (isNaN(valor) || valor <= 0) { toast.error('Informe um valor válido'); return }
-    if (!form.descricao.trim()) { toast.error('Descrição é obrigatória'); return }
-    if (!form.conta_id) { toast.error('Selecione uma conta'); return }
-    if (!form.categoria_id) { toast.error('Selecione uma categoria'); return }
-
+    const valor = parseFloat(values.valor.replace(',', '.'))
     const payload = {
       usuario_id: userId,
-      descricao: form.descricao.trim(),
+      descricao: values.descricao.trim(),
       valor,
-      tipo: form.tipo,
-      data: form.data,
-      conta_id: Number(form.conta_id),
-      categoria_id: Number(form.categoria_id),
-      observacoes: form.observacoes.trim() || undefined,
+      tipo: values.tipo,
+      data: values.data,
+      conta_id: Number(values.conta_id),
+      categoria_id: Number(values.categoria_id),
+      observacoes: values.observacoes?.trim() || undefined,
     }
-
     try {
-      if (editingTransacao) {
-        await updateTransacao.mutateAsync({ id: editingTransacao.id, updates: payload })
-        toast.success('Transação atualizada com sucesso')
+      if (isEdicao) {
+        await updateTransacao.mutateAsync({ id: editingTransacao!.id, updates: payload })
+        toast.success('Transação atualizada')
       } else {
         await createTransacao.mutateAsync(payload)
-        toast.success('Transação criada com sucesso')
+        toast.success('Transação criada')
       }
       onClose()
     } catch (err) {
@@ -117,24 +153,21 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
     }
   }
 
-  const isLoading = createTransacao.isPending || updateTransacao.isPending
-  const isEdicao = !!editingTransacao
+  const title = isEdicao ? 'Editar Transação' : 'Nova Transação'
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[460px]">
-        <DialogHeader>
-          <DialogTitle>{isEdicao ? 'Editar Transação' : 'Nova Transação'}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          {/* Tipo toggle */}
+  const formBody = (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+      {/* Tipo */}
+      <Controller
+        name="tipo"
+        control={control}
+        render={({ field }) => (
           <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted rounded-xl">
             <button
               type="button"
-              onClick={() => setField('tipo', 'receita')}
+              onClick={() => { field.onChange('receita'); setValue('categoria_id', '') }}
               className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                form.tipo === 'receita'
+                field.value === 'receita'
                   ? 'bg-green-500 text-white shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -144,9 +177,9 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
             </button>
             <button
               type="button"
-              onClick={() => setField('tipo', 'despesa')}
+              onClick={() => { field.onChange('despesa'); setValue('categoria_id', '') }}
               className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                form.tipo === 'despesa'
+                field.value === 'despesa'
                   ? 'bg-red-500 text-white shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -155,48 +188,51 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
               Despesa
             </button>
           </div>
+        )}
+      />
 
-          {/* Descrição */}
-          <div className="space-y-1.5">
-            <Label htmlFor="descricao">Descrição</Label>
-            <Input
-              id="descricao"
-              placeholder="Ex: Supermercado, Salário..."
-              value={form.descricao}
-              onChange={(e) => setField('descricao', e.target.value)}
-              autoFocus
-            />
-          </div>
+      {/* Descrição */}
+      <div className="space-y-1.5">
+        <Label htmlFor="descricao">Descrição</Label>
+        <Input
+          id="descricao"
+          placeholder="Ex: Supermercado, Salário..."
+          autoFocus
+          {...register('descricao')}
+        />
+        <FieldError message={errors.descricao?.message} />
+      </div>
 
-          {/* Valor + Data */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="valor">Valor (R$)</Label>
-              <Input
-                id="valor"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0,00"
-                value={form.valor}
-                onChange={(e) => setField('valor', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="data">Data</Label>
-              <Input
-                id="data"
-                type="date"
-                value={form.data}
-                onChange={(e) => setField('data', e.target.value)}
-              />
-            </div>
-          </div>
+      {/* Valor + Data */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="valor">Valor (R$)</Label>
+          <Input
+            id="valor"
+            type="number"
+            step="0.01"
+            min="0.01"
+            inputMode="decimal"
+            placeholder="0,00"
+            {...register('valor')}
+          />
+          <FieldError message={errors.valor?.message} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="data">Data</Label>
+          <Input id="data" type="date" {...register('data')} />
+          <FieldError message={errors.data?.message} />
+        </div>
+      </div>
 
-          {/* Conta */}
-          <div className="space-y-1.5">
-            <Label>Conta</Label>
-            <Select value={form.conta_id} onValueChange={(v) => setField('conta_id', v)}>
+      {/* Conta */}
+      <div className="space-y-1.5">
+        <Label>Conta</Label>
+        <Controller
+          name="conta_id"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a conta" />
               </SelectTrigger>
@@ -205,26 +241,31 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
                   <SelectItem value="_empty" disabled>Nenhuma conta cadastrada</SelectItem>
                 ) : (
                   contas.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.nome}
-                    </SelectItem>
+                    <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
-          </div>
+          )}
+        />
+        <FieldError message={errors.conta_id?.message} />
+      </div>
 
-          {/* Categoria */}
-          <div className="space-y-1.5">
-            <Label>Categoria</Label>
-            <Select value={form.categoria_id} onValueChange={(v) => setField('categoria_id', v)}>
+      {/* Categoria */}
+      <div className="space-y-1.5">
+        <Label>Categoria</Label>
+        <Controller
+          name="categoria_id"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
                 {categorias.length === 0 ? (
                   <SelectItem value="_empty" disabled>
-                    Nenhuma categoria de {form.tipo === 'receita' ? 'receita' : 'despesa'}
+                    Nenhuma categoria de {tipoValue === 'receita' ? 'receita' : 'despesa'}
                   </SelectItem>
                 ) : (
                   categorias.map((c) => (
@@ -243,40 +284,65 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
                 )}
               </SelectContent>
             </Select>
-          </div>
+          )}
+        />
+        <FieldError message={errors.categoria_id?.message} />
+      </div>
 
-          {/* Observações */}
-          <div className="space-y-1.5">
-            <Label htmlFor="obs">
-              Observações{' '}
-              <span className="text-muted-foreground font-normal">(opcional)</span>
-            </Label>
-            <Input
-              id="obs"
-              placeholder="Alguma nota adicional..."
-              value={form.observacoes}
-              onChange={(e) => setField('observacoes', e.target.value)}
-            />
-          </div>
+      {/* Observações */}
+      <div className="space-y-1.5">
+        <Label htmlFor="obs">
+          Observações{' '}
+          <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+        </Label>
+        <Input
+          id="obs"
+          placeholder="Alguma nota adicional..."
+          {...register('observacoes')}
+        />
+      </div>
 
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className={
-                form.tipo === 'receita'
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              }
-            >
-              {isLoading ? 'Salvando...' : isEdicao ? 'Salvar alterações' : 'Criar transação'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      {/* Footer */}
+      <div className="flex gap-2 justify-end pt-1 pb-2">
+        <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className={
+            tipoValue === 'receita'
+              ? 'bg-green-500 hover:bg-green-600 text-white'
+              : 'bg-red-500 hover:bg-red-600 text-white'
+          }
+        >
+          {isLoading ? 'Salvando...' : isEdicao ? 'Salvar alterações' : 'Criar transação'}
+        </Button>
+      </div>
+    </form>
+  )
+
+  if (isDesktop()) {
+    return (
+      <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="sm:max-w-115">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          {formBody}
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl px-6 pt-4">
+        <SheetHeader className="mb-2">
+          <SheetTitle>{title}</SheetTitle>
+        </SheetHeader>
+        {formBody}
+      </SheetContent>
+    </Sheet>
   )
 }

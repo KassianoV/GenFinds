@@ -130,7 +130,9 @@ const api = {
     register: (nome: string, senha: string) => ipcRenderer.invoke('auth:register', nome, senha),
     login: (nome: string, senha: string) => ipcRenderer.invoke('auth:login', nome, senha),
     changePassword: (usuarioId: number, senhaAtual: string, novaSenha: string) =>
-      ipcRenderer.invoke('auth:change-password', usuarioId, senhaAtual, novaSenha)
+      ipcRenderer.invoke('auth:change-password', usuarioId, senhaAtual, novaSenha),
+    updateNome: (id: number, novoNome: string) =>
+      ipcRenderer.invoke('auth:update-nome', id, novoNome)
   }
 }
 

@@ -1291,3 +1291,14 @@ ipcMain.handle(
     }
   }
 )
+
+ipcMain.handle('auth:update-nome', async (_, id: number, novoNome: string) => {
+  try {
+    const usuario = db.atualizarNomeUsuario(id, novoNome)
+    logInfo('User name updated', { userId: id })
+    return { success: true, data: usuario }
+  } catch (error) {
+    logError('auth:update-nome failed', error)
+    return { success: false, error: sanitizeError(error) }
+  }
+})
