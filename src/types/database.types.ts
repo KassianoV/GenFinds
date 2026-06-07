@@ -66,6 +66,9 @@ export interface Cartao {
   nome: string
   valor: number
   vencimento: number
+  limite?: number
+  dia_fechamento?: number
+  bandeira?: string
   status: 'aberta' | 'fechada' | 'paga' | 'pendente'
   cor?: string
   created_at: string

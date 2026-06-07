@@ -1,9 +1,16 @@
 import React, { useState, useMemo } from 'react'
-import { User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff, Moon, Sun, LogOut, Wallet, Check, X } from 'lucide-react'
+import { User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff, Moon, Sun, LogOut, Wallet, PieChart, Check, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
-import { useCategorias, useTransacoesMes } from '../hooks/useTransacoes'
+import {
+  useCategorias,
+  useTransacoesMes,
+  useContas,
+  useCreateConta,
+  useUpdateConta,
+  useDeleteConta,
+} from '../hooks/useTransacoes'
 import {
   useUpdateNome,
   useChangePassword,
@@ -18,7 +25,7 @@ import {
   useDeleteOrcamento,
 } from '../hooks/useOrcamento'
 import { formatCurrencyBRL } from '../../lib/format'
-import type { Categoria, Orcamento } from '../../types/database.types'
+import type { Categoria, Orcamento, Conta } from '../../types/database.types'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -28,7 +35,14 @@ const CORES = [
   '#ec4899', '#f43f5e', '#64748b', '#a16207',
 ]
 
-type Aba = 'perfil' | 'categorias' | 'orcamento'
+type Aba = 'perfil' | 'categorias' | 'orcamento' | 'contas'
+
+const TIPOS_CONTA: { value: Conta['tipo']; label: string }[] = [
+  { value: 'corrente', label: 'Corrente' },
+  { value: 'poupanca', label: 'Poupança' },
+  { value: 'investimento', label: 'Investimento' },
+  { value: 'carteira', label: 'Carteira' },
+]
 
 // ─── ColorPicker ──────────────────────────────────────────────────────────────
 
@@ -962,6 +976,254 @@ function OrcamentoTab(): React.JSX.Element {
   )
 }
 
+// ─── ContasTab ────────────────────────────────────────────────────────────────
+
+function ContasTab(): React.JSX.Element {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const { data: contas = [], isLoading } = useContas()
+  const createConta = useCreateConta()
+  const updateConta = useUpdateConta()
+  const deleteConta = useDeleteConta()
+
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  // create form
+  const [nome, setNome] = useState('')
+  const [tipo, setTipo] = useState<Conta['tipo']>('corrente')
+  const [saldo, setSaldo] = useState('')
+
+  // edit form
+  const [editNome, setEditNome] = useState('')
+  const [editTipo, setEditTipo] = useState<Conta['tipo']>('corrente')
+  const [editAtiva, setEditAtiva] = useState(true)
+
+  const totalSaldo = contas.filter((c) => c.ativa).reduce((acc, c) => acc + c.saldo, 0)
+
+  async function handleCreate(e: React.FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!userId || !nome.trim()) return
+    const saldoNum = parseFloat(saldo.replace(',', '.')) || 0
+    try {
+      await createConta.mutateAsync({ usuario_id: userId, nome: nome.trim(), tipo, saldo: saldoNum, ativa: true })
+      toast.success('Conta criada')
+      setShowForm(false)
+      setNome(''); setSaldo(''); setTipo('corrente')
+    } catch { toast.error('Erro ao criar conta') }
+  }
+
+  function startEdit(conta: Conta): void {
+    setEditingId(conta.id)
+    setEditNome(conta.nome)
+    setEditTipo(conta.tipo)
+    setEditAtiva(conta.ativa)
+    setShowForm(false)
+  }
+
+  async function handleUpdate(e: React.FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!editingId || !editNome.trim()) return
+    try {
+      await updateConta.mutateAsync({ id: editingId, updates: { nome: editNome.trim(), tipo: editTipo, ativa: editAtiva } })
+      toast.success('Conta atualizada')
+      setEditingId(null)
+    } catch { toast.error('Erro ao atualizar conta') }
+  }
+
+  async function handleDelete(id: number): Promise<void> {
+    try {
+      await deleteConta.mutateAsync(id)
+      toast.success('Conta removida')
+      setDeletingId(null)
+    } catch { toast.error('Erro ao remover conta') }
+  }
+
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20'
+
+  function ContaForm({ onCancel, onSubmit, loading, submitLabel, nomVal, setNomVal, tipoVal, setTipoVal, saldoField, ativaField }: {
+    onCancel: () => void; onSubmit: (e: React.FormEvent) => Promise<void>; loading: boolean; submitLabel: string
+    nomVal: string; setNomVal: (v: string) => void
+    tipoVal: Conta['tipo']; setTipoVal: (v: Conta['tipo']) => void
+    saldoField?: React.ReactNode; ativaField?: React.ReactNode
+  }): React.JSX.Element {
+    return (
+      <form onSubmit={onSubmit} className="bg-muted/40 rounded-xl border border-border p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nome</label>
+            <input value={nomVal} onChange={(e) => setNomVal(e.target.value)} placeholder="Ex: Nubank, Bradesco..." className={inputCls} autoFocus />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo</label>
+            <select value={tipoVal} onChange={(e) => setTipoVal(e.target.value as Conta['tipo'])} className={inputCls}>
+              {TIPOS_CONTA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div>{saldoField ?? ativaField}</div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button type="button" onClick={onCancel} className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors">Cancelar</button>
+          <button type="submit" disabled={loading || !nomVal.trim()} className="px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+            {loading ? 'Salvando...' : submitLabel}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
+  return (
+    <div className="p-6 space-y-4">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {contas.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground">Saldo total (contas ativas)</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrencyBRL(totalSaldo)}</p>
+          </div>
+        )}
+        <button
+          onClick={() => { setShowForm(true); setEditingId(null) }}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+        >
+          <Plus size={13} />
+          Nova conta
+        </button>
+      </div>
+
+      {/* Formulário criar */}
+      {showForm && !editingId && (
+        <ContaForm
+          onCancel={() => setShowForm(false)}
+          onSubmit={handleCreate}
+          loading={createConta.isPending}
+          submitLabel="Criar conta"
+          nomVal={nome}
+          setNomVal={setNome}
+          tipoVal={tipo}
+          setTipoVal={setTipo}
+          saldoField={
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Saldo inicial (R$)</label>
+              <input type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="0,00" className={inputCls} />
+            </div>
+          }
+        />
+      )}
+
+      {/* Lista */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        {isLoading ? (
+          <div className="divide-y divide-border">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+                <div className="w-9 h-9 rounded-lg bg-muted shrink-0" />
+                <div className="flex-1 h-3 bg-muted rounded" />
+                <div className="w-20 h-3 bg-muted rounded" />
+              </div>
+            ))}
+          </div>
+        ) : contas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Wallet size={20} className="text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Nenhuma conta cadastrada</p>
+            <p className="text-xs text-muted-foreground mt-1">Adicione uma conta corrente, poupança ou carteira</p>
+            <button onClick={() => setShowForm(true)} className="mt-3 text-xs text-primary hover:underline">+ Nova conta</button>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {contas.map((conta) =>
+              editingId === conta.id ? (
+                <div key={conta.id} className="p-4">
+                  <ContaForm
+                    onCancel={() => setEditingId(null)}
+                    onSubmit={handleUpdate}
+                    loading={updateConta.isPending}
+                    submitLabel="Salvar"
+                    nomVal={editNome}
+                    setNomVal={setEditNome}
+                    tipoVal={editTipo}
+                    setTipoVal={setEditTipo}
+                    ativaField={
+                      <div className="flex flex-col">
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
+                        <button
+                          type="button"
+                          onClick={() => setEditAtiva((v) => !v)}
+                          className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                            editAtiva
+                              ? 'bg-emerald-500/10 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
+                              : 'border-border text-muted-foreground hover:bg-accent'
+                          }`}
+                        >
+                          {editAtiva ? 'Ativa' : 'Inativa'}
+                        </button>
+                      </div>
+                    }
+                  />
+                </div>
+              ) : (
+                <div key={conta.id} className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors group">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Wallet size={15} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground truncate">{conta.nome}</p>
+                      {!conta.ativa && (
+                        <span className="shrink-0 text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">Inativa</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {TIPOS_CONTA.find((t) => t.value === conta.tipo)?.label ?? conta.tipo}
+                    </p>
+                  </div>
+                  <span className={`text-sm font-semibold shrink-0 ${conta.saldo < 0 ? 'text-red-500' : 'text-foreground'}`}>
+                    {formatCurrencyBRL(conta.saldo)}
+                  </span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => startEdit(conta)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => setDeletingId(conta.id)} className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-colors">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Confirm delete */}
+      {deletingId !== null && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeletingId(null)}>
+          <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <Trash2 size={16} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Remover conta</h3>
+                <p className="text-xs text-muted-foreground mt-1">As transações vinculadas não serão apagadas.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeletingId(null)} className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors">Cancelar</button>
+              <button onClick={() => handleDelete(deletingId)} disabled={deleteConta.isPending} className="px-4 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50">
+                {deleteConta.isPending ? 'Removendo...' : 'Remover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── ConfigurarPage ───────────────────────────────────────────────────────────
 
 export function ConfigurarPage(): React.JSX.Element {
@@ -969,8 +1231,9 @@ export function ConfigurarPage(): React.JSX.Element {
 
   const TABS: { id: Aba; label: string; icon: React.ReactNode }[] = [
     { id: 'perfil', label: 'Perfil', icon: <User size={14} /> },
+    { id: 'contas', label: 'Contas', icon: <Wallet size={14} /> },
     { id: 'categorias', label: 'Categorias', icon: <Tag size={14} /> },
-    { id: 'orcamento', label: 'Orçamento', icon: <Wallet size={14} /> },
+    { id: 'orcamento', label: 'Orçamento', icon: <PieChart size={14} /> },
   ]
 
   return (
@@ -1001,6 +1264,7 @@ export function ConfigurarPage(): React.JSX.Element {
 
       <div className="flex-1 overflow-auto">
         {aba === 'perfil' && <PerfilTab />}
+        {aba === 'contas' && <ContasTab />}
         {aba === 'categorias' && <CategoriasTab />}
         {aba === 'orcamento' && <OrcamentoTab />}
       </div>

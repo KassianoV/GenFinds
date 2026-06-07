@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db } from '../services/database'
 import { useAuthStore } from '../stores/authStore'
-import type { Transacao } from '../../types/database.types'
+import type { Transacao, Conta } from '../../types/database.types'
 
 function getMesRange(ano: number, mes: number): { inicio: string; fim: string } {
   const inicio = `${ano}-${String(mes).padStart(2, '0')}-01`
@@ -16,10 +16,10 @@ export function useTransacoesMes(mes: number, ano: number) {
     queryKey: ['transacoes-mes', userId, mes, ano],
     queryFn: async () => {
       if (!userId) throw new Error('Não autenticado')
-      const result = await db.transacao.listPaginated(userId, 1, 1000)
+      const result = await db.transacao.list(userId)
       if (!result.success) throw new Error(result.error)
       const { inicio, fim } = getMesRange(ano, mes)
-      return (result.data?.data ?? []).filter((t) => t.data >= inicio && t.data <= fim)
+      return (result.data ?? []).filter((t) => t.data >= inicio && t.data <= fim)
     },
     enabled: !!userId,
     staleTime: 60_000,
@@ -53,6 +53,57 @@ export function useCategorias(tipo?: 'receita' | 'despesa') {
     },
     enabled: !!userId,
     staleTime: 600_000,
+  })
+}
+
+export function useCreateConta() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: Omit<Conta, 'id' | 'created_at' | 'updated_at'>) => {
+      const result = await db.conta.create(data)
+      if (!result.success) throw new Error(result.error)
+      return result.data!
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contas', userId] })
+      qc.invalidateQueries({ queryKey: ['saldo-contas'] })
+      qc.invalidateQueries({ queryKey: ['resumo'] })
+    },
+  })
+}
+
+export function useUpdateConta() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<Conta> }) => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.conta.update(id, userId, updates)
+      if (!result.success) throw new Error(result.error)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contas', userId] })
+      qc.invalidateQueries({ queryKey: ['saldo-contas'] })
+      qc.invalidateQueries({ queryKey: ['resumo'] })
+    },
+  })
+}
+
+export function useDeleteConta() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.conta.delete(id, userId)
+      if (!result.success) throw new Error(result.error)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contas', userId] })
+      qc.invalidateQueries({ queryKey: ['saldo-contas'] })
+      qc.invalidateQueries({ queryKey: ['resumo'] })
+    },
   })
 }
 

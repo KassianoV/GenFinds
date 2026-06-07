@@ -19,6 +19,8 @@ import {
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
+import { CurrencyInput } from '../ui/CurrencyInput'
+import { DatePicker } from '../ui/DatePicker'
 import {
   Select,
   SelectContent,
@@ -40,13 +42,7 @@ const schema = z.object({
     .string()
     .min(1, 'Descrição obrigatória')
     .max(100, 'Máximo 100 caracteres'),
-  valor: z
-    .string()
-    .min(1, 'Valor obrigatório')
-    .refine(
-      (v) => { const n = parseFloat(v.replace(',', '.')); return !isNaN(n) && n > 0 },
-      'Informe um valor maior que zero'
-    ),
+  valorCentavos: z.number().int().min(1, 'Informe um valor maior que zero'),
   data: z.string().min(1, 'Data obrigatória'),
   conta_id: z.string().min(1, 'Selecione uma conta'),
   categoria_id: z.string().min(1, 'Selecione uma categoria'),
@@ -58,7 +54,7 @@ type FormValues = z.infer<typeof schema>
 const DEFAULT_FORM: FormValues = {
   tipo: 'despesa',
   descricao: '',
-  valor: '',
+  valorCentavos: 0,
   data: new Date().toISOString().split('T')[0],
   conta_id: '',
   categoria_id: '',
@@ -115,7 +111,7 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
       reset({
         tipo: editingTransacao.tipo,
         descricao: editingTransacao.descricao,
-        valor: String(editingTransacao.valor),
+        valorCentavos: Math.round(editingTransacao.valor * 100),
         data: editingTransacao.data,
         conta_id: String(editingTransacao.conta_id),
         categoria_id: String(editingTransacao.categoria_id),
@@ -128,7 +124,7 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
 
   async function onSubmit(values: FormValues): Promise<void> {
     if (!userId) return
-    const valor = parseFloat(values.valor.replace(',', '.'))
+    const valor = values.valorCentavos / 100
     const payload = {
       usuario_id: userId,
       descricao: values.descricao.trim(),
@@ -207,20 +203,32 @@ export function TransacaoModal({ open, onClose, editingTransacao }: TransacaoMod
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="valor">Valor (R$)</Label>
-          <Input
-            id="valor"
-            type="number"
-            step="0.01"
-            min="0.01"
-            inputMode="decimal"
-            placeholder="0,00"
-            {...register('valor')}
+          <Controller
+            name="valorCentavos"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                id="valor"
+                valorEmCentavos={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
-          <FieldError message={errors.valor?.message} />
+          <FieldError message={errors.valorCentavos?.message} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="data">Data</Label>
-          <Input id="data" type="date" {...register('data')} />
+          <Controller
+            name="data"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                id="data"
+                value={field.value ? new Date(field.value + 'T12:00:00') : undefined}
+                onChange={(date) => field.onChange(date.toISOString().split('T')[0])}
+              />
+            )}
+          />
           <FieldError message={errors.data?.message} />
         </div>
       </div>

@@ -15,7 +15,6 @@ import {
   X,
   ChevronsUpDown,
 } from 'lucide-react'
-import { useVirtualizer } from '@tanstack/react-virtual'
 import { ResumoCards } from '../components/dashboard/ResumoCards'
 import { TransacaoModal } from '../components/transacoes/TransacaoModal'
 import { SwipeToDelete } from '../components/transacoes/SwipeToDelete'
@@ -48,7 +47,7 @@ type FiltroTipo = 'todas' | 'receita' | 'despesa'
 type SortCol = 'data' | 'descricao' | 'categoria' | 'conta' | 'valor'
 type SortDir = 'asc' | 'desc'
 
-const ROW_HEIGHT = 56
+const ITEMS_PER_PAGE = 20
 
 // ─── Debounce hook ────────────────────────────────────────────────────────────
 
@@ -265,6 +264,9 @@ export function TransacoesPage(): React.JSX.Element {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTransacao, setEditingTransacao] = useState<TransacaoCompleta | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(ITEMS_PER_PAGE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const desktop = isDesktop()
 
   // ── Queries ──
@@ -322,14 +324,37 @@ export function TransacoesPage(): React.JSX.Element {
     })
   }, [transacoesQuery.data, filtroTipo, buscaDebounced, contaIds, categoriaIds, sortCol, sortDir])
 
-  // ── Virtualizer ──
+  // ── Scroll container ──
   const scrollRef = useRef<HTMLDivElement>(null)
-  const virtualizer = useVirtualizer({
-    count: transacoesQuery.isLoading ? 0 : transacoesFiltradas.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 8,
-  })
+
+  // ── Reset pagination when filters change ──
+  const filterKey = `${mes}-${ano}-${filtroTipo}-${buscaDebounced}-${contaIds.join(',')}-${categoriaIds.join(',')}`
+  useEffect(() => {
+    setPaginaAtual(1)
+    setMobileVisibleCount(ITEMS_PER_PAGE)
+  }, [filterKey])
+
+  // ── Derived pagination values ──
+  const totalPaginas = Math.max(1, Math.ceil(transacoesFiltradas.length / ITEMS_PER_PAGE))
+  const transacoesVisiveis = desktop
+    ? transacoesFiltradas.slice((paginaAtual - 1) * ITEMS_PER_PAGE, paginaAtual * ITEMS_PER_PAGE)
+    : transacoesFiltradas.slice(0, mobileVisibleCount)
+
+  // ── Intersection Observer (mobile infinite scroll) ──
+  useEffect(() => {
+    if (desktop || !sentinelRef.current) return
+    const total = transacoesFiltradas.length
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setMobileVisibleCount((v) => Math.min(v + ITEMS_PER_PAGE, total))
+        }
+      },
+      { root: scrollRef.current, rootMargin: '150px' },
+    )
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [desktop, transacoesFiltradas.length])
 
   // ── Handlers ──
   function abrirNova(): void { setEditingTransacao(null); setModalOpen(true) }
@@ -540,34 +565,47 @@ export function TransacoesPage(): React.JSX.Element {
                 )}
               </div>
             ) : (
-              /* Virtualized list */
-              <div
-                style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-              >
-                {virtualizer.getVirtualItems().map((virtualItem) => {
-                  const t = transacoesFiltradas[virtualItem.index]
-                  return (
-                    <div
-                      key={virtualItem.key}
-                      style={{
-                        position: 'absolute',
-                        top: virtualItem.start,
-                        left: 0,
-                        width: '100%',
-                        height: virtualItem.size,
-                      }}
-                    >
-                      <SwipeToDelete onDelete={() => setDeleteId(t.id)}>
-                        <TransacaoRow
-                          transacao={t}
-                          isTable={desktop}
-                          onEdit={() => abrirEdicao(t)}
-                          onDelete={() => setDeleteId(t.id)}
-                        />
-                      </SwipeToDelete>
-                    </div>
-                  )
-                })}
+              /* List */
+              <div>
+                {transacoesVisiveis.map((t) => (
+                  <SwipeToDelete key={t.id} onDelete={() => setDeleteId(t.id)}>
+                    <TransacaoRow
+                      transacao={t}
+                      isTable={desktop}
+                      onEdit={() => abrirEdicao(t)}
+                      onDelete={() => setDeleteId(t.id)}
+                    />
+                  </SwipeToDelete>
+                ))}
+                {!desktop && <div ref={sentinelRef} className="h-px" />}
+              </div>
+            )}
+
+            {/* Desktop pagination footer */}
+            {desktop && !transacoesQuery.isLoading && transacoesFiltradas.length > 0 && (
+              <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {transacoesFiltradas.length} transaç{transacoesFiltradas.length === 1 ? 'ão' : 'ões'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPaginaAtual((p) => p - 1)}
+                    disabled={paginaAtual === 1}
+                    className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {paginaAtual} / {totalPaginas}
+                  </span>
+                  <button
+                    onClick={() => setPaginaAtual((p) => p + 1)}
+                    disabled={paginaAtual >= totalPaginas}
+                    className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Próximo
+                  </button>
+                </div>
               </div>
             )}
           </div>
