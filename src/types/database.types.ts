@@ -117,6 +117,20 @@ export interface ResumoFinanceiro {
   saldo: number
 }
 
+export interface GastoPorCategoria {
+  categoria_id: number
+  categoria_nome: string
+  categoria_cor?: string
+  total_gasto: number
+}
+
+export interface EvolucaoMensalRaw {
+  ano: number
+  mes: number
+  receita: number
+  despesa: number
+}
+
 export interface PaginationParams {
   page: number
   pageSize: number

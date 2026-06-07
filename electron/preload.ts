@@ -118,7 +118,13 @@ const api = {
 
   relatorio: {
     getResumo: (usuarioId: number, dataInicio?: string, dataFim?: string) =>
-      ipcRenderer.invoke('relatorio:resumo', usuarioId, dataInicio, dataFim)
+      ipcRenderer.invoke('relatorio:resumo', usuarioId, dataInicio, dataFim),
+    getGastosPorCategoria: (usuarioId: number, dataInicio: string, dataFim: string) =>
+      ipcRenderer.invoke('relatorio:gastos-categoria', usuarioId, dataInicio, dataFim),
+    getTopGastos: (usuarioId: number, dataInicio: string, dataFim: string, limite: number) =>
+      ipcRenderer.invoke('relatorio:top-gastos', usuarioId, dataInicio, dataFim, limite),
+    getEvolucaoMensal: (usuarioId: number, dataInicio: string, dataFim: string) =>
+      ipcRenderer.invoke('relatorio:evolucao-mensal', usuarioId, dataInicio, dataFim)
   },
 
   database: {

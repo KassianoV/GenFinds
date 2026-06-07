@@ -20,6 +20,8 @@ import {
   TransacaoCartaoCompleta,
   Transacao,
   ResumoFinanceiro,
+  GastoPorCategoria,
+  EvolucaoMensalRaw,
   TransacaoCompleta,
   PaginationParams,
   PaginatedResult,
@@ -2277,6 +2279,86 @@ export class DatabaseManager {
       despesa,
       saldo: receita - despesa
     }
+  }
+
+  getGastosPorCategoria(usuarioId: number, dataInicio: string, dataFim: string): GastoPorCategoria[] {
+    const sql = `
+      SELECT
+        cat.id AS categoria_id,
+        cat.nome AS categoria_nome,
+        cat.cor AS categoria_cor,
+        COALESCE(SUM(t.valor), 0) AS total_gasto
+      FROM categorias cat
+      LEFT JOIN transacoes t
+        ON t.categoria_id = cat.id
+        AND t.usuario_id = ?
+        AND t.tipo = 'despesa'
+        AND t.data >= ?
+        AND t.data <= ?
+      WHERE cat.usuario_id = ?
+        AND cat.tipo = 'despesa'
+      GROUP BY cat.id, cat.nome, cat.cor
+      HAVING total_gasto > 0
+      ORDER BY total_gasto DESC
+    `
+    const result = this.db.exec(sql, [usuarioId, dataInicio, dataFim, usuarioId])
+    if (result.length === 0) return []
+    const cols = result[0].columns
+    return result[0].values.map((row) => ({
+      categoria_id: Number(row[cols.indexOf('categoria_id')]),
+      categoria_nome: String(row[cols.indexOf('categoria_nome')]),
+      categoria_cor: row[cols.indexOf('categoria_cor')] ? String(row[cols.indexOf('categoria_cor')]) : undefined,
+      total_gasto: Number(row[cols.indexOf('total_gasto')]),
+    }))
+  }
+
+  getEvolucaoMensal(usuarioId: number, dataInicio: string, dataFim: string): EvolucaoMensalRaw[] {
+    const sql = `
+      SELECT
+        CAST(strftime('%Y', data) AS INTEGER) AS ano,
+        CAST(strftime('%m', data) AS INTEGER) AS mes,
+        COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) AS receita,
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) AS despesa
+      FROM transacoes
+      WHERE usuario_id = ?
+        AND data >= ?
+        AND data <= ?
+      GROUP BY strftime('%Y-%m', data)
+      ORDER BY ano ASC, mes ASC
+    `
+    const result = this.db.exec(sql, [usuarioId, dataInicio, dataFim])
+    if (result.length === 0) return []
+    const cols = result[0].columns
+    return result[0].values.map((row) => ({
+      ano: Number(row[cols.indexOf('ano')]),
+      mes: Number(row[cols.indexOf('mes')]),
+      receita: Number(row[cols.indexOf('receita')]),
+      despesa: Number(row[cols.indexOf('despesa')]),
+    }))
+  }
+
+  getTopGastos(usuarioId: number, dataInicio: string, dataFim: string, limite: number): TransacaoCompleta[] {
+    const sql = `
+      SELECT
+        t.*,
+        ct.nome AS conta_nome,
+        cat.nome AS categoria_nome,
+        cat.cor AS categoria_cor
+      FROM transacoes t
+      JOIN contas ct ON t.conta_id = ct.id
+      JOIN categorias cat ON t.categoria_id = cat.id
+      WHERE t.usuario_id = ?
+        AND t.tipo = 'despesa'
+        AND t.data >= ?
+        AND t.data <= ?
+      ORDER BY t.valor DESC
+      LIMIT ?
+    `
+    const result = this.db.exec(sql, [usuarioId, dataInicio, dataFim, Math.max(1, limite)])
+    if (result.length === 0) return []
+    return result[0].values.map((row) =>
+      this.rowToTransacaoCompletaFromArray(row, result[0].columns)
+    )
   }
 
   /**

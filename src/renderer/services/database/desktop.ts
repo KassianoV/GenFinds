@@ -101,7 +101,13 @@ export const desktopDatabaseService: DatabaseService = {
 
   relatorio: {
     getResumo: (usuarioId, dataInicio, dataFim) =>
-      ipc(() => window.api.relatorio.getResumo(usuarioId, dataInicio, dataFim))
+      ipc(() => window.api.relatorio.getResumo(usuarioId, dataInicio, dataFim)),
+    getGastosPorCategoria: (usuarioId, dataInicio, dataFim) =>
+      ipc(() => window.api.relatorio.getGastosPorCategoria(usuarioId, dataInicio, dataFim)),
+    getTopGastos: (usuarioId, dataInicio, dataFim, limite) =>
+      ipc(() => window.api.relatorio.getTopGastos(usuarioId, dataInicio, dataFim, limite)),
+    getEvolucaoMensal: (usuarioId, dataInicio, dataFim) =>
+      ipc(() => window.api.relatorio.getEvolucaoMensal(usuarioId, dataInicio, dataFim))
   },
 
   database: {

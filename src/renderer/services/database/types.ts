@@ -10,6 +10,8 @@ import type {
   Transacao,
   TransacaoCompleta,
   ResumoFinanceiro,
+  GastoPorCategoria,
+  EvolucaoMensalRaw,
   PaginatedResult,
   Nota,
   ServiceResult
@@ -154,6 +156,22 @@ export interface DatabaseService {
       dataInicio?: string,
       dataFim?: string
     ): Promise<ServiceResult<ResumoFinanceiro>>
+    getGastosPorCategoria(
+      usuarioId: number,
+      dataInicio: string,
+      dataFim: string
+    ): Promise<ServiceResult<GastoPorCategoria[]>>
+    getTopGastos(
+      usuarioId: number,
+      dataInicio: string,
+      dataFim: string,
+      limite: number
+    ): Promise<ServiceResult<TransacaoCompleta[]>>
+    getEvolucaoMensal(
+      usuarioId: number,
+      dataInicio: string,
+      dataFim: string
+    ): Promise<ServiceResult<EvolucaoMensalRaw[]>>
   }
 
   database: {

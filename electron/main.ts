@@ -1149,6 +1149,92 @@ ipcMain.handle(
   }
 )
 
+ipcMain.handle(
+  'relatorio:evolucao-mensal',
+  async (_, usuarioId: number, dataInicio: string, dataFim: string) => {
+    try {
+      const usuarioValidation = validateData(IdSchema, usuarioId)
+      if (!usuarioValidation.success) return { success: false, error: usuarioValidation.error }
+
+      const dataInicioValidation = validateData(DataSchema, dataInicio)
+      if (!dataInicioValidation.success) return { success: false, error: dataInicioValidation.error }
+
+      const dataFimValidation = validateData(DataSchema, dataFim)
+      if (!dataFimValidation.success) return { success: false, error: dataFimValidation.error }
+
+      const data = db.getEvolucaoMensal(
+        usuarioValidation.data,
+        dataInicioValidation.data!,
+        dataFimValidation.data!
+      )
+      return { success: true, data }
+    } catch (error) {
+      logError('relatorio:evolucao-mensal failed', error)
+      return { success: false, error: sanitizeError(error) }
+    }
+  }
+)
+
+ipcMain.handle(
+  'relatorio:top-gastos',
+  async (_, usuarioId: number, dataInicio: string, dataFim: string, limite: number) => {
+    try {
+      const usuarioValidation = validateData(IdSchema, usuarioId)
+      if (!usuarioValidation.success) return { success: false, error: usuarioValidation.error }
+
+      const dataInicioValidation = validateData(DataSchema, dataInicio)
+      if (!dataInicioValidation.success) return { success: false, error: dataInicioValidation.error }
+
+      const dataFimValidation = validateData(DataSchema, dataFim)
+      if (!dataFimValidation.success) return { success: false, error: dataFimValidation.error }
+
+      const safeLimit = Math.min(Math.max(1, Math.floor(limite || 10)), 50)
+      const data = db.getTopGastos(
+        usuarioValidation.data,
+        dataInicioValidation.data!,
+        dataFimValidation.data!,
+        safeLimit
+      )
+      return { success: true, data }
+    } catch (error) {
+      logError('relatorio:top-gastos failed', error)
+      return { success: false, error: sanitizeError(error) }
+    }
+  }
+)
+
+ipcMain.handle(
+  'relatorio:gastos-categoria',
+  async (_, usuarioId: number, dataInicio: string, dataFim: string) => {
+    try {
+      const usuarioValidation = validateData(IdSchema, usuarioId)
+      if (!usuarioValidation.success) {
+        return { success: false, error: usuarioValidation.error }
+      }
+
+      const dataInicioValidation = validateData(DataSchema, dataInicio)
+      if (!dataInicioValidation.success) {
+        return { success: false, error: dataInicioValidation.error }
+      }
+
+      const dataFimValidation = validateData(DataSchema, dataFim)
+      if (!dataFimValidation.success) {
+        return { success: false, error: dataFimValidation.error }
+      }
+
+      const data = db.getGastosPorCategoria(
+        usuarioValidation.data,
+        dataInicioValidation.data!,
+        dataFimValidation.data!
+      )
+      return { success: true, data }
+    } catch (error) {
+      logError('relatorio:gastos-categoria failed', error)
+      return { success: false, error: sanitizeError(error) }
+    }
+  }
+)
+
 // ========== IPC HANDLERS - NOTAS ==========
 
 ipcMain.handle('nota:create', async (_, notaData: unknown) => {
