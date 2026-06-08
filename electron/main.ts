@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -1388,3 +1388,83 @@ ipcMain.handle('auth:update-nome', async (_, id: number, novoNome: string) => {
     return { success: false, error: sanitizeError(error) }
   }
 })
+
+// ========== IPC HANDLERS - OFX ==========
+
+ipcMain.handle('ofx:select-and-read', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      title: 'Selecionar arquivo OFX',
+      filters: [{ name: 'OFX / QFX', extensions: ['ofx', 'qfx', 'OFX', 'QFX'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: true, data: null }
+    }
+    const content = fs.readFileSync(result.filePaths[0], 'latin1')
+    return { success: true, data: content }
+  } catch (error) {
+    logError('ofx:select-and-read failed', error)
+    return { success: false, error: sanitizeError(error) }
+  }
+})
+
+ipcMain.handle('ofx:check-duplicates', async (_, usuarioId: number) => {
+  try {
+    const validation = validateData(IdSchema, usuarioId)
+    if (!validation.success) return { success: false, error: validation.error }
+    const ids = db.getOfxIds(validation.data)
+    return { success: true, data: Array.from(ids) }
+  } catch (error) {
+    logError('ofx:check-duplicates failed', error)
+    return { success: false, error: sanitizeError(error) }
+  }
+})
+
+ipcMain.handle(
+  'csv:export',
+  async (_, usuarioId: number, dataInicio: string, dataFim: string, filenameSuggestion: string) => {
+    try {
+      const validation = validateData(IdSchema, usuarioId)
+      if (!validation.success) return { success: false, error: validation.error }
+
+      const transacoes = db.getTransacoesByPeriodo(validation.data, dataInicio, dataFim)
+
+      const header = 'Data,Descrição,Tipo,Valor,Conta,Categoria,Observações'
+      const rows = transacoes.map((t) => {
+        const tc = t as unknown as Record<string, string | number | undefined>
+        const fields = [
+          t.data,
+          t.descricao,
+          t.tipo === 'receita' ? 'Receita' : 'Despesa',
+          t.valor.toFixed(2).replace('.', ','),
+          String(tc['conta_nome'] ?? ''),
+          String(tc['categoria_nome'] ?? ''),
+          t.observacoes ?? ''
+        ]
+        return fields
+          .map((f) => {
+            const s = String(f)
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+              ? `"${s.replace(/"/g, '""')}"`
+              : s
+          })
+          .join(',')
+      })
+      const csvContent = '﻿' + [header, ...rows].join('\r\n')
+
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        defaultPath: filenameSuggestion,
+        filters: [{ name: 'CSV', extensions: ['csv'] }]
+      })
+
+      if (canceled || !filePath) return { success: false, canceled: true }
+
+      fs.writeFileSync(filePath, csvContent, 'utf8')
+      return { success: true, filePath }
+    } catch (error) {
+      logError('csv:export failed', error)
+      return { success: false, error: sanitizeError(error) }
+    }
+  }
+)

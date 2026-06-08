@@ -78,7 +78,8 @@ export const TransacaoCreateSchema = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
   conta_id: z.number().int().positive('ID de conta inválido'),
   categoria_id: z.number().int().positive('ID de categoria inválido'),
-  observacoes: z.string().max(1000, 'Observações muito longas').optional()
+  observacoes: z.string().max(1000, 'Observações muito longas').optional(),
+  ofx_id: z.string().max(255).optional()
 })
 
 export const TransacaoUpdateSchema = z

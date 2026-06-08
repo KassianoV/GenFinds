@@ -41,6 +41,36 @@ export function useContas() {
   })
 }
 
+export function useContasComTransacoes() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  return useQuery({
+    queryKey: ['contas-em-uso', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.transacao.list(userId)
+      if (!result.success) throw new Error(result.error)
+      return new Set((result.data ?? []).map((t) => t.conta_id))
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  })
+}
+
+export function useCategoriasComTransacoes() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  return useQuery({
+    queryKey: ['categorias-em-uso', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.transacao.list(userId)
+      if (!result.success) throw new Error(result.error)
+      return new Set((result.data ?? []).map((t) => t.categoria_id))
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  })
+}
+
 export function useCategorias(tipo?: 'receita' | 'despesa') {
   const userId = useAuthStore((s) => s.currentUser?.id)
   return useQuery({

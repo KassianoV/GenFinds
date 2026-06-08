@@ -52,6 +52,41 @@ export function useUpdateOrcamento() {
   })
 }
 
+export function useUpsertOrcamento() {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      categoriaId,
+      mes,
+      ano,
+      valorPlanejado,
+    }: {
+      categoriaId: number
+      mes: number
+      ano: number
+      valorPlanejado: number
+    }) => {
+      if (!userId) throw new Error('Não autenticado')
+      const listResult = await db.orcamento.list(userId, mes, ano)
+      if (!listResult.success) throw new Error(listResult.error)
+      const existing = listResult.data?.find((o) => o.categoria_id === categoriaId)
+      if (existing) {
+        const result = await db.orcamento.update(existing.id, userId, { valor_planejado: valorPlanejado })
+        if (!result.success) throw new Error(result.error)
+      } else {
+        const result = await db.orcamento.create({ usuario_id: userId, categoria_id: categoriaId, valor_planejado: valorPlanejado, mes, ano })
+        if (!result.success) throw new Error(result.error)
+      }
+    },
+    onSuccess: (_, { mes, ano }) => {
+      qc.invalidateQueries({ queryKey: ['orcamentos', userId, mes, ano] })
+      qc.invalidateQueries({ queryKey: ['resumo'] })
+      qc.invalidateQueries({ queryKey: ['grafico-6meses'] })
+    },
+  })
+}
+
 export function useDeleteOrcamento() {
   const userId = useAuthStore((s) => s.currentUser?.id)
   const qc = useQueryClient()

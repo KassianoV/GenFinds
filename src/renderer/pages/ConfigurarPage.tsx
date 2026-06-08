@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from 'react'
-import { User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff, Moon, Sun, LogOut, Wallet, PieChart, Check, X } from 'lucide-react'
+import {
+  User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff, Moon, Sun, LogOut,
+  Wallet, PieChart, Check, X, AlertTriangle,
+  ShoppingCart, Utensils, Car, Home, Zap, Heart, GraduationCap, Plane,
+  Gamepad2, Shirt, Smartphone, TrendingUp, Briefcase, Gift, Coffee,
+  Music, Dumbbell, Baby, PawPrint, DollarSign, Building2, Bus, Fuel, Stethoscope,
+  type LucideIcon,
+} from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
@@ -10,6 +17,8 @@ import {
   useCreateConta,
   useUpdateConta,
   useDeleteConta,
+  useCategoriasComTransacoes,
+  useContasComTransacoes,
 } from '../hooks/useTransacoes'
 import {
   useUpdateNome,
@@ -28,6 +37,20 @@ import { formatCurrencyBRL } from '../../lib/format'
 import type { Categoria, Orcamento, Conta } from '../../types/database.types'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
+
+const ICONES_MAP: Record<string, LucideIcon> = {
+  ShoppingCart, Utensils, Car, Home, Zap, Heart, GraduationCap, Plane,
+  Gamepad2, Shirt, Smartphone, TrendingUp, Briefcase, Gift, Coffee,
+  Music, Dumbbell, Baby, PawPrint, DollarSign, Building2, Bus, Fuel, Stethoscope, Tag,
+}
+
+const ICONES_LISTA = Object.keys(ICONES_MAP)
+
+function CategoriaIcone({ icone, cor, size = 16 }: { icone?: string; cor?: string; size?: number }): React.JSX.Element {
+  const Icone = icone ? ICONES_MAP[icone] : null
+  if (Icone) return <Icone size={size} style={{ color: cor ?? '#64748b' }} />
+  return <div className="rounded-full shadow-sm" style={{ width: size, height: size, backgroundColor: cor ?? '#64748b' }} />
+}
 
 const CORES = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
@@ -79,11 +102,43 @@ function ColorPicker({ value, onChange }: ColorPickerProps): React.JSX.Element {
   )
 }
 
+// ─── IconePicker ─────────────────────────────────────────────────────────────
+
+interface IconePickerProps {
+  value: string
+  onChange: (icone: string) => void
+}
+
+function IconePicker({ value, onChange }: IconePickerProps): React.JSX.Element {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ICONES_LISTA.map((nome) => {
+        const Icone = ICONES_MAP[nome]
+        return (
+          <button
+            key={nome}
+            type="button"
+            title={nome}
+            onClick={() => onChange(nome)}
+            className={`p-1.5 rounded-lg transition-all hover:scale-110 border ${
+              value === nome
+                ? 'border-foreground bg-accent ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110'
+                : 'border-transparent hover:border-border hover:bg-accent'
+            }`}
+          >
+            <Icone size={16} className="text-foreground" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── CategoriaForm ────────────────────────────────────────────────────────────
 
 interface CategoriaFormProps {
-  initial?: { nome: string; tipo: 'receita' | 'despesa'; cor: string }
-  onSubmit: (data: { nome: string; tipo: 'receita' | 'despesa'; cor: string }) => Promise<void>
+  initial?: { nome: string; tipo: 'receita' | 'despesa'; cor: string; icone?: string }
+  onSubmit: (data: { nome: string; tipo: 'receita' | 'despesa'; cor: string; icone: string }) => Promise<void>
   onCancel: () => void
   loading: boolean
   submitLabel: string
@@ -99,11 +154,12 @@ function CategoriaForm({
   const [nome, setNome] = useState(initial?.nome ?? '')
   const [tipo, setTipo] = useState<'receita' | 'despesa'>(initial?.tipo ?? 'despesa')
   const [cor, setCor] = useState(initial?.cor ?? CORES[5])
+  const [icone, setIcone] = useState(initial?.icone ?? 'Tag')
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     if (!nome.trim()) return
-    await onSubmit({ nome: nome.trim(), tipo, cor })
+    await onSubmit({ nome: nome.trim(), tipo, cor, icone })
   }
 
   return (
@@ -151,6 +207,17 @@ function CategoriaForm({
         <ColorPicker value={cor} onChange={setCor} />
       </div>
 
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-2 block">Ícone</label>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-7 h-7 rounded-lg border border-border flex items-center justify-center">
+            <CategoriaIcone icone={icone} cor={cor} size={15} />
+          </div>
+          <span className="text-xs text-muted-foreground">{icone}</span>
+        </div>
+        <IconePicker value={icone} onChange={setIcone} />
+      </div>
+
       <div className="flex gap-2 justify-end pt-1">
         <button
           type="button"
@@ -182,10 +249,9 @@ interface CategoriaRowProps {
 function CategoriaRow({ categoria, onEdit, onDelete }: CategoriaRowProps): React.JSX.Element {
   return (
     <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors group">
-      <div
-        className="w-4 h-4 rounded-full shrink-0 shadow-sm"
-        style={{ backgroundColor: categoria.cor ?? '#64748b' }}
-      />
+      <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+        <CategoriaIcone icone={categoria.icone} cor={categoria.cor} size={16} />
+      </div>
       <p className="flex-1 text-sm font-medium text-foreground truncate">{categoria.nome}</p>
       <span
         className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
@@ -231,16 +297,24 @@ function PerfilTab(): React.JSX.Element {
   const [showSenhaAtual, setShowSenhaAtual] = useState(false)
   const [showNova, setShowNova] = useState(false)
 
+  const forcaSenha = {
+    minChars: novaSenha.length >= 8,
+    maiuscula: /[A-Z]/.test(novaSenha),
+    numero: /[0-9]/.test(novaSenha),
+  }
+  const senhaValida = forcaSenha.minChars && forcaSenha.maiuscula && forcaSenha.numero
+
   async function handleChangePassword(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     if (novaSenha !== confirmar) { toast.error('As senhas não coincidem'); return }
-    if (novaSenha.length < 4) { toast.error('Nova senha deve ter ao menos 4 caracteres'); return }
+    if (!senhaValida) { toast.error('A nova senha não atende aos requisitos de segurança'); return }
     try {
       await changePassword.mutateAsync({ senhaAtual, novaSenha })
-      toast.success('Senha alterada com sucesso')
+      toast.success('Senha alterada! Faça login novamente.')
       setSenhaAtual('')
       setNovaSenha('')
       setConfirmar('')
+      setTimeout(() => logout(), 1500)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha')
     }
@@ -359,6 +433,20 @@ function PerfilTab(): React.JSX.Element {
                   {showNova ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
+              {novaSenha.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {([
+                    { ok: forcaSenha.minChars, label: 'Mínimo 8 caracteres' },
+                    { ok: forcaSenha.maiuscula, label: 'Letra maiúscula' },
+                    { ok: forcaSenha.numero, label: 'Número' },
+                  ] as const).map(({ ok, label }) => (
+                    <div key={label} className={`flex items-center gap-1.5 text-xs transition-colors ${ok ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                      {ok ? <Check size={11} /> : <X size={11} />}
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -376,7 +464,7 @@ function PerfilTab(): React.JSX.Element {
 
             <button
               type="submit"
-              disabled={changePassword.isPending || !senhaAtual || !novaSenha || !confirmar}
+              disabled={changePassword.isPending || !senhaAtual || !senhaValida || !confirmar}
               className="w-full py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 mt-1"
             >
               {changePassword.isPending ? 'Alterando...' : 'Alterar senha'}
@@ -412,6 +500,7 @@ function PerfilTab(): React.JSX.Element {
 function CategoriasTab(): React.JSX.Element {
   const userId = useAuthStore((s) => s.currentUser?.id)
   const { data: categorias = [], isLoading } = useCategorias()
+  const { data: categoriasEmUso = new Set<number>() } = useCategoriasComTransacoes()
   const createCategoria = useCreateCategoria()
   const updateCategoria = useUpdateCategoria()
   const deleteCategoria = useDeleteCategoria()
@@ -427,6 +516,7 @@ function CategoriasTab(): React.JSX.Element {
     nome: string
     tipo: 'receita' | 'despesa'
     cor: string
+    icone: string
   }): Promise<void> {
     if (!userId) return
     try {
@@ -442,6 +532,7 @@ function CategoriasTab(): React.JSX.Element {
     nome: string
     tipo: 'receita' | 'despesa'
     cor: string
+    icone: string
   }): Promise<void> {
     if (!editingId) return
     try {
@@ -545,7 +636,7 @@ function CategoriasTab(): React.JSX.Element {
               editingId === cat.id ? (
                 <div key={cat.id} className="p-4">
                   <CategoriaForm
-                    initial={{ nome: cat.nome, tipo: cat.tipo, cor: cat.cor ?? CORES[0] }}
+                    initial={{ nome: cat.nome, tipo: cat.tipo, cor: cat.cor ?? CORES[0], icone: cat.icone }}
                     onSubmit={handleUpdate}
                     onCancel={() => setEditingId(null)}
                     loading={updateCategoria.isPending}
@@ -566,44 +657,57 @@ function CategoriasTab(): React.JSX.Element {
       </div>
 
       {/* Confirm delete */}
-      {deletingId !== null && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setDeletingId(null)}
-        >
+      {deletingId !== null && (() => {
+        const bloqueado = categoriasEmUso.has(deletingId)
+        return (
           <div
-            className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full space-y-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setDeletingId(null)}
           >
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                <Trash2 size={16} className="text-red-500" />
+            <div
+              className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full space-y-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${bloqueado ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  {bloqueado
+                    ? <AlertTriangle size={16} className="text-amber-500" />
+                    : <Trash2 size={16} className="text-red-500" />
+                  }
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {bloqueado ? 'Não é possível remover' : 'Remover categoria'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {bloqueado
+                      ? 'Esta categoria possui transações vinculadas. Remova ou reatribua as transações antes de excluir.'
+                      : 'Esta ação não pode ser desfeita.'
+                    }
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Remover categoria</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Transações vinculadas não serão apagadas.
-                </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setDeletingId(null)}
+                  className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors"
+                >
+                  {bloqueado ? 'Fechar' : 'Cancelar'}
+                </button>
+                {!bloqueado && (
+                  <button
+                    onClick={() => handleDelete(deletingId)}
+                    disabled={deleteCategoria.isPending}
+                    className="px-4 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {deleteCategoria.isPending ? 'Removendo...' : 'Remover'}
+                  </button>
+                )}
               </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setDeletingId(null)}
-                className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDelete(deletingId)}
-                disabled={deleteCategoria.isPending}
-                className="px-4 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {deleteCategoria.isPending ? 'Removendo...' : 'Remover'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
@@ -873,7 +977,7 @@ function OrcamentoTab(): React.JSX.Element {
               const pct = orc.valor_planejado > 0 ? (gasto / orc.valor_planejado) * 100 : 0
               const restante = orc.valor_planejado - gasto
               const barColor =
-                pct >= 100 ? '#ef4444' : pct >= 90 ? '#f97316' : pct >= 70 ? '#eab308' : cat?.cor ?? '#22c55e'
+                pct >= 100 ? '#ef4444' : pct >= 90 ? '#f97316' : pct >= 80 ? '#eab308' : cat?.cor ?? '#22c55e'
 
               return (
                 <div key={orc.id} className="px-4 py-4 hover:bg-accent/40 transition-colors group">
@@ -883,8 +987,14 @@ function OrcamentoTab(): React.JSX.Element {
                       className="w-4 h-4 rounded-full shrink-0 shadow-sm"
                       style={{ backgroundColor: cat?.cor ?? '#64748b' }}
                     />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 flex items-center gap-1.5">
                       <p className="text-sm font-medium text-foreground truncate">{cat?.nome ?? '—'}</p>
+                      {pct >= 80 && (
+                        <AlertTriangle
+                          size={13}
+                          className={pct >= 100 ? 'text-red-500 shrink-0' : 'text-amber-500 shrink-0'}
+                        />
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs text-muted-foreground">
@@ -981,6 +1091,7 @@ function OrcamentoTab(): React.JSX.Element {
 function ContasTab(): React.JSX.Element {
   const userId = useAuthStore((s) => s.currentUser?.id)
   const { data: contas = [], isLoading } = useContas()
+  const { data: contasEmUso = new Set<number>() } = useContasComTransacoes()
   const createConta = useCreateConta()
   const updateConta = useUpdateConta()
   const deleteConta = useDeleteConta()
@@ -1199,27 +1310,44 @@ function ContasTab(): React.JSX.Element {
       </div>
 
       {/* Confirm delete */}
-      {deletingId !== null && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeletingId(null)}>
-          <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                <Trash2 size={16} className="text-red-500" />
+      {deletingId !== null && (() => {
+        const bloqueado = contasEmUso.has(deletingId)
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeletingId(null)}>
+            <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${bloqueado ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  {bloqueado
+                    ? <AlertTriangle size={16} className="text-amber-500" />
+                    : <Trash2 size={16} className="text-red-500" />
+                  }
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {bloqueado ? 'Não é possível remover' : 'Remover conta'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {bloqueado
+                      ? 'Esta conta possui transações vinculadas. Remova as transações antes de excluir a conta.'
+                      : 'Esta ação não pode ser desfeita.'
+                    }
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Remover conta</h3>
-                <p className="text-xs text-muted-foreground mt-1">As transações vinculadas não serão apagadas.</p>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setDeletingId(null)} className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors">
+                  {bloqueado ? 'Fechar' : 'Cancelar'}
+                </button>
+                {!bloqueado && (
+                  <button onClick={() => handleDelete(deletingId)} disabled={deleteConta.isPending} className="px-4 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50">
+                    {deleteConta.isPending ? 'Removendo...' : 'Remover'}
+                  </button>
+                )}
               </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setDeletingId(null)} className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-accent transition-colors">Cancelar</button>
-              <button onClick={() => handleDelete(deletingId)} disabled={deleteConta.isPending} className="px-4 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50">
-                {deleteConta.isPending ? 'Removendo...' : 'Remover'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

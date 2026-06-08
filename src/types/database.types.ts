@@ -50,6 +50,7 @@ export interface Transacao {
   conta_id: number
   categoria_id: number
   observacoes?: string
+  ofx_id?: string
   created_at: string
   updated_at: string
 }

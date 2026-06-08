@@ -3,7 +3,22 @@ import { useMemo } from 'react'
 import { db } from '../services/database'
 import { useAuthStore } from '../stores/authStore'
 import { useOrcamentos } from './useOrcamento'
-import type { GastoPorCategoria, TransacaoCompleta } from '../../types/database.types'
+import type { GastoPorCategoria, ResumoFinanceiro, TransacaoCompleta } from '../../types/database.types'
+
+export function useResumoRelatorio(dataInicio: string, dataFim: string) {
+  const userId = useAuthStore((s) => s.currentUser?.id)
+  return useQuery<ResumoFinanceiro>({
+    queryKey: ['resumo-relatorio', userId, dataInicio, dataFim],
+    queryFn: async () => {
+      if (!userId) throw new Error('Não autenticado')
+      const result = await db.relatorio.getResumo(userId, dataInicio, dataFim)
+      if (!result.success) throw new Error(result.error)
+      return result.data ?? { receita: 0, despesa: 0, saldo: 0 }
+    },
+    enabled: !!userId && !!dataInicio && !!dataFim,
+    staleTime: 300_000,
+  })
+}
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
@@ -52,7 +67,7 @@ export function useEvolucaoMensal(dataInicio: string, dataFim: string) {
       })
     },
     enabled: !!userId && !!dataInicio && !!dataFim,
-    staleTime: 60_000,
+    staleTime: 300_000,
   })
 }
 
@@ -67,7 +82,7 @@ export function useTopGastos(dataInicio: string, dataFim: string, limite = 10) {
       return result.data ?? []
     },
     enabled: !!userId && !!dataInicio && !!dataFim,
-    staleTime: 60_000,
+    staleTime: 300_000,
   })
 }
 
@@ -95,7 +110,7 @@ export function useGastosPorCategoria(dataInicio: string, dataFim: string) {
       return result.data ?? []
     },
     enabled: !!userId && !!dataInicio && !!dataFim,
-    staleTime: 60_000,
+    staleTime: 300_000,
   })
 
   const orcamentosQuery = useOrcamentos(mesInicio, anoInicio)

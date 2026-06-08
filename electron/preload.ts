@@ -131,6 +131,23 @@ const api = {
     clear: () => ipcRenderer.invoke('database:clear')
   },
 
+  ofx: {
+    selectAndRead: (): Promise<{ success: boolean; data: string | null; error?: string }> =>
+      ipcRenderer.invoke('ofx:select-and-read'),
+    checkDuplicates: (usuarioId: number): Promise<{ success: boolean; data: string[]; error?: string }> =>
+      ipcRenderer.invoke('ofx:check-duplicates', usuarioId),
+  },
+
+  csv: {
+    export: (
+      usuarioId: number,
+      dataInicio: string,
+      dataFim: string,
+      filenameSuggestion: string
+    ): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }> =>
+      ipcRenderer.invoke('csv:export', usuarioId, dataInicio, dataFim, filenameSuggestion),
+  },
+
   auth: {
     checkUserExists: () => ipcRenderer.invoke('auth:check-user-exists'),
     register: (nome: string, senha: string) => ipcRenderer.invoke('auth:register', nome, senha),

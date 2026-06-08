@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { ResumoCards } from '../components/dashboard/ResumoCards'
 import { TransacaoModal } from '../components/transacoes/TransacaoModal'
+import { ImportacaoOFX } from '../components/transacoes/ImportacaoOFX'
 import { SwipeToDelete } from '../components/transacoes/SwipeToDelete'
 import { PullToRefresh } from '../components/layout/PullToRefresh'
 import { AlertDialog } from '../components/ui/AlertDialog'
@@ -264,6 +265,7 @@ export function TransacoesPage(): React.JSX.Element {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTransacao, setEditingTransacao] = useState<TransacaoCompleta | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [showImportOFX, setShowImportOFX] = useState(false)
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [mobileVisibleCount, setMobileVisibleCount] = useState(ITEMS_PER_PAGE)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -385,13 +387,12 @@ export function TransacoesPage(): React.JSX.Element {
           <p className="text-xs text-muted-foreground mt-0.5">{MESES_FULL[mes - 1]} {ano}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground">
-            <Download size={13} />
-            Exportar
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground">
+          <button
+            onClick={() => setShowImportOFX(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground"
+          >
             <Upload size={13} />
-            Importar
+            Importar OFX
           </button>
           <button
             onClick={abrirNova}
@@ -618,6 +619,13 @@ export function TransacoesPage(): React.JSX.Element {
         onClose={() => setModalOpen(false)}
         editingTransacao={editingTransacao}
       />
+
+      {showImportOFX && (
+        <ImportacaoOFX
+          onClose={() => setShowImportOFX(false)}
+          onSuccess={(count) => { setShowImportOFX(false) }}
+        />
+      )}
 
       <AlertDialog
         open={deleteId !== null}

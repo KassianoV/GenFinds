@@ -85,6 +85,13 @@ export class DatabaseManager {
       // Coluna já existe, ignorar erro
     }
 
+    // Migração: adicionar coluna ofx_id em transacoes
+    try {
+      this.db.run(`ALTER TABLE transacoes ADD COLUMN ofx_id TEXT`)
+    } catch {
+      // Coluna já existe, ignorar erro
+    }
+
     this.db.run(`
       CREATE TABLE IF NOT EXISTS contas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -742,8 +749,14 @@ export class DatabaseManager {
     }
 
     // Validar nova senha
-    if (!novaSenha || novaSenha.length < 4) {
-      throw new Error('Nova senha deve ter pelo menos 4 caracteres')
+    if (!novaSenha || novaSenha.length < 8) {
+      throw new Error('Nova senha deve ter pelo menos 8 caracteres')
+    }
+    if (!/[A-Z]/.test(novaSenha)) {
+      throw new Error('Nova senha deve conter pelo menos uma letra maiúscula')
+    }
+    if (!/[0-9]/.test(novaSenha)) {
+      throw new Error('Nova senha deve conter pelo menos um número')
     }
 
     // Hash da nova senha
@@ -1921,7 +1934,7 @@ export class DatabaseManager {
 
     return this.executeInTransaction(() => {
       this.db.run(
-        'INSERT INTO transacoes (usuario_id, descricao, valor, tipo, data, conta_id, categoria_id, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO transacoes (usuario_id, descricao, valor, tipo, data, conta_id, categoria_id, observacoes, ofx_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           transacao.usuario_id,
           transacao.descricao,
@@ -1930,7 +1943,8 @@ export class DatabaseManager {
           transacao.data,
           transacao.conta_id,
           transacao.categoria_id,
-          transacao.observacoes || null
+          transacao.observacoes || null,
+          transacao.ofx_id || null
         ]
       )
 
@@ -2043,6 +2057,26 @@ export class DatabaseManager {
     }
   }
 
+  getTransacoesByPeriodo(usuarioId: number, dataInicio: string, dataFim: string): TransacaoCompleta[] {
+    const query = `
+      SELECT
+        t.*,
+        ct.nome as conta_nome,
+        cat.nome as categoria_nome,
+        cat.cor as categoria_cor
+      FROM transacoes t
+      JOIN contas ct ON t.conta_id = ct.id
+      JOIN categorias cat ON t.categoria_id = cat.id
+      WHERE t.usuario_id = ? AND t.data BETWEEN ? AND ?
+      ORDER BY t.data ASC, t.created_at ASC
+    `
+    const result = this.db.exec(query, [usuarioId, dataInicio, dataFim])
+    if (result.length === 0) return []
+    return result[0].values.map((row: SqlValue[]) =>
+      this.rowToTransacaoCompletaFromArray(row, result[0].columns)
+    )
+  }
+
   getTransacao(id: number, usuarioId: number): Transacao | undefined {
     const result = this.db.exec('SELECT * FROM transacoes WHERE id = ? AND usuario_id = ?', [
       id,
@@ -2074,7 +2108,7 @@ export class DatabaseManager {
 
     return this.executeInTransaction(() => {
       const fields = validUpdates.map(([key]) => `${key} = ?`).join(', ')
-      const values = validUpdates.map(([, value]) => value)
+      const values = validUpdates.map(([, value]) => value ?? null)
 
       // O saldo é atualizado automaticamente pelo TRIGGER atualizar_saldo_update
       this.db.run(
@@ -2386,6 +2420,15 @@ export class DatabaseManager {
 
       return true
     })
+  }
+
+  getOfxIds(usuarioId: number): Set<string> {
+    const rows = this.db.exec(
+      'SELECT ofx_id FROM transacoes WHERE usuario_id = ? AND ofx_id IS NOT NULL',
+      [usuarioId]
+    )
+    if (rows.length === 0) return new Set()
+    return new Set(rows[0].values.map((r) => String(r[0])))
   }
 
   close(): void {
