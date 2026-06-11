@@ -156,6 +156,11 @@ const api = {
       ipcRenderer.invoke('auth:change-password', usuarioId, senhaAtual, novaSenha),
     updateNome: (id: number, novoNome: string) =>
       ipcRenderer.invoke('auth:update-nome', id, novoNome)
+  },
+
+  app: {
+    logError: (message: string, stack: string) =>
+      ipcRenderer.invoke('app:logError', message, stack),
   }
 }
 

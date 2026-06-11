@@ -1468,3 +1468,9 @@ ipcMain.handle(
     }
   }
 )
+
+// ========== IPC HANDLERS - APP ==========
+
+ipcMain.handle('app:logError', async (_, message: string, stack: string) => {
+  logError(`[Renderer] ${message}`, { stack })
+})

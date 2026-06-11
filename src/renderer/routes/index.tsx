@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { AppShell } from '../components/layout/AppShell'
 import { CylonLoader } from '../components/ui/CylonLoader'
+import { ErrorBoundary } from '../components/shared/ErrorBoundary'
 
 const AuthPage = lazy(() => import('../pages/AuthPage').then((m) => ({ default: m.AuthPage })))
 const DashboardPage = lazy(() =>
@@ -35,7 +36,7 @@ export function AppRoutes(): React.JSX.Element {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth" element={<ErrorBoundary><AuthPage /></ErrorBoundary>} />
         <Route
           element={
             <ProtectedRoute>
@@ -44,11 +45,11 @@ export function AppRoutes(): React.JSX.Element {
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/transacoes" element={<TransacoesPage />} />
-          <Route path="/cartao" element={<CartaoPage />} />
-          <Route path="/relatorio" element={<RelatorioPage />} />
-          <Route path="/configurar" element={<ConfigurarPage />} />
+          <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+          <Route path="/transacoes" element={<ErrorBoundary><TransacoesPage /></ErrorBoundary>} />
+          <Route path="/cartao" element={<ErrorBoundary><CartaoPage /></ErrorBoundary>} />
+          <Route path="/relatorio" element={<ErrorBoundary><RelatorioPage /></ErrorBoundary>} />
+          <Route path="/configurar" element={<ErrorBoundary><ConfigurarPage /></ErrorBoundary>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
