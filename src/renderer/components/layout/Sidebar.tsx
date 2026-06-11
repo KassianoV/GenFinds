@@ -9,8 +9,9 @@ import {
   LogOut,
   Moon,
   Sun,
+  Monitor,
 } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { useAppTheme, type ThemeMode } from '../../stores/themeStore'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '../../stores/authStore'
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,19 @@ const navItems = [
 export function Sidebar(): React.JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const logout = useAuthStore((s) => s.logout)
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useAppTheme()
+
+  const NEXT_THEME: Record<ThemeMode, ThemeMode> = { light: 'dark', dark: 'system', system: 'light' }
+  const THEME_ICON: Record<ThemeMode, React.ReactNode> = {
+    light: <Moon size={18} className="shrink-0" />,
+    dark: <Monitor size={18} className="shrink-0" />,
+    system: <Sun size={18} className="shrink-0" />,
+  }
+  const THEME_LABEL: Record<ThemeMode, string> = {
+    light: 'Modo escuro',
+    dark: 'Seguir sistema',
+    system: 'Modo claro',
+  }
 
   return (
     <aside
@@ -81,22 +94,22 @@ export function Sidebar(): React.JSX.Element {
       {/* Footer */}
       <div className="p-2 border-t border-border space-y-0.5 overflow-hidden">
         <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          title={!expanded ? 'Alternar tema' : undefined}
+          onClick={() => setTheme(NEXT_THEME[theme])}
+          title={!expanded ? THEME_LABEL[theme] : undefined}
           className={cn(
             'flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium overflow-hidden',
             'text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors',
             !expanded && 'justify-center px-2',
           )}
         >
-          {theme === 'dark' ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
+          {THEME_ICON[theme]}
           <span
             className={cn(
               'whitespace-nowrap transition-all duration-200 overflow-hidden',
               expanded ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0',
             )}
           >
-            {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            {THEME_LABEL[theme]}
           </span>
         </button>
 
