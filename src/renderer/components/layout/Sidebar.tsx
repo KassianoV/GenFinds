@@ -39,8 +39,12 @@ export function Sidebar(): React.JSX.Element {
     >
       {/* Logo */}
       <div className="flex items-center h-14 border-b border-border px-4 overflow-hidden">
-        <span className="font-bold text-lg text-primary tracking-tight shrink-0">
-          {expanded ? 'GenFinds' : 'GF'}
+        <span className="font-bold text-lg tracking-tight shrink-0">
+          {expanded ? (
+            <><span className="text-white">Gen</span><span className="text-primary">Finds</span></>
+          ) : (
+            <><span className="text-white">G</span><span className="text-primary">F</span></>
+          )}
         </span>
       </div>
 

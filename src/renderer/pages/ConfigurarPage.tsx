@@ -34,7 +34,7 @@ import {
   useDeleteOrcamento,
 } from '../hooks/useOrcamento'
 import { formatCurrencyBRL } from '../../lib/format'
-import type { Categoria, Orcamento, Conta } from '../../types/database.types'
+import type { Categoria, Conta } from '../../types/database.types'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ function CategoriaForm({
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo</label>
-          <div className="flex gap-2 h-[38px]">
+          <div className="flex gap-2 h-9.5">
             {(['despesa', 'receita'] as const).map((t) => (
               <button
                 key={t}
@@ -489,6 +489,39 @@ function PerfilTab(): React.JSX.Element {
             <LogOut size={15} />
             Sair da conta
           </button>
+
+          {/* Informações do software */}
+          <div className="pt-2 border-t border-border space-y-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Informações do App
+            </h3>
+            <div className="space-y-1.5 text-sm text-foreground/80">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Versão</span>
+                <span className="font-medium">v2.0.0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Plataforma</span>
+                <span className="font-medium">Desktop · Windows</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Repositório</span>
+                <button
+                  onClick={() => window.open('https://github.com/KassianoV/GenFinds', '_blank')}
+                  className="font-medium text-primary hover:underline"
+                >
+                  GitHub ↗
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Licença</span>
+                <span className="font-medium">Proprietária</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">
+              © 2026 Kassiano Vieira. Todos os direitos reservados.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -852,7 +885,7 @@ function OrcamentoTab(): React.JSX.Element {
     } catch { toast.error('Erro ao criar orçamento') }
   }
 
-  async function handleUpdate(id: number, categoriaId: number, valor: number): Promise<void> {
+  async function handleUpdate(id: number, _categoriaId: number, valor: number): Promise<void> {
     try {
       await updateOrcamento.mutateAsync({ id, updates: { valor_planejado: valor } })
       toast.success('Orçamento atualizado')

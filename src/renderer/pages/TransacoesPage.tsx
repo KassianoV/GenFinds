@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import {
   Plus,
-  Download,
   Upload,
   Search,
   Pencil,
@@ -33,6 +32,7 @@ import { useTransacoesFilterStore } from '../stores/transacoesFilterStore'
 import { isDesktop } from '../services/platform'
 import { formatCurrencyBRL } from '../../lib/format'
 import type { TransacaoCompleta, Conta, Categoria } from '../../types/database.types'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -266,9 +266,10 @@ export function TransacoesPage(): React.JSX.Element {
   const [editingTransacao, setEditingTransacao] = useState<TransacaoCompleta | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [showImportOFX, setShowImportOFX] = useState(false)
-  const [paginaAtual, setPaginaAtual] = useState(1)
   const [mobileVisibleCount, setMobileVisibleCount] = useState(ITEMS_PER_PAGE)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const [scrollMargin, setScrollMargin] = useState(0)
   const desktop = isDesktop()
 
   // ── Queries ──
@@ -329,18 +330,14 @@ export function TransacoesPage(): React.JSX.Element {
   // ── Scroll container ──
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // ── Reset pagination when filters change ──
+  // ── Reset mobile scroll on filter change ──
   const filterKey = `${mes}-${ano}-${filtroTipo}-${buscaDebounced}-${contaIds.join(',')}-${categoriaIds.join(',')}`
   useEffect(() => {
-    setPaginaAtual(1)
     setMobileVisibleCount(ITEMS_PER_PAGE)
   }, [filterKey])
 
-  // ── Derived pagination values ──
-  const totalPaginas = Math.max(1, Math.ceil(transacoesFiltradas.length / ITEMS_PER_PAGE))
-  const transacoesVisiveis = desktop
-    ? transacoesFiltradas.slice((paginaAtual - 1) * ITEMS_PER_PAGE, paginaAtual * ITEMS_PER_PAGE)
-    : transacoesFiltradas.slice(0, mobileVisibleCount)
+  // ── Mobile visible slice (desktop uses virtualizer) ──
+  const mobileTransacoes = transacoesFiltradas.slice(0, mobileVisibleCount)
 
   // ── Intersection Observer (mobile infinite scroll) ──
   useEffect(() => {
@@ -357,6 +354,21 @@ export function TransacoesPage(): React.JSX.Element {
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
   }, [desktop, transacoesFiltradas.length])
+
+  // ── Measure list offset for virtualizer ──
+  useLayoutEffect(() => {
+    if (!desktop || !listRef.current) return
+    setScrollMargin(listRef.current.offsetTop)
+  }, [desktop, transacoesQuery.isLoading])
+
+  // ── Row virtualizer (desktop) ──
+  const rowVirtualizer = useVirtualizer({
+    count: desktop ? transacoesFiltradas.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 52,
+    overscan: 5,
+    scrollMargin,
+  })
 
   // ── Handlers ──
   function abrirNova(): void { setEditingTransacao(null); setModalOpen(true) }
@@ -565,48 +577,52 @@ export function TransacoesPage(): React.JSX.Element {
                   </button>
                 )}
               </div>
+            ) : desktop ? (
+              /* Desktop: virtual list */
+              <div
+                ref={listRef}
+                style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const t = transacoesFiltradas[virtualItem.index]
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <SwipeToDelete onDelete={() => setDeleteId(t.id)}>
+                        <TransacaoRow
+                          transacao={t}
+                          isTable={true}
+                          onEdit={() => abrirEdicao(t)}
+                          onDelete={() => setDeleteId(t.id)}
+                        />
+                      </SwipeToDelete>
+                    </div>
+                  )
+                })}
+              </div>
             ) : (
-              /* List */
+              /* Mobile: infinite scroll */
               <div>
-                {transacoesVisiveis.map((t) => (
+                {mobileTransacoes.map((t) => (
                   <SwipeToDelete key={t.id} onDelete={() => setDeleteId(t.id)}>
                     <TransacaoRow
                       transacao={t}
-                      isTable={desktop}
+                      isTable={false}
                       onEdit={() => abrirEdicao(t)}
                       onDelete={() => setDeleteId(t.id)}
                     />
                   </SwipeToDelete>
                 ))}
-                {!desktop && <div ref={sentinelRef} className="h-px" />}
-              </div>
-            )}
-
-            {/* Desktop pagination footer */}
-            {desktop && !transacoesQuery.isLoading && transacoesFiltradas.length > 0 && (
-              <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {transacoesFiltradas.length} transaç{transacoesFiltradas.length === 1 ? 'ão' : 'ões'}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPaginaAtual((p) => p - 1)}
-                    disabled={paginaAtual === 1}
-                    className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Anterior
-                  </button>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {paginaAtual} / {totalPaginas}
-                  </span>
-                  <button
-                    onClick={() => setPaginaAtual((p) => p + 1)}
-                    disabled={paginaAtual >= totalPaginas}
-                    className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Próximo
-                  </button>
-                </div>
+                <div ref={sentinelRef} className="h-px" />
               </div>
             )}
           </div>
@@ -623,7 +639,7 @@ export function TransacoesPage(): React.JSX.Element {
       {showImportOFX && (
         <ImportacaoOFX
           onClose={() => setShowImportOFX(false)}
-          onSuccess={(count) => { setShowImportOFX(false) }}
+          onSuccess={() => { setShowImportOFX(false) }}
         />
       )}
 

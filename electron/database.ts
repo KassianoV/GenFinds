@@ -2432,7 +2432,7 @@ export class DatabaseManager {
   }
 
   close(): void {
-    this.save()
+    this.flush()
     this.db.close()
   }
 }

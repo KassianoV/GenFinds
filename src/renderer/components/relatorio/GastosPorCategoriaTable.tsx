@@ -146,7 +146,7 @@ export function GastosPorCategoriaTable({ data, isLoading }: GastosPorCategoriaT
       ) : (
         /* Scroll horizontal no mobile */
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
+          <table className="w-full min-w-150">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-2.5 text-left">

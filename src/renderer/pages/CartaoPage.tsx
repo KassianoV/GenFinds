@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useLayoutEffect } from 'react'
 import {
   CreditCard,
   Plus,
@@ -28,6 +28,7 @@ import {
 import { formatCurrencyBRL } from '../../lib/format'
 import type { Cartao, TransacaoCartaoCompleta } from '../../types/database.types'
 import { toast } from 'sonner'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { PullToRefresh } from '../components/layout/PullToRefresh'
 import { Skeleton, SkeletonListRow } from '../components/ui/Skeleton'
 
@@ -185,6 +186,9 @@ export function CartaoPage(): React.JSX.Element {
   const quitarParcelamento = useQuitarParcelamento()
 
   const [quitarGrupo, setQuitarGrupo] = useState<CompraParcelada | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const faturaListRef = useRef<HTMLDivElement>(null)
+  const [faturaScrollMargin, setFaturaScrollMargin] = useState(0)
 
   function navMes(delta: number): void {
     let novoMes = mes + delta
@@ -205,6 +209,24 @@ export function CartaoPage(): React.JSX.Element {
     })
     return Array.from(grupos.entries())
   }, [faturas])
+
+  const faturasSorted = useMemo(
+    () => [...faturas].sort((a, b) => b.data.localeCompare(a.data)),
+    [faturas],
+  )
+
+  useLayoutEffect(() => {
+    if (!isDesktop() || !faturaListRef.current) return
+    setFaturaScrollMargin(faturaListRef.current.offsetTop)
+  }, [aba, faturasLoading])
+
+  const faturaVirtualizer = useVirtualizer({
+    count: isDesktop() && aba === 'fatura' ? faturasSorted.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 48,
+    overscan: 5,
+    scrollMargin: faturaScrollMargin,
+  })
 
   function abrirNovoCartao(): void {
     setEditingCartao(null)
@@ -321,7 +343,7 @@ export function CartaoPage(): React.JSX.Element {
       </div>
 
       {/* ── Conteúdo ── */}
-      <PullToRefresh onRefresh={refetchAll} refreshing={refreshing} className="flex-1">
+      <PullToRefresh ref={scrollRef} onRefresh={refetchAll} refreshing={refreshing} className="flex-1">
 
         {/* ── ABA: CARTÕES ── */}
         {aba === 'cartoes' && (
@@ -473,41 +495,55 @@ export function CartaoPage(): React.JSX.Element {
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-right">Categoria</span>
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-right">Valor</span>
                       </div>
-                      <div className="divide-y divide-border">
-                        {[...faturas].sort((a, b) => b.data.localeCompare(a.data)).map((f) => (
-                          <div
-                            key={f.id}
-                            className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-6 px-4 py-3 hover:bg-accent/40 transition-colors items-center group"
-                          >
-                            <div className="min-w-0 flex items-center gap-2">
-                              <p className="text-sm font-medium text-foreground truncate">{f.descricao}</p>
-                              <button
-                                onClick={() => setDeleteFaturaId(f.id)}
-                                className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                      <div
+                        ref={faturaListRef}
+                        style={{ height: faturaVirtualizer.getTotalSize(), position: 'relative' }}
+                      >
+                        {faturaVirtualizer.getVirtualItems().map((virtualItem) => {
+                          const f = faturasSorted[virtualItem.index]
+                          return (
+                            <div
+                              key={virtualItem.key}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: `${virtualItem.size}px`,
+                                transform: `translateY(${virtualItem.start}px)`,
+                              }}
+                              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-6 px-4 items-center group border-b border-border hover:bg-accent/40 transition-colors"
+                            >
+                              <div className="min-w-0 flex items-center gap-2">
+                                <p className="text-sm font-medium text-foreground truncate">{f.descricao}</p>
+                                <button
+                                  onClick={() => setDeleteFaturaId(f.id)}
+                                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                              <span className="text-xs text-muted-foreground text-right whitespace-nowrap">
+                                {new Date(f.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </span>
+                              <span className="text-xs text-right whitespace-nowrap">
+                                {f.parcelas > 1 ? (
+                                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
+                                    {f.parcela_atual}/{f.parcelas}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </span>
+                              <span className="text-xs text-muted-foreground text-right whitespace-nowrap">
+                                {f.categoria_nome ?? '—'}
+                              </span>
+                              <span className="text-sm font-semibold text-red-500 text-right whitespace-nowrap">
+                                -{formatCurrencyBRL(f.valor)}
+                              </span>
                             </div>
-                            <span className="text-xs text-muted-foreground text-right whitespace-nowrap">
-                              {new Date(f.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                            </span>
-                            <span className="text-xs text-right whitespace-nowrap">
-                              {f.parcelas > 1 ? (
-                                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
-                                  {f.parcela_atual}/{f.parcelas}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </span>
-                            <span className="text-xs text-muted-foreground text-right whitespace-nowrap">
-                              {f.categoria_nome ?? '—'}
-                            </span>
-                            <span className="text-sm font-semibold text-red-500 text-right whitespace-nowrap">
-                              -{formatCurrencyBRL(f.valor)}
-                            </span>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </>
                   ) : (

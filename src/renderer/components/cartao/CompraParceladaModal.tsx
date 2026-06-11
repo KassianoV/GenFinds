@@ -296,7 +296,7 @@ export function CompraParceladaModal({
   if (isDesktop()) {
     return (
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-120">
           <DialogHeader>
             <DialogTitle>Compra Parcelada</DialogTitle>
           </DialogHeader>
