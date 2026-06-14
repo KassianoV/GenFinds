@@ -6,6 +6,7 @@ import {
   CreditCard,
   BarChart2,
   Settings,
+  Wifi,
   LogOut,
   Moon,
   Sun,
@@ -22,6 +23,7 @@ const navItems = [
   { to: '/cartao', icon: CreditCard, label: 'Cartões' },
   { to: '/relatorio', icon: BarChart2, label: 'Relatórios' },
   { to: '/configurar', icon: Settings, label: 'Configurar' },
+  { to: '/sync', icon: Wifi, label: 'Sincronizar' },
 ]
 
 export function Sidebar(): React.JSX.Element {

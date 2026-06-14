@@ -2431,6 +2431,35 @@ export class DatabaseManager {
     return new Set(rows[0].values.map((r) => String(r[0])))
   }
 
+  // Retorna dados básicos do único usuário do desktop (sem password_hash)
+  getUsuarioPrimario(): { id: number; nome: string } | null {
+    const rows = this.db.exec('SELECT id, nome FROM usuarios LIMIT 1')
+    if (!rows.length || !rows[0].values.length) return null
+    const [id, nome] = rows[0].values[0]
+    return { id: id as number, nome: nome as string }
+  }
+
+  // Dump completo de todos os dados de um usuário (usado pelo sync)
+  getFullDump(usuarioId: number): Record<string, Record<string, SqlValue>[]> {
+    // Tabelas permitidas — lista fechada, nunca vem de input externo
+    const allowedTables = [
+      'contas', 'categorias', 'orcamentos',
+      'cartoes', 'parcelas',
+      'transacoes', 'transacoes_cartao', 'notas',
+    ] as const
+    const dump: Record<string, Record<string, SqlValue>[]> = {}
+    for (const table of allowedTables) {
+      const sql = 'SELECT * FROM ' + table + ' WHERE usuario_id = ?'
+      const rows = this.db.exec(sql, [usuarioId])
+      if (!rows.length) { dump[table] = []; continue }
+      const { columns, values } = rows[0]
+      dump[table] = values.map((row) =>
+        Object.fromEntries(columns.map((col, i) => [col, row[i]]))
+      )
+    }
+    return dump
+  }
+
   close(): void {
     this.flush()
     this.db.close()

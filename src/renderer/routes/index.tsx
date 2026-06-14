@@ -21,6 +21,9 @@ const RelatorioPage = lazy(() =>
 const ConfigurarPage = lazy(() =>
   import('../pages/ConfigurarPage').then((m) => ({ default: m.ConfigurarPage }))
 )
+const SyncPage = lazy(() =>
+  import('../pages/SyncPage').then((m) => ({ default: m.SyncPage }))
+)
 
 function PageLoader(): React.JSX.Element {
   return <CylonLoader />
@@ -50,6 +53,7 @@ export function AppRoutes(): React.JSX.Element {
           <Route path="/cartao" element={<ErrorBoundary><CartaoPage /></ErrorBoundary>} />
           <Route path="/relatorio" element={<ErrorBoundary><RelatorioPage /></ErrorBoundary>} />
           <Route path="/configurar" element={<ErrorBoundary><ConfigurarPage /></ErrorBoundary>} />
+          <Route path="/sync" element={<ErrorBoundary><SyncPage /></ErrorBoundary>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1316,3 +1316,87 @@ export const mobileDatabaseService: DatabaseService = {
       })
   }
 }
+
+// ========== SYNC: POPULATE FROM DESKTOP DUMP ==========
+
+export async function populateFromSync(
+  userId: number,
+  userName: string,
+  passwordHash: string,
+  dump: Record<string, Record<string, unknown>[]>
+): Promise<void> {
+  const db = await getDb()
+
+  await db.run('BEGIN TRANSACTION', [])
+  try {
+    // Limpa tudo na ordem certa (FK)
+    await db.run('DELETE FROM transacoes_cartao', [])
+    await db.run('DELETE FROM transacoes', [])
+    await db.run('DELETE FROM parcelas', [])
+    await db.run('DELETE FROM notas', [])
+    await db.run('DELETE FROM orcamentos', [])
+    await db.run('DELETE FROM cartoes', [])
+    await db.run('DELETE FROM categorias', [])
+    await db.run('DELETE FROM contas', [])
+    await db.run('DELETE FROM usuarios', [])
+
+    // Cria o usuário com o mesmo id do desktop
+    await db.run(
+      'INSERT INTO usuarios (id, nome, email, password_hash) VALUES (?, ?, ?, ?)',
+      [userId, userName, 'sync@genfinds.local', passwordHash]
+    )
+
+    // Tabelas sem triggers (inserção direta com colunas do dump)
+    const directTables = ['categorias', 'orcamentos', 'parcelas', 'notas'] as const
+    for (const table of directTables) {
+      const rows = dump[table] ?? []
+      for (const row of rows) {
+        const cols = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        await db.run(
+          'INSERT OR REPLACE INTO ' + table + ' (' + cols + ') VALUES (' + placeholders + ')',
+          Object.values(row) as (string | number | null)[]
+        )
+      }
+    }
+
+    // contas com saldo=0 para que os triggers calculem corretamente
+    for (const row of (dump['contas'] ?? [])) {
+      const r = { ...row, saldo: 0 }
+      const cols = Object.keys(r).join(', ')
+      const placeholders = Object.keys(r).map(() => '?').join(', ')
+      await db.run(
+        'INSERT OR REPLACE INTO contas (' + cols + ') VALUES (' + placeholders + ')',
+        Object.values(r) as (string | number | null)[]
+      )
+    }
+
+    // cartoes com valor=0 para que os triggers calculem corretamente
+    for (const row of (dump['cartoes'] ?? [])) {
+      const r = { ...row, valor: 0 }
+      const cols = Object.keys(r).join(', ')
+      const placeholders = Object.keys(r).map(() => '?').join(', ')
+      await db.run(
+        'INSERT OR REPLACE INTO cartoes (' + cols + ') VALUES (' + placeholders + ')',
+        Object.values(r) as (string | number | null)[]
+      )
+    }
+
+    // transacoes e transacoes_cartao disparam triggers → atualizam saldo/valor automaticamente
+    for (const table of ['transacoes', 'transacoes_cartao'] as const) {
+      for (const row of (dump[table] ?? [])) {
+        const cols = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        await db.run(
+          'INSERT OR REPLACE INTO ' + table + ' (' + cols + ') VALUES (' + placeholders + ')',
+          Object.values(row) as (string | number | null)[]
+        )
+      }
+    }
+
+    await db.run('COMMIT', [])
+  } catch (err) {
+    await db.run('ROLLBACK', [])
+    throw err
+  }
+}

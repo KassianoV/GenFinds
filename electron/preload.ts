@@ -161,6 +161,17 @@ const api = {
   app: {
     logError: (message: string, stack: string) =>
       ipcRenderer.invoke('app:logError', message, stack),
+  },
+
+  sync: {
+    generateQR: () =>
+      ipcRenderer.invoke('sync:generate-qr'),
+    getDevices: () =>
+      ipcRenderer.invoke('sync:get-devices'),
+    revokeDevice: (deviceId: string) =>
+      ipcRenderer.invoke('sync:revoke-device', deviceId),
+    getStatus: () =>
+      ipcRenderer.invoke('sync:get-status'),
   }
 }
 

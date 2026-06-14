@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import {
-  User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff, Moon, Sun, LogOut,
+  User, Lock, Tag, Plus, Pencil, Trash2, Eye, EyeOff,
   Wallet, PieChart, Check, X, AlertTriangle,
   ShoppingCart, Utensils, Car, Home, Zap, Heart, GraduationCap, Plane,
   Gamepad2, Shirt, Smartphone, TrendingUp, Briefcase, Gift, Coffee,
   Music, Dumbbell, Baby, PawPrint, DollarSign, Building2, Bus, Fuel, Stethoscope,
   type LucideIcon,
 } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
 import {
@@ -285,7 +284,6 @@ function CategoriaRow({ categoria, onEdit, onDelete }: CategoriaRowProps): React
 function PerfilTab(): React.JSX.Element {
   const user = useAuthStore((s) => s.currentUser)
   const logout = useAuthStore((s) => s.logout)
-  const { theme, setTheme } = useTheme()
   const updateNome = useUpdateNome()
   const changePassword = useChangePassword()
 
@@ -472,29 +470,10 @@ function PerfilTab(): React.JSX.Element {
           </form>
         </div>
 
-        {/* Preferências */}
+        {/* Informações do App */}
         <div className="bg-card rounded-xl border border-border p-5 space-y-2.5">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Preferências</h2>
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm border border-border rounded-lg hover:bg-accent transition-colors text-foreground"
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            {theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
-          </button>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm border border-red-200 dark:border-red-900/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
-          >
-            <LogOut size={15} />
-            Sair da conta
-          </button>
-
-          {/* Informações do software */}
-          <div className="pt-2 border-t border-border space-y-2">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Informações do App
-            </h3>
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold text-foreground mb-3">Informações do App</h2>
             <div className="space-y-1.5 text-sm text-foreground/80">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Versão</span>

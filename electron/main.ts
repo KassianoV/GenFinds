@@ -3,6 +3,8 @@ import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { DatabaseManager } from './database'
+import { DeviceManager } from './sync/deviceManager'
+import { SyncServer } from './sync/syncServer'
 import {
   Conta,
   Categoria,
@@ -109,6 +111,8 @@ function recordLoginAttempt(nome: string, success: boolean): void {
 
 let mainWindow: BrowserWindow | null = null
 let db: DatabaseManager
+let deviceManager: DeviceManager
+let syncServer: SyncServer
 
 function createWindow(): void {
   // ========== CORREÇÃO DO ÍCONE ==========
@@ -174,6 +178,10 @@ app.whenReady().then(async () => {
   await db.init()
   logInfo('Database initialized successfully')
 
+  deviceManager = new DeviceManager()
+  syncServer = new SyncServer(deviceManager, db)
+  await syncServer.start()
+
   createWindow()
   logInfo('Main window created')
 
@@ -192,7 +200,8 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
+  if (syncServer) await syncServer.stop()
   if (db) {
     logInfo('Application quitting, closing database')
     db.close()
@@ -1473,4 +1482,51 @@ ipcMain.handle(
 
 ipcMain.handle('app:logError', async (_, message: string, stack: string) => {
   logError(`[Renderer] ${message}`, { stack })
+})
+
+// ========== IPC HANDLERS - SINCRONIZAÇÃO ==========
+
+ipcMain.handle('sync:generate-qr', async () => {
+  try {
+    const qrData = deviceManager.generateQRData()
+    return { success: true, data: qrData }
+  } catch (error) {
+    logError('sync:generate-qr failed', error)
+    return { success: false, error: 'Erro ao gerar QR code' }
+  }
+})
+
+ipcMain.handle('sync:get-devices', async () => {
+  try {
+    return { success: true, data: deviceManager.getDevices() }
+  } catch (error) {
+    logError('sync:get-devices failed', error)
+    return { success: false, error: 'Erro ao listar dispositivos' }
+  }
+})
+
+ipcMain.handle('sync:revoke-device', async (_, deviceId: string) => {
+  try {
+    const revoked = deviceManager.revokeDevice(deviceId)
+    return { success: true, data: revoked }
+  } catch (error) {
+    logError('sync:revoke-device failed', error)
+    return { success: false, error: 'Erro ao revogar dispositivo' }
+  }
+})
+
+ipcMain.handle('sync:get-status', async () => {
+  try {
+    return {
+      success: true,
+      data: {
+        running: syncServer.isRunning(),
+        deviceId: deviceManager.getDeviceId(),
+        devices: deviceManager.getDevices().length,
+      },
+    }
+  } catch (error) {
+    logError('sync:get-status failed', error)
+    return { success: false, error: 'Erro ao obter status do sync' }
+  }
 })
